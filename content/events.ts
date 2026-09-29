@@ -1,0 +1,1398 @@
+// Authored environmental event catalog. 32 families × 3 options, every option wired to typed engine effects.
+// Descriptions are player-facing summaries; the UI also lists each typed effect mechanically so copy and
+// mechanics can be compared. Never executed as code — the engine dispatches on the typed `effects` data.
+
+import type { EffectOp, Season, TerrainName } from "@/lib/game/types";
+
+export type FootprintSpec =
+  | { kind: "world" }
+  | { kind: "region"; radius: number }
+  | { kind: "riverBasin"; radius: number }
+  | { kind: "terrainPatch"; terrain: TerrainName; maxTiles: number }
+  | { kind: "mountainArea"; radius: number };
+
+export type Precondition = { kind: "terrainPresent"; terrain: TerrainName; min: number };
+
+export interface EventOptionDef {
+  id: string;
+  label: string;
+  description: string;
+  /** Longest temporary duration among effects; 0 for purely one-time/permanent options. */
+  duration: number;
+  tone: "mild" | "beneficial" | "harsh" | "mixed";
+  effects: EffectOp[];
+}
+
+export interface EventDef {
+  id: string;
+  title: string;
+  question: string;
+  seasons: Season[] | "any";
+  preconditions: Precondition[];
+  footprint: FootprintSpec;
+  /** Standard policy: avoid repeating within the last five turns when another family is eligible. */
+  repeat: "standard";
+  options: [EventOptionDef, EventOptionDef, EventOptionDef];
+}
+
+const ANY = "any" as const;
+const region = (radius = 20): FootprintSpec => ({ kind: "region", radius });
+const basin = (radius = 26): FootprintSpec => ({ kind: "riverBasin", radius });
+const WORLD: FootprintSpec = { kind: "world" };
+
+export const EVENTS: EventDef[] = [
+  {
+    id: "E01",
+    title: "Season of Rain",
+    question: "How much rain falls?",
+    seasons: ["spring", "summer"],
+    preconditions: [],
+    footprint: region(22),
+    repeat: "standard",
+    options: [
+      {
+        id: "E01_light",
+        label: "Light rain",
+        description: "Farms in the area yield slightly less; forest ground stays firm and easier to cross.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 0.9, scope: "footprint", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "footprint", duration: 2, terrain: ["forest"] },
+        ],
+      },
+      {
+        id: "E01_steady",
+        label: "Steady rain",
+        description: "Crops and wild plants in the area grow well; travel is unaffected.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 1.15, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "forage", factor: 1.1, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E01_torrential",
+        label: "Torrential rain",
+        description: "Strong growth on higher ground, but low fields near water flood and all travel slows.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 1.25, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 0.6, scope: "footprint", duration: 2, nearWater: true },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 2 },
+          { op: "overlay", flag: "Flooded", fraction: 0.2, scope: "footprint", duration: 2, nearWater: true, terrain: ["meadow"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E02",
+    title: "Winter's Character",
+    question: "What kind of winter arrives?",
+    seasons: ["winter"],
+    preconditions: [],
+    footprint: WORLD,
+    repeat: "standard",
+    options: [
+      {
+        id: "E02_mild",
+        label: "Mild winter",
+        description: "Less cold exposure for unsheltered people, but stored food spoils faster.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "exposure", add: -0.015, scope: "world", duration: 2 },
+          { op: "spoilage", add: 0.03, scope: "world", duration: 2 },
+        ],
+      },
+      {
+        id: "E02_wet",
+        label: "Wet winter",
+        description: "Ordinary cold, but saturated ground slows meadow travel and wears down wooden homes and camps each turn.",
+        duration: 2,
+        tone: "harsh",
+        effects: [
+          { op: "recurringShelterDamage", amount: 4, scope: "world", duration: 2, types: ["wood", "camp"] },
+          { op: "travelMod", delta: 1, scope: "world", duration: 2, terrain: ["meadow"] },
+        ],
+      },
+      {
+        id: "E02_bitter",
+        label: "Bitter winter",
+        description: "Much greater cold exposure for anyone without shelter, and thick ice cuts fishing.",
+        duration: 2,
+        tone: "harsh",
+        effects: [
+          { op: "exposure", add: 0.03, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "fish", factor: 0.6, scope: "world", duration: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E03",
+    title: "Length of the Harvest",
+    question: "How long is the growing season?",
+    seasons: ["autumn"],
+    preconditions: [],
+    footprint: WORLD,
+    repeat: "standard",
+    options: [
+      {
+        id: "E03_brief",
+        label: "Brief season",
+        description: "Farms yield less, and herds move away early, lowering hunting returns.",
+        duration: 2,
+        tone: "harsh",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 0.8, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "hunt", factor: 0.85, scope: "world", duration: 2 },
+        ],
+      },
+      {
+        id: "E03_ordinary",
+        label: "Ordinary season",
+        description: "A dependable harvest: a small farm bonus this turn only.",
+        duration: 1,
+        tone: "mild",
+        effects: [{ op: "yieldMult", channel: "farm", factor: 1.05, scope: "world", duration: 1 }],
+      },
+      {
+        id: "E03_extended",
+        label: "Extended season",
+        description: "A larger harvest, but the warm weather increases food spoilage.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 1.3, scope: "world", duration: 2 },
+          { op: "spoilage", add: 0.03, scope: "world", duration: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E04",
+    title: "The Thaw",
+    question: "How does the thaw unfold?",
+    seasons: ["spring"],
+    preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
+    footprint: basin(),
+    repeat: "standard",
+    options: [
+      {
+        id: "E04_gradual",
+        label: "Gradual thaw",
+        description: "Modest growth for farms and wild plants in the basin; travel is safe.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "forage", factor: 1.1, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E04_sudden",
+        label: "Sudden thaw",
+        description: "A flood pulse halves riverside farm output this turn and slows travel, then leaves riverbanks permanently more fertile.",
+        duration: 1,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 0.5, scope: "footprint", duration: 1, nearWater: true },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 1 },
+          { op: "overlay", flag: "Flooded", fraction: 0.25, scope: "footprint", duration: 1, nearWater: true, terrain: ["meadow"] },
+          { op: "fertility", delta: 12, scope: "footprint", nearWater: true, terrain: ["meadow"] },
+        ],
+      },
+      {
+        id: "E04_delayed",
+        label: "Delayed thaw",
+        description: "Crops grow slowly, but frozen ground keeps forest routes firm.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 0.8, scope: "footprint", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "footprint", duration: 2, terrain: ["forest"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E05",
+    title: "Seeds on the Wind",
+    question: "Which seeds do birds spread?",
+    seasons: ["spring", "autumn"],
+    preconditions: [],
+    footprint: region(18),
+    repeat: "standard",
+    options: [
+      {
+        id: "E05_lumber",
+        label: "Lumber trees",
+        description: "Some open meadow becomes young forest now; two turns later the area's forests hold more timber.",
+        duration: 0,
+        tone: "mixed",
+        effects: [
+          { op: "convertTile", from: "meadow", to: "forest", fraction: 0.08, scope: "footprint" },
+          {
+            op: "delayed",
+            afterTurns: 2,
+            label: "Young trees mature",
+            effects: [{ op: "capacityAdjust", resource: "timber", fraction: 0.15, scope: "footprint", terrain: ["forest"] }],
+          },
+        ],
+      },
+      {
+        id: "E05_wheat",
+        label: "Wild wheat",
+        description: "Meadows in the area become permanently more fertile, strengthening farms.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [
+          { op: "fertility", delta: 15, scope: "footprint", terrain: ["meadow"] },
+          { op: "overlay", flag: "Wheat", fraction: 0.1, scope: "footprint", terrain: ["meadow"] },
+        ],
+      },
+      {
+        id: "E05_fruit",
+        label: "Fruit bushes",
+        description: "Renewable wild food grows across the area, but bushes crowd out some construction timber.",
+        duration: 0,
+        tone: "mixed",
+        effects: [
+          { op: "capacityAdjust", resource: "forage", fraction: 0.4, scope: "footprint", terrain: ["meadow", "forest"] },
+          { op: "overlay", flag: "Fruit", fraction: 0.1, scope: "footprint", terrain: ["meadow", "forest"] },
+          { op: "capacityAdjust", resource: "timber", fraction: -0.1, scope: "footprint", terrain: ["forest"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E06",
+    title: "Pollinator Bloom",
+    question: "Where do pollinators flourish?",
+    seasons: ["spring", "summer"],
+    preconditions: [],
+    footprint: region(20),
+    repeat: "standard",
+    options: [
+      {
+        id: "E06_meadows",
+        label: "In the meadows",
+        description: "Farms in the area yield more for three turns.",
+        duration: 3,
+        tone: "beneficial",
+        effects: [{ op: "yieldMult", channel: "farm", factor: 1.2, scope: "footprint", duration: 3 }],
+      },
+      {
+        id: "E06_forest_edges",
+        label: "Along forest edges",
+        description: "Wild fruit is plentiful: forest forage is replenished and foraging yields more for three turns.",
+        duration: 3,
+        tone: "beneficial",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint", terrain: ["forest"] },
+          { op: "yieldMult", channel: "forage", factor: 1.25, scope: "footprint", duration: 3 },
+        ],
+      },
+      {
+        id: "E06_riverbanks",
+        label: "On the riverbanks",
+        description: "Shore plants are replenished and regrow faster for three turns.",
+        duration: 3,
+        tone: "beneficial",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "footprint", nearWater: true },
+          { op: "regen", resource: "forage", factor: 1.5, scope: "footprint", duration: 3, nearWater: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E07",
+    title: "Summer Heat",
+    question: "How intense is the heat?",
+    seasons: ["summer"],
+    preconditions: [],
+    footprint: WORLD,
+    repeat: "standard",
+    options: [
+      {
+        id: "E07_cool",
+        label: "Cool summer",
+        description: "Crops grow less, but stored food keeps better.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 0.85, scope: "world", duration: 2 },
+          { op: "spoilage", add: -0.02, scope: "world", duration: 2 },
+        ],
+      },
+      {
+        id: "E07_warm",
+        label: "Warm summer",
+        description: "Crops grow more; water access is ordinary.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [{ op: "yieldMult", channel: "farm", factor: 1.15, scope: "world", duration: 2 }],
+      },
+      {
+        id: "E07_scorching",
+        label: "Scorching summer",
+        description: "Drought halves farm output (Irrigation limits the loss), dry forests lose timber to fire, wild plants regrow slowly, and dry ground is easy to cross.",
+        duration: 2,
+        tone: "harsh",
+        effects: [
+          { op: "dryFarm", factor: 0.5, scope: "world", duration: 2 },
+          { op: "stockAdjust", resource: "timber", fraction: -0.1, scope: "world", terrain: ["forest"] },
+          { op: "regen", resource: "forage", factor: 0.6, scope: "world", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 2, terrain: ["forest"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E08",
+    title: "Forest Understory",
+    question: "What happens to the forest understory?",
+    seasons: ["summer", "autumn"],
+    preconditions: [{ kind: "terrainPresent", terrain: "forest", min: 200 }],
+    footprint: { kind: "terrainPatch", terrain: "forest", maxTiles: 700 },
+    repeat: "standard",
+    options: [
+      {
+        id: "E08_berries",
+        label: "Berries",
+        description: "Forest forage is replenished, but tangled growth slows forest travel.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "footprint", terrain: ["forest"] },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 2, terrain: ["forest"] },
+        ],
+      },
+      {
+        id: "E08_brush",
+        label: "Thick brush",
+        description: "More wildlife shelters in the forest and breeds faster, but travel is slower for three turns.",
+        duration: 3,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.4, scope: "footprint", terrain: ["forest"] },
+          { op: "regen", resource: "wildlife", factor: 1.5, scope: "footprint", duration: 3 },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 3, terrain: ["forest"] },
+        ],
+      },
+      {
+        id: "E08_sparse",
+        label: "Sparse growth",
+        description: "Forest travel is easier for three turns, but foraging yields less.",
+        duration: 3,
+        tone: "mixed",
+        effects: [
+          { op: "travelMod", delta: -1, scope: "footprint", duration: 3, terrain: ["forest"] },
+          { op: "yieldMult", channel: "forage", factor: 0.85, scope: "footprint", duration: 3 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E09",
+    title: "Herd Migration",
+    question: "Where do herds migrate?",
+    seasons: ["spring", "autumn"],
+    preconditions: [],
+    footprint: region(24),
+    repeat: "standard",
+    options: [
+      {
+        id: "E09_meadows",
+        label: "Across the meadows",
+        description: "Meadow wildlife in the area is replenished.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.6, scope: "footprint", terrain: ["meadow"] }],
+      },
+      {
+        id: "E09_forests",
+        label: "Into the forests",
+        description: "Forest wildlife in the area is replenished.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.6, scope: "footprint", terrain: ["forest"] }],
+      },
+      {
+        id: "E09_valleys",
+        label: "Through mountain valleys",
+        description: "Wildlife on mountain slopes is replenished and breeds faster for two turns.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.8, scope: "footprint", terrain: ["mountain"] },
+          { op: "regen", resource: "wildlife", factor: 1.4, scope: "footprint", duration: 2, terrain: ["mountain"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E10",
+    title: "Fish Spawning",
+    question: "What happens to fish spawning?",
+    seasons: ["spring", "summer"],
+    preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
+    footprint: basin(),
+    repeat: "standard",
+    options: [
+      {
+        id: "E10_abundant",
+        label: "Abundant spawning",
+        description: "Fish stocks in this basin are strongly restored.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "stockAdjust", resource: "fish", fraction: 0.6, scope: "footprint" }],
+      },
+      {
+        id: "E10_scattered",
+        label: "Scattered spawning",
+        description: "Fish stocks rise a little in every body of water.",
+        duration: 0,
+        tone: "mild",
+        effects: [{ op: "stockAdjust", resource: "fish", fraction: 0.25, scope: "world" }],
+      },
+      {
+        id: "E10_poor",
+        label: "Poor spawning",
+        description: "Fish regrow slowly for three turns and fisheries in the basin yield less for two.",
+        duration: 3,
+        tone: "harsh",
+        effects: [
+          { op: "regen", resource: "fish", factor: 0.4, scope: "footprint", duration: 3 },
+          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "footprint", duration: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E11",
+    title: "Crop Pest",
+    question: "How does a crop pest spread?",
+    seasons: ["summer", "autumn"],
+    preconditions: [],
+    footprint: region(20),
+    repeat: "standard",
+    options: [
+      {
+        id: "E11_wheat",
+        label: "Through wheat fields",
+        description: "Farms in the area lose 30% of output for two turns.",
+        duration: 2,
+        tone: "harsh",
+        effects: [{ op: "yieldMult", channel: "farm", factor: 0.7, scope: "footprint", duration: 2 }],
+      },
+      {
+        id: "E11_fruit",
+        label: "Through wild fruit",
+        description: "Wild forage in the area is reduced now and yields less for two turns.",
+        duration: 2,
+        tone: "harsh",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: -0.2, scope: "footprint" },
+          { op: "yieldMult", channel: "forage", factor: 0.7, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E11_canopy",
+        label: "Through the tree canopy",
+        description: "Some standing timber is lost and forests regrow slowly for four turns.",
+        duration: 4,
+        tone: "harsh",
+        effects: [
+          { op: "stockAdjust", resource: "timber", fraction: -0.1, scope: "footprint", terrain: ["forest"] },
+          { op: "regen", resource: "timber", factor: 0.3, scope: "footprint", duration: 4 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E12",
+    title: "Strong Winds",
+    question: "What do strong winds bring?",
+    seasons: ANY,
+    preconditions: [],
+    footprint: region(22),
+    repeat: "standard",
+    options: [
+      {
+        id: "E12_clouds",
+        label: "Rain clouds",
+        description: "Crops in the area grow better for two turns; wet ground slows travel this turn.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "footprint", duration: 2 },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 1 },
+        ],
+      },
+      {
+        id: "E12_dry",
+        label: "Dry air",
+        description: "Forest and mountain travel is easier and food keeps better, but brush fires destroy some timber.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "travelMod", delta: -1, scope: "footprint", duration: 2, terrain: ["forest", "mountain"] },
+          { op: "stockAdjust", resource: "timber", fraction: -0.08, scope: "footprint", terrain: ["forest"] },
+          { op: "spoilage", add: -0.01, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E12_branches",
+        label: "Fallen branches",
+        description: "Settlements in the area collect 15 timber immediately, but wooden homes and camps take minor damage.",
+        duration: 0,
+        tone: "mixed",
+        effects: [
+          { op: "settlementStock", resource: "timber", amount: 15, scope: "footprint" },
+          { op: "shelterDamage", amount: 6, scope: "footprint", types: ["wood", "camp"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E13",
+    title: "Lightning Season",
+    question: "What happens after lightning?",
+    seasons: ["summer"],
+    preconditions: [{ kind: "terrainPresent", terrain: "forest", min: 200 }],
+    footprint: { kind: "terrainPatch", terrain: "forest", maxTiles: 600 },
+    repeat: "standard",
+    options: [
+      {
+        id: "E13_fire",
+        label: "Local fire",
+        description: "Fire destroys forest timber now; two turns later some burned forest becomes fertile meadow.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "timber", fraction: -0.2, scope: "footprint", terrain: ["forest"] },
+          { op: "overlay", flag: "Burned", fraction: 0.15, scope: "footprint", duration: 2, terrain: ["forest"] },
+          {
+            op: "delayed",
+            afterTurns: 2,
+            label: "Burned forest opens into meadow",
+            effects: [
+              { op: "convertTile", from: "forest", to: "meadow", fraction: 0.1, scope: "footprint" },
+              { op: "fertility", delta: 10, scope: "footprint", terrain: ["meadow"] },
+            ],
+          },
+        ],
+      },
+      {
+        id: "E13_rain",
+        label: "Heavy rain",
+        description: "Rain suppresses fire: timber regrows faster, crops get a small boost, and saturated ground slows travel.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "regen", resource: "timber", factor: 1.3, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "footprint", duration: 1 },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E13_scattered",
+        label: "Scattered strikes",
+        description: "Small, dispersed damage: a little timber lost and light damage to all shelters in the area.",
+        duration: 0,
+        tone: "harsh",
+        effects: [
+          { op: "stockAdjust", resource: "timber", fraction: -0.06, scope: "footprint", terrain: ["forest"] },
+          { op: "shelterDamage", amount: 5, scope: "footprint" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E14",
+    title: "Storm Season",
+    question: "How severe are storms?",
+    seasons: ["autumn", "winter"],
+    preconditions: [],
+    footprint: region(24),
+    repeat: "standard",
+    options: [
+      {
+        id: "E14_brief",
+        label: "Brief storms",
+        description: "Small immediate damage to shelters in the area.",
+        duration: 0,
+        tone: "mild",
+        effects: [{ op: "shelterDamage", amount: 6, scope: "footprint" }],
+      },
+      {
+        id: "E14_persistent",
+        label: "Persistent storms",
+        description: "Travel is slower and fishing is poor in the area for three turns.",
+        duration: 3,
+        tone: "harsh",
+        effects: [
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 3 },
+          { op: "yieldMult", channel: "fish", factor: 0.7, scope: "footprint", duration: 3 },
+        ],
+      },
+      {
+        id: "E14_violent",
+        label: "Violent storms",
+        description: "Heavy shelter damage, but fallen trees leave timber on the ground and settlements collect 10 timber.",
+        duration: 0,
+        tone: "harsh",
+        effects: [
+          { op: "shelterDamage", amount: 15, scope: "footprint" },
+          { op: "stockAdjust", resource: "timber", fraction: 0.2, scope: "footprint", terrain: ["forest"] },
+          { op: "settlementStock", resource: "timber", amount: 10, scope: "footprint" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E15",
+    title: "River Flow",
+    question: "How does the river behave?",
+    seasons: ["spring", "summer"],
+    preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
+    footprint: basin(),
+    repeat: "standard",
+    options: [
+      {
+        id: "E15_low",
+        label: "Low flow",
+        description: "Exposed banks offer more shore forage, but fish regrow slowly and fisheries yield less for three turns.",
+        duration: 3,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.2, scope: "footprint", nearWater: true },
+          { op: "regen", resource: "fish", factor: 0.5, scope: "footprint", duration: 3 },
+          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "footprint", duration: 3 },
+        ],
+      },
+      {
+        id: "E15_stable",
+        label: "Stable flow",
+        description: "Baseline conditions with a slight fishing improvement for two turns.",
+        duration: 2,
+        tone: "mild",
+        effects: [{ op: "yieldMult", channel: "fish", factor: 1.05, scope: "footprint", duration: 2 }],
+      },
+      {
+        id: "E15_high",
+        label: "High flow",
+        description: "Fish stocks are replenished, but nearby fields flood and riverside shelters are damaged.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "fish", fraction: 0.5, scope: "footprint" },
+          { op: "yieldMult", channel: "farm", factor: 0.6, scope: "footprint", duration: 2, nearWater: true },
+          { op: "overlay", flag: "Flooded", fraction: 0.25, scope: "footprint", duration: 2, nearWater: true, terrain: ["meadow"] },
+          { op: "shelterDamage", amount: 8, scope: "footprint", nearWater: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E16",
+    title: "Winter Ice",
+    question: "How does ice form?",
+    seasons: ["winter"],
+    preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
+    footprint: basin(),
+    repeat: "standard",
+    options: [
+      {
+        id: "E16_thin",
+        label: "Thin ice",
+        description: "Fishing remains possible at 90%; cold exposure is unchanged.",
+        duration: 2,
+        tone: "mild",
+        effects: [{ op: "yieldMult", channel: "fish", factor: 0.9, scope: "footprint", duration: 2 }],
+      },
+      {
+        id: "E16_thick",
+        label: "Thick ice",
+        description: "Fishing drops sharply, but frozen ground removes wet-ground travel penalties.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "fish", factor: 0.4, scope: "footprint", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E16_uneven",
+        label: "Uneven ice",
+        description: "Patchy fishing and treacherous routes: fisheries yield less and travel is slower.",
+        duration: 2,
+        tone: "harsh",
+        effects: [
+          { op: "yieldMult", channel: "fish", factor: 0.7, scope: "footprint", duration: 2 },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E17",
+    title: "Erosion",
+    question: "What does erosion expose?",
+    seasons: ANY,
+    preconditions: [{ kind: "terrainPresent", terrain: "mountain", min: 100 }],
+    footprint: { kind: "mountainArea", radius: 18 },
+    repeat: "standard",
+    options: [
+      {
+        id: "E17_stone",
+        label: "Stone",
+        description: "Accessible stone deposits on nearby mountains are replenished.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "stockAdjust", resource: "stone", fraction: 0.5, scope: "footprint", terrain: ["mountain"] }],
+      },
+      {
+        id: "E17_soil",
+        label: "Fertile soil",
+        description: "Nearby meadows become permanently more fertile.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "fertility", delta: 15, scope: "footprint", terrain: ["meadow"] }],
+      },
+      {
+        id: "E17_caves",
+        label: "Caves",
+        description: "New caves open in the mountains, providing natural shelter to whoever holds them.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "overlay", flag: "Cave", fraction: 0.06, scope: "footprint", terrain: ["mountain"] }],
+      },
+    ],
+  },
+  {
+    id: "E18",
+    title: "Landslide",
+    question: "Where does a landslide settle?",
+    seasons: ["spring", "autumn"],
+    preconditions: [{ kind: "terrainPresent", terrain: "mountain", min: 100 }],
+    footprint: { kind: "mountainArea", radius: 14 },
+    repeat: "standard",
+    options: [
+      {
+        id: "E18_forest",
+        label: "On a forest slope",
+        description: "Timber is buried and forest travel is much slower for four turns.",
+        duration: 4,
+        tone: "harsh",
+        effects: [
+          { op: "stockAdjust", resource: "timber", fraction: -0.15, scope: "footprint", terrain: ["forest"] },
+          { op: "travelMod", delta: 2, scope: "footprint", duration: 4, terrain: ["forest"] },
+        ],
+      },
+      {
+        id: "E18_meadow",
+        label: "At the meadow edge",
+        description: "Meadows lose fertility permanently, but settlements in the area collect 10 exposed stone.",
+        duration: 0,
+        tone: "mixed",
+        effects: [
+          { op: "fertility", delta: -15, scope: "footprint", terrain: ["meadow"] },
+          { op: "settlementStock", resource: "stone", amount: 10, scope: "footprint" },
+        ],
+      },
+      {
+        id: "E18_valley",
+        label: "In an empty valley",
+        description: "Minimal damage: a new pass eases mountain travel for four turns, while debris slows meadow travel for two.",
+        duration: 4,
+        tone: "mild",
+        effects: [
+          { op: "travelMod", delta: -1, scope: "footprint", duration: 4, terrain: ["mountain"] },
+          { op: "travelMod", delta: 1, scope: "footprint", duration: 2, terrain: ["meadow"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E19",
+    title: "Recovering Ground",
+    question: "What grows on recovering ground?",
+    seasons: ["spring"],
+    preconditions: [],
+    footprint: region(20),
+    repeat: "standard",
+    options: [
+      {
+        id: "E19_grass",
+        label: "Grass",
+        description: "Meadow forage and grazing wildlife recover now.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "footprint", terrain: ["meadow"] },
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.2, scope: "footprint", terrain: ["meadow"] },
+        ],
+      },
+      {
+        id: "E19_saplings",
+        label: "Saplings",
+        description: "Three turns from now, forest timber recovers and forests can hold slightly more timber.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [
+          {
+            op: "delayed",
+            afterTurns: 3,
+            label: "Saplings grow into timber",
+            effects: [
+              { op: "stockAdjust", resource: "timber", fraction: 0.3, scope: "footprint", terrain: ["forest"] },
+              { op: "capacityAdjust", resource: "timber", fraction: 0.1, scope: "footprint", terrain: ["forest"] },
+            ],
+          },
+        ],
+      },
+      {
+        id: "E19_shrubs",
+        label: "Shrubs",
+        description: "Wild forage recovers quickly now and regrows faster for two turns.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.6, scope: "footprint" },
+          { op: "regen", resource: "forage", factor: 1.5, scope: "footprint", duration: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E20",
+    title: "A Thriving Species",
+    question: "Which species thrives?",
+    seasons: ["summer"],
+    preconditions: [],
+    footprint: region(22),
+    repeat: "standard",
+    options: [
+      {
+        id: "E20_grazers",
+        label: "Grazers",
+        description: "Wildlife in the area increases, but grazing herds eat into crops for two turns.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.5, scope: "footprint" },
+          { op: "yieldMult", channel: "farm", factor: 0.85, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E20_fish",
+        label: "Fish",
+        description: "Fish in the area regrow twice as fast for three turns.",
+        duration: 3,
+        tone: "beneficial",
+        effects: [{ op: "regen", resource: "fish", factor: 2, scope: "footprint", duration: 3 }],
+      },
+      {
+        id: "E20_pollinators",
+        label: "Pollinators",
+        description: "Farms and wild fruit in the area yield more for two turns.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 1.15, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "forage", factor: 1.15, scope: "footprint", duration: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E21",
+    title: "Wild Harvest",
+    question: "What kind of wild harvest appears?",
+    seasons: ["autumn"],
+    preconditions: [],
+    footprint: region(22),
+    repeat: "standard",
+    options: [
+      {
+        id: "E21_nuts",
+        label: "Nuts",
+        description: "Forest forage in the area is strongly replenished.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "footprint", terrain: ["forest"] }],
+      },
+      {
+        id: "E21_roots",
+        label: "Roots",
+        description: "Meadow forage in the area is strongly replenished.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "footprint", terrain: ["meadow"] }],
+      },
+      {
+        id: "E21_mushrooms",
+        label: "Mushrooms",
+        description: "Damp forests near water yield abundant forage; drier forests only a little.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.7, scope: "footprint", terrain: ["forest"], nearWater: true },
+          { op: "stockAdjust", resource: "forage", fraction: 0.15, scope: "footprint", terrain: ["forest"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E22",
+    title: "Snowfall",
+    question: "How does the snow settle?",
+    seasons: ["winter"],
+    preconditions: [],
+    footprint: WORLD,
+    repeat: "standard",
+    options: [
+      {
+        id: "E22_powder",
+        label: "Powder snow",
+        description: "Colder for anyone unsheltered, but meadows stay passable.",
+        duration: 2,
+        tone: "mild",
+        effects: [{ op: "exposure", add: 0.01, scope: "world", duration: 2 }],
+      },
+      {
+        id: "E22_heavy",
+        label: "Heavy snow",
+        description: "Travel is slower, but snow insulates shelters and slightly reduces exposure.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "travelMod", delta: 1, scope: "world", duration: 2 },
+          { op: "exposure", add: -0.01, scope: "world", duration: 2 },
+        ],
+      },
+      {
+        id: "E22_freezing",
+        label: "Freezing rain",
+        description: "Ice damages exposed camps and wooden structures.",
+        duration: 0,
+        tone: "harsh",
+        effects: [{ op: "shelterDamage", amount: 12, scope: "world", types: ["camp", "wood"] }],
+      },
+    ],
+  },
+  {
+    id: "E23",
+    title: "Windstorm Deposits",
+    question: "What does a windstorm deposit?",
+    seasons: ANY,
+    preconditions: [],
+    footprint: region(20),
+    repeat: "standard",
+    options: [
+      {
+        id: "E23_seeds",
+        label: "Seeds",
+        description: "Two turns from now, wild plants in the area spread: more forage now and more capacity for it.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [
+          {
+            op: "delayed",
+            afterTurns: 2,
+            label: "Windblown seeds sprout",
+            effects: [
+              { op: "capacityAdjust", resource: "forage", fraction: 0.15, scope: "footprint" },
+              { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "E23_silt",
+        label: "Silt",
+        description: "Meadows near water in the area become permanently more fertile.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "fertility", delta: 12, scope: "footprint", terrain: ["meadow"], nearWater: true }],
+      },
+      {
+        id: "E23_driftwood",
+        label: "Driftwood",
+        description: "Settlements near shorelines in the area collect 12 timber.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "settlementStock", resource: "timber", amount: 12, scope: "footprint", nearWater: true }],
+      },
+    ],
+  },
+  {
+    id: "E24",
+    title: "Spreading Vegetation",
+    question: "Which vegetation spreads fastest?",
+    seasons: ["spring", "summer"],
+    preconditions: [],
+    footprint: region(20),
+    repeat: "standard",
+    options: [
+      {
+        id: "E24_reeds",
+        label: "Reeds",
+        description: "Shore forage increases, but reeds clog fisheries (lower output for three turns).",
+        duration: 3,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "footprint", nearWater: true },
+          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "footprint", duration: 3 },
+        ],
+      },
+      {
+        id: "E24_hardwood",
+        label: "Hardwood",
+        description: "Forests can hold more timber permanently, but timber regrows slowly for two turns.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "capacityAdjust", resource: "timber", fraction: 0.15, scope: "footprint", terrain: ["forest"] },
+          { op: "regen", resource: "timber", factor: 0.7, scope: "footprint", duration: 2 },
+        ],
+      },
+      {
+        id: "E24_grain",
+        label: "Wild grain",
+        description: "Meadows become more fertile for farms, but hold less wild forage.",
+        duration: 0,
+        tone: "mixed",
+        effects: [
+          { op: "fertility", delta: 10, scope: "footprint", terrain: ["meadow"] },
+          { op: "capacityAdjust", resource: "forage", fraction: -0.1, scope: "footprint", terrain: ["meadow"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E25",
+    title: "Changing Soil",
+    question: "What changes in the soil?",
+    seasons: ["summer", "autumn"],
+    preconditions: [],
+    footprint: region(20),
+    repeat: "standard",
+    options: [
+      {
+        id: "E25_rich",
+        label: "Rich soil",
+        description: "Meadows in the area become permanently more fertile.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "fertility", delta: 12, scope: "footprint", terrain: ["meadow"] }],
+      },
+      {
+        id: "E25_dry",
+        label: "Dry soil",
+        description: "Farms yield less for three turns (Irrigation limits the loss), but firm ground eases rough travel.",
+        duration: 3,
+        tone: "mixed",
+        effects: [
+          { op: "dryFarm", factor: 0.75, scope: "footprint", duration: 3 },
+          { op: "travelMod", delta: -1, scope: "footprint", duration: 3 },
+        ],
+      },
+      {
+        id: "E25_stony",
+        label: "Stony soil",
+        description: "Settlements in the area collect 12 stone, but meadows lose fertility permanently.",
+        duration: 0,
+        tone: "mixed",
+        effects: [
+          { op: "settlementStock", resource: "stone", amount: 12, scope: "footprint" },
+          { op: "fertility", delta: -10, scope: "footprint", terrain: ["meadow"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E26",
+    title: "Before Winter",
+    question: "What happens before winter?",
+    seasons: ["autumn"],
+    preconditions: [],
+    footprint: WORLD,
+    repeat: "standard",
+    options: [
+      {
+        id: "E26_frost",
+        label: "Early frost",
+        description: "Crops lose 30% this turn, but the cold slows food spoilage for two turns.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 0.7, scope: "world", duration: 1 },
+          { op: "spoilage", add: -0.02, scope: "world", duration: 2 },
+        ],
+      },
+      {
+        id: "E26_rains",
+        label: "Long rains",
+        description: "Wet ground slows travel for two turns, but wild forage is replenished and grows more.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "travelMod", delta: 1, scope: "world", duration: 2 },
+          { op: "stockAdjust", resource: "forage", fraction: 0.2, scope: "world" },
+          { op: "yieldMult", channel: "forage", factor: 1.2, scope: "world", duration: 2 },
+        ],
+      },
+      {
+        id: "E26_clear",
+        label: "Clear skies",
+        description: "A better harvest and easier rough travel this turn; spoilage is normal.",
+        duration: 1,
+        tone: "beneficial",
+        effects: [
+          { op: "yieldMult", channel: "farm", factor: 1.15, scope: "world", duration: 1 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 1 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E27",
+    title: "Winter Routes",
+    question: "Which routes remain easiest?",
+    seasons: ["winter"],
+    preconditions: [],
+    footprint: WORLD,
+    repeat: "standard",
+    options: [
+      {
+        id: "E27_meadows",
+        label: "Meadows",
+        description: "Meadow travel loses its winter penalty for two turns.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [{ op: "travelMod", delta: -1, scope: "world", duration: 2, terrain: ["meadow"] }],
+      },
+      {
+        id: "E27_forest",
+        label: "Forest corridors",
+        description: "Forest travel costs 1 less for two turns.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [{ op: "travelMod", delta: -1, scope: "world", duration: 2, terrain: ["forest"] }],
+      },
+      {
+        id: "E27_passes",
+        label: "Mountain passes",
+        description: "Mountain travel costs 1 less for two turns.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [{ op: "travelMod", delta: -1, scope: "world", duration: 2, terrain: ["mountain"] }],
+      },
+    ],
+  },
+  {
+    id: "E28",
+    title: "Wildlife Recovery",
+    question: "How do wildlife populations recover?",
+    seasons: ["spring"],
+    preconditions: [],
+    footprint: region(14),
+    repeat: "standard",
+    options: [
+      {
+        id: "E28_rapid",
+        label: "Rapidly",
+        description: "Wildlife everywhere regrows twice as fast for three turns.",
+        duration: 3,
+        tone: "beneficial",
+        effects: [{ op: "regen", resource: "wildlife", factor: 2, scope: "world", duration: 3 }],
+      },
+      {
+        id: "E28_gradual",
+        label: "Gradually",
+        description: "Wildlife everywhere regrows 30% faster for three turns.",
+        duration: 3,
+        tone: "mild",
+        effects: [{ op: "regen", resource: "wildlife", factor: 1.3, scope: "world", duration: 3 }],
+      },
+      {
+        id: "E28_uneven",
+        label: "Unevenly",
+        description: "A concentrated pocket of wildlife appears in the highlighted area only.",
+        duration: 0,
+        tone: "mixed",
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.8, scope: "footprint" }],
+      },
+    ],
+  },
+  {
+    id: "E29",
+    title: "Storehouse Air",
+    question: "What happens to stored food conditions?",
+    seasons: ["summer"],
+    preconditions: [],
+    footprint: WORLD,
+    repeat: "standard",
+    options: [
+      {
+        id: "E29_dry",
+        label: "Dry breeze",
+        description: "Stored food spoils more slowly for two turns.",
+        duration: 2,
+        tone: "beneficial",
+        effects: [{ op: "spoilage", add: -0.02, scope: "world", duration: 2 }],
+      },
+      {
+        id: "E29_humid",
+        label: "Humid air",
+        description: "Stored food spoils much faster for two turns.",
+        duration: 2,
+        tone: "harsh",
+        effects: [{ op: "spoilage", add: 0.04, scope: "world", duration: 2 }],
+      },
+      {
+        id: "E29_cool",
+        label: "Cool nights",
+        description: "Food keeps a little better, but crops grow slightly weaker for two turns.",
+        duration: 2,
+        tone: "mixed",
+        effects: [
+          { op: "spoilage", add: -0.015, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 0.93, scope: "world", duration: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E30",
+    title: "Recovery",
+    question: "How does a depleted region recover?",
+    seasons: ANY,
+    preconditions: [],
+    footprint: region(20),
+    repeat: "standard",
+    options: [
+      {
+        id: "E30_timber",
+        label: "Timber",
+        description: "Forest timber in the area is restored and forests can hold a little more.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [
+          { op: "stockAdjust", resource: "timber", fraction: 0.5, scope: "footprint", terrain: ["forest"] },
+          { op: "capacityAdjust", resource: "timber", fraction: 0.1, scope: "footprint", terrain: ["forest"] },
+        ],
+      },
+      {
+        id: "E30_wildlife",
+        label: "Wildlife",
+        description: "Hunting stocks in the area are restored.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.5, scope: "footprint" }],
+      },
+      {
+        id: "E30_soil",
+        label: "Soil",
+        description: "Meadow fertility improves and some wild forage returns (a mild change).",
+        duration: 0,
+        tone: "mild",
+        effects: [
+          { op: "fertility", delta: 10, scope: "footprint", terrain: ["meadow"] },
+          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E31",
+    title: "Natural Shelter",
+    question: "What natural shelter becomes available?",
+    seasons: ["autumn", "winter"],
+    preconditions: [],
+    footprint: region(22),
+    repeat: "standard",
+    options: [
+      {
+        id: "E31_caves",
+        label: "Caves",
+        description: "Mountain refuges open: cave tiles give natural shelter to whoever holds them.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "overlay", flag: "Cave", fraction: 0.08, scope: "footprint", terrain: ["mountain"] }],
+      },
+      {
+        id: "E31_groves",
+        label: "Dense groves",
+        description: "Sheltered groves in the forest give natural shelter to whoever holds them.",
+        duration: 0,
+        tone: "beneficial",
+        effects: [{ op: "overlay", flag: "Sheltered", fraction: 0.1, scope: "footprint", terrain: ["forest"] }],
+      },
+      {
+        id: "E31_banks",
+        label: "Sheltered banks",
+        description: "Shore land gains natural shelter, but riverside shelters take flood damage now.",
+        duration: 0,
+        tone: "mixed",
+        effects: [
+          { op: "overlay", flag: "Sheltered", fraction: 0.15, scope: "footprint", nearWater: true, terrain: ["meadow", "forest"] },
+          { op: "shelterDamage", amount: 4, scope: "footprint", nearWater: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "E32",
+    title: "Shifting Edges",
+    question: "What changes along biome boundaries?",
+    seasons: ANY,
+    preconditions: [],
+    footprint: region(18),
+    repeat: "standard",
+    options: [
+      {
+        id: "E32_meadow",
+        label: "Meadow expands",
+        description: "Some forest becomes open meadow: more farmland, less timber.",
+        duration: 0,
+        tone: "mixed",
+        effects: [{ op: "convertTile", from: "forest", to: "meadow", fraction: 0.08, scope: "footprint" }],
+      },
+      {
+        id: "E32_forest",
+        label: "Forest expands",
+        description: "Some meadow becomes forest: more timber, less open travel and farmland.",
+        duration: 0,
+        tone: "mixed",
+        effects: [{ op: "convertTile", from: "meadow", to: "forest", fraction: 0.08, scope: "footprint" }],
+      },
+      {
+        id: "E32_mixed",
+        label: "Mixed edge grows",
+        description: "More forage and wildlife now, but farms and timber gathering are slightly weaker for three turns.",
+        duration: 3,
+        tone: "mixed",
+        effects: [
+          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint" },
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.3, scope: "footprint" },
+          { op: "yieldMult", channel: "farm", factor: 0.9, scope: "footprint", duration: 3 },
+          { op: "yieldMult", channel: "timber", factor: 0.9, scope: "footprint", duration: 3 },
+        ],
+      },
+    ],
+  },
+];
+
+export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+
+export function findOption(eventId: string, optionId: string): EventOptionDef | undefined {
+  return EVENT_BY_ID[eventId]?.options.find((o) => o.id === optionId);
+}

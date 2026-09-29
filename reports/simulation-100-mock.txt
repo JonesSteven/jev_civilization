@@ -1,0 +1,7 @@
+
+MOCK-policy simulation: 100 games, crashes 0
+Engine resolution per turn: avg 5.8 ms, max 14.7 ms
+hearthwood  wins  58 survive 100 pop  241 score  87.0 techs 7.4 | establish_farm:1817 gather_timber:1673 expand:1465 build_housing:1055 research_continue:1002 research_start:738
+windstep    wins  28 survive 100 pop  177 score  76.9 techs 5.9 | gather_food:1847 gather_timber:1787 expand:1122 establish_hunt:1052 build_housing:920 research_continue:767
+stonehaven  wins  10 survive 100 pop  153 score  66.3 techs 5.5 | gather_food:4004 gather_timber:1028 build_housing:804 expand:778 research_continue:714 establish_farm:594
+ironfang    wins   6 survive  87 pop   65 score  49.5 techs 5.0 | gather_food:3210 raid:2090 research_continue:664 expand:629 establish_farm:531 research_start:520

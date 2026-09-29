@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" role="img" aria-label="Ironfang war camp with banners">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2d0c2"/><stop offset="1" stop-color="#faece5"/></linearGradient></defs>
+  <rect width="320" height="160" fill="url(#sky)"/>
+  <path d="M0 100 Q90 80 170 96 T320 90 V160 H0 Z" fill="#b8a676"/>
+  <path d="M0 124 Q100 110 200 124 T320 118 V160 H0 Z" fill="#a0915f"/>
+  <g stroke="#6e1f1a" stroke-width="2" stroke-linejoin="round">
+    <path d="M70 128 L96 90 L122 128 Z" fill="#d9c7a8"/><path d="M130 130 L152 96 L174 130 Z" fill="#cdb894"/>
+    <path d="M96 90 L96 60" /><path d="M96 60 L120 66 L96 74 Z" fill="#b8433c"/>
+    <path d="M200 132 L200 70"/><path d="M200 70 L226 76 L200 84 Z" fill="#b8433c"/>
+  </g>
+  <g stroke="#6e1f1a" stroke-width="3" stroke-linecap="round"><path d="M240 132 L268 100"/><path d="M268 132 L240 100"/></g>
+  <path d="M250 96 l8-6 8 6 M246 104 l-6 -2" stroke="#6e1f1a" stroke-width="2" fill="none"/>
+  <circle cx="160" cy="140" r="5" fill="#f2b85b"/><path d="M156 138 q4-10 8 0" fill="#e0703a"/>
+</svg>

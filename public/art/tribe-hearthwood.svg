@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" role="img" aria-label="Hearthwood farmsteads among fields">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e2b8"/><stop offset="1" stop-color="#fbf1dc"/></linearGradient></defs>
+  <rect width="320" height="160" fill="url(#sky)"/>
+  <circle cx="262" cy="36" r="16" fill="#f2b85b" opacity="0.8"/>
+  <path d="M0 96 Q80 76 160 92 T320 88 V160 H0 Z" fill="#a9c56f"/>
+  <path d="M0 116 Q90 100 170 114 T320 110 V160 H0 Z" fill="#8fb35a"/>
+  <g stroke="#c9a24a" stroke-width="2" opacity="0.9">
+    <path d="M10 130 L120 118 M10 138 L126 125 M10 146 L132 132 M10 154 L138 139"/>
+  </g>
+  <g fill="#5d7d33"><path d="M226 92 l10-26 10 26z"/><path d="M244 94 l12-32 12 32z"/><path d="M270 92 l9-22 9 22z"/><path d="M288 96 l11-28 11 28z"/></g>
+  <g stroke="#7a4a12" stroke-width="2" stroke-linejoin="round">
+    <path d="M150 104 L176 82 L202 104 Z" fill="#b5652a"/><rect x="156" y="103" width="40" height="26" fill="#e9c48f"/>
+    <rect x="171" y="112" width="10" height="17" fill="#7a4a12"/>
+    <path d="M198 110 L216 94 L234 110 Z" fill="#b5652a"/><rect x="202" y="109" width="28" height="20" fill="#e9c48f"/>
+  </g>
+  <path d="M182 82 q3-10 -1-18 q8 6 5 18" fill="#cfcfcf" opacity="0.7"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" role="img" aria-label="Windstep hunting camp on open grassland">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe9e3"/><stop offset="1" stop-color="#eef7f3"/></linearGradient></defs>
+  <rect width="320" height="160" fill="url(#sky)"/>
+  <path d="M0 90 Q70 70 150 86 T320 80 V160 H0 Z" fill="#9cc47a"/>
+  <path d="M0 118 Q100 104 190 118 T320 112 V160 H0 Z" fill="#86b466"/>
+  <g fill="#3e6b3a"><path d="M18 90 l9-24 9 24z"/><path d="M34 92 l11-30 11 30z"/></g>
+  <g stroke="#1d5a50" stroke-width="2" stroke-linejoin="round">
+    <path d="M110 128 L132 88 L154 128 Z" fill="#e9dcc0"/><path d="M132 88 L132 128" /><path d="M126 128 L132 112 L138 128 Z" fill="#1d5a50"/>
+    <path d="M152 130 L170 98 L188 130 Z" fill="#dccca8"/><path d="M170 98 L170 130"/>
+  </g>
+  <g fill="#6b4d2e"><path d="M236 108 q10-8 22 -2 l6 -8 2 3 -5 8 q2 8 -4 12 l0 12 -3 0 -1-10 -12 0 -1 10 -3 0 0-12 q-5-4 -1-13z"/><path d="M262 98 l4-10 M264 96 l6-6" stroke="#6b4d2e" stroke-width="2"/></g>
+  <path d="M200 52 q20-10 40 0 M60 44 q14-8 28 0" fill="none" stroke="#3f9e8f" stroke-width="2" stroke-linecap="round"/>
+</svg>

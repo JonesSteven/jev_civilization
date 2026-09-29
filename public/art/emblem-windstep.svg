@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Windstep emblem">
+  <circle cx="32" cy="32" r="30" fill="#16a085" stroke="#0e5c4c" stroke-width="3"/>
+  <path d="M32 12 C22 22 22 40 32 52 C42 40 42 22 32 12 Z" fill="#effaf7" stroke="#0e5c4c" stroke-width="2"/>
+  <path d="M32 16 L32 50" stroke="#0e5c4c" stroke-width="2"/>
+  <path d="M32 24 L25 20 M32 30 L24 26 M32 36 L25 33 M32 24 L39 20 M32 30 L40 26 M32 36 L39 33" stroke="#0e5c4c" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M10 40 q6-4 12 0 M42 40 q6-4 12 0" fill="none" stroke="#effaf7" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ironfang emblem">
+  <circle cx="32" cy="32" r="30" fill="#b8433c" stroke="#6e1f1a" stroke-width="3"/>
+  <path d="M20 16 Q22 36 30 48 Q26 32 26 16 Z" fill="#fbecea" stroke="#6e1f1a" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M44 16 Q42 36 34 48 Q38 32 38 16 Z" fill="#fbecea" stroke="#6e1f1a" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M16 14 H48" stroke="#fbecea" stroke-width="3" stroke-linecap="round"/>
+</svg>

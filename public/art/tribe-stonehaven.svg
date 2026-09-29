@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" role="img" aria-label="Stonehaven cave dwellings above a lake">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe1f3"/><stop offset="1" stop-color="#f3f3fa"/></linearGradient></defs>
+  <rect width="320" height="160" fill="url(#sky)"/>
+  <path d="M40 118 L110 30 L150 80 L190 22 L270 118 Z" fill="#9a9aa8" stroke="#43466e" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M110 30 L96 48 L110 44 L122 52 Z M190 22 L176 42 L192 38 L204 46 Z" fill="#f5f6ff"/>
+  <path d="M146 118 q14-26 28 0 Z" fill="#2e3050"/>
+  <rect x="96" y="96" width="30" height="22" fill="#b9b6c6" stroke="#43466e" stroke-width="2"/>
+  <rect x="200" y="100" width="26" height="18" fill="#b9b6c6" stroke="#43466e" stroke-width="2"/>
+  <rect x="0" y="118" width="320" height="42" fill="#6f9cc7"/>
+  <path d="M20 132 q10-5 20 0 t20 0 M120 142 q10-5 20 0 t20 0 M230 134 q10-5 20 0 t20 0" fill="none" stroke="#e8f1fa" stroke-width="2" stroke-linecap="round"/>
+  <path d="M260 146 q8-6 16 0 q-8 6 -16 0 Z M276 146 l6-4 0 8z" fill="#43466e"/>
+</svg>

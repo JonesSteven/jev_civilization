@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# next
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# secrets — never commit
+.env
+.env.local
+.env.*.local
+env.md
+
+# local data
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# test output
+test-results/
+playwright-report/
+coverage/
+reports/tmp/
+
+.DS_Store
