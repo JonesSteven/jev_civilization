@@ -120,7 +120,7 @@ export default function StartScreen() {
                 <option key={n} value={n}>{n} turns{n === 50 ? " (default)" : ""}</option>
               ))}
             </select>
-            <span className="small muted">{totalTurns / 8} years of two seasons-turns each</span>
+            <span className="small muted">about {Math.round((totalTurns / 8) * 10) / 10} game years (8 turns per year)</span>
           </label>
           <details>
             <summary>Advanced: world seed</summary>

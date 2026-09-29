@@ -139,5 +139,14 @@ tests/               engine, content, server (stub Jev), e2e (Playwright)
 public/art/          local SVG emblems and illustrations
 ```
 
+## License and disclaimer
+
+Released under the **MIT License** (see `LICENSE`), © 2026 Steven Jones. Third-party packages are used under their
+own licenses (see `THIRD_PARTY_NOTICES.md`).
+
+This project is **not affiliated with or endorsed by TypeSafe**. Live play uses your own TypeSafe API key, and you are
+responsible for its terms and costs. Game content is fiction. See `DISCLAIMER.md` for details, `SECURITY.md` to report
+vulnerabilities and for key handling, and `CONTRIBUTING.md` to contribute.
+
 See `HANDOFF.md` for requirement coverage, balance changes, verification results, and known limitations, and
 `Jev_Civilizations_PRD.md` for the product requirements.

@@ -19,6 +19,55 @@ export const HELP: HelpSection[] = [
     ],
   },
   {
+    id: "choosing",
+    title: "Choosing changes for your tribe",
+    body: [
+      "Every environmental choice affects the whole land, so the same change helps some tribes and hurts others depending on what they live on. The tribes below differ in how they get food, what they shelter in, and how they interact with neighbours.",
+      "Think in relative terms: the score is a ranking, so a choice that hurts rivals more than your tribe can be as useful as one that helps your tribe directly. Check the tribe panel for each tribe's food sources, food turns left, and shelter before you choose.",
+      "The event card lists the exact effects of each option. Effects with a duration last that many turns; fertility, capacity, and terrain changes are permanent.",
+    ],
+  },
+  {
+    id: "tribe-hearthwood",
+    title: "Supporting Hearthwood (farmers)",
+    body: [
+      "Hearthwood's food comes mainly from farms (+15% farm yield), so crop conditions and meadow fertility matter most. Farms and wooden homes also cost timber, so healthy forests nearby matter too.",
+      "Usually helpful: Season of Rain: Steady rain; Summer Heat: Warm summer; Pollinator Bloom: In the meadows; Length of the Harvest: Extended season; Before Winter: Clear skies; A Thriving Species: Pollinators. Permanent soil gains (Seeds on the Wind: Wild wheat, Erosion: Fertile soil, Changing Soil: Rich soil, Windstorm Deposits: Silt) keep paying off every turn.",
+      "Usually harmful: Crop Pest: Through wheat fields; Summer Heat: Scorching summer (halves farm output unless the tribe has learned Irrigation); Before Winter: Early frost; Length of the Harvest: Brief season; Landslide: At the meadow edge and Changing Soil: Stony soil (permanent fertility loss). Fires and canopy pests cut the timber Hearthwood builds with.",
+      "Weather damage to shelter matters less: Hearthwood's wooden homes take half the ordinary damage, so freezing rain and storms usually hurt rivals in camps more.",
+    ],
+  },
+  {
+    id: "tribe-windstep",
+    title: "Supporting Windstep (hunters)",
+    body: [
+      "Windstep's hunting sites draw on wildlife in the surrounding land, and its gathering yields 30% more. Wildlife stocks and how fast they regrow are its lifeline; heavy hunting depletes an area, which is why Windstep moves, scouts, and founds new settlements readily.",
+      "Usually helpful: Herd Migration (whichever terrain surrounds its sites); Forest Understory: Thick brush; Wildlife Recovery: Rapidly; A Thriving Species: Grazers; Recovery: Wildlife; Shifting Edges: Mixed edge grows. Changes that restore forage, such as Wild Harvest or Recovering Ground: Shrubs, also help its gathering.",
+      "Usually harmful: Length of the Harvest: Brief season (hunting −15%); Crop Pest: Through wild fruit. Windstep lives in portable camps, which take extra weather damage, so Freezing rain, Wet winter, Fallen branches, and violent storms wear its shelter down. Its camps are hardy against cold, though, so harsh winters hurt it less than their shelter damage suggests.",
+      "Easy travel (clear skies, dry ground, thick ice, winter route choices) makes Windstep's moves and scouting reach farther.",
+    ],
+  },
+  {
+    id: "tribe-stonehaven",
+    title: "Supporting Stonehaven (mountain fishers)",
+    body: [
+      "Stonehaven's food comes mainly from fisheries (+45% fishing yield), so fish stocks and fishing conditions matter most. It builds in stone (+30% quarrying), and its cave and stone shelters shrug off most weather damage. Farming is only available after it learns Agriculture.",
+      "Usually helpful: Fish Spawning: Abundant or Scattered spawning; A Thriving Species: Fish; River Flow: High flow (replenishes fish, though it floods fields near water) or Stable flow; Erosion: Stone or Caves; Natural Shelter: Caves.",
+      "Usually harmful: Winter's Character: Bitter winter (fishing −40%); Winter Ice: Thick ice (fishing −60%) or Uneven ice; Storm Season: Persistent storms; Fish Spawning: Poor spawning; River Flow: Low flow; Spreading Vegetation: Reeds. Because its homes are durable, shelter-damaging events usually hurt rivals more than Stonehaven.",
+      "If its shores run low, scouting for a new settlement beside fresh water is often Stonehaven's best way to grow.",
+    ],
+  },
+  {
+    id: "tribe-ironfang",
+    title: "Supporting Ironfang (raiders)",
+    body: [
+      "Ironfang starts with no farms, fisheries, or foraging. It lives on its starting stores and on raids (+50% attack), which take food and border land from neighbours. It can grow its own food only after learning Agriculture or Fishing.",
+      "Raiding reach depends on travel conditions at Ironfang's capital: each step of travel penalty shortens its reach by 25%, and each step of easier travel lengthens it. Winter adds a penalty. Choices that ease travel everywhere (Before Winter: Clear skies, Changing Soil: Dry soil, Winter Ice: Thick ice, and the matching Winter Routes choice) extend its reach. Choices that slow travel everywhere (Torrential rain, Sudden thaw, Rain clouds, Heavy rain, Persistent storms, Uneven ice, Heavy snow, Long rains) can leave it with no one in range.",
+      "Ironfang benefits indirectly when its neighbours are well stocked, since raids take from their stores, and when their defences are weak. Its portable camps take extra weather damage, so Freezing rain and Wet winter hurt it.",
+      "Once Ironfang learns Agriculture, the farming advice for Hearthwood starts to apply to it as well.",
+    ],
+  },
+  {
     id: "turns",
     title: "Turns and seasons",
     body: [
