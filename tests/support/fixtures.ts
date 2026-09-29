@@ -5,8 +5,8 @@ import { buildDecisionContext, effectiveOption, resolveTurn, startGame, type Tur
 import { TRIBE_IDS, type GameState, type TribeId } from "@/lib/game/types";
 import { createInitialState } from "@/lib/game/world/generate";
 
-export function newGame(seed = "fixture"): GameState {
-  return startGame(createInitialState(seed, CONTENT_VERSION, contentHash()));
+export function newGame(seed = "fixture", totalTurns = 50): GameState {
+  return startGame(createInitialState(seed, CONTENT_VERSION, contentHash(), totalTurns));
 }
 
 export function optionFor(state: GameState, index = 0): string {

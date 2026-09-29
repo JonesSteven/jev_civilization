@@ -3,7 +3,7 @@
 
 import { EVENT_BY_ID } from "@/content/events";
 import { TECH_BY_ID } from "@/content/technologies";
-import { calendarOf, seasonOf, TOTAL_TURNS } from "@/lib/game/calendar";
+import { calendarOf, seasonOf } from "@/lib/game/calendar";
 import { ModifierIndex } from "@/lib/game/effects/modifiers";
 import { computeGeo, type TribeGeo } from "@/lib/game/geo";
 import { relationLabel } from "@/lib/game/memory";
@@ -18,6 +18,8 @@ export interface TribePanel {
   alive: boolean;
   eliminatedTurn: number | null;
   settlement: number;
+  outposts: number[];
+  scoutedSites: { tile: number; terrain: string; distance: number; food: number; foundTurn: number }[];
   population: number;
   food: number;
   timber: number;
@@ -109,13 +111,13 @@ export function eventCard(state: GameState) {
 
 export function presentGeo(state: GameState): Record<TribeId, TribeGeo> {
   const mods = new ModifierIndex(state, state.activeEffects);
-  const turn = Math.min(state.completedTurn + 1, TOTAL_TURNS);
+  const turn = Math.min(state.completedTurn + 1, state.totalTurns);
   return computeGeo(state, mods.travelDelta(seasonOf(turn)));
 }
 
 export function tribePanels(state: GameState): TribePanel[] {
   const mods = new ModifierIndex(state, state.activeEffects);
-  const turn = Math.min(state.completedTurn + 1, TOTAL_TURNS);
+  const turn = Math.min(state.completedTurn + 1, state.totalTurns);
   const season = seasonOf(turn);
   const geo = computeGeo(state, mods.travelDelta(season));
   return TRIBE_IDS.map((id) => {
@@ -131,6 +133,8 @@ export function tribePanels(state: GameState): TribePanel[] {
       alive: t.alive,
       eliminatedTurn: t.eliminatedTurn,
       settlement: t.settlement,
+      outposts: t.outposts,
+      scoutedSites: t.scoutedSites.map((x) => ({ tile: x.tile, terrain: x.terrain, distance: x.distance, food: x.food, foundTurn: x.foundTurn })),
       population: t.population,
       food: t.food,
       timber: t.timber,
@@ -191,10 +195,10 @@ export interface PendingView {
 }
 
 export function presentGame(meta: GameMeta, state: GameState, pending: PendingView | null) {
-  const turn = Math.min(state.completedTurn + 1, TOTAL_TURNS);
+  const turn = Math.min(state.completedTurn + 1, state.totalTurns);
   const tribes = tribePanels(state);
   const scores = Object.fromEntries(tribes.map((t) => [t.id, t.score])) as Record<TribeId, ScoreBreakdown>;
-  const finished = state.completedTurn >= TOTAL_TURNS;
+  const finished = state.completedTurn >= state.totalTurns;
   return {
     ...meta,
     seed: state.seed,
@@ -204,6 +208,7 @@ export function presentGame(meta: GameMeta, state: GameState, pending: PendingVi
     generationAttempt: state.generationAttempt,
     usedFallbackMap: state.usedFallbackMap,
     completedTurn: state.completedTurn,
+    totalTurns: state.totalTurns,
     calendar: calendarOf(turn),
     world: worldView(state.world) as WorldView,
     tribes,

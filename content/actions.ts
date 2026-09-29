@@ -72,6 +72,19 @@ export const ACTIONS: Record<ActionKind, ActionDef> = {
     targetRule: "Living settlements within 16 travel units; offer the weakest defense and the nearest.",
   },
   defend: { kind: "defend", name: "Defend", summary: "Temporary ×1.5 settlement defense this turn." },
+  send_scouts: {
+    kind: "send_scouts",
+    name: "Send scouts",
+    summary: "Survey distant land for sites that could support a new settlement.",
+    targetRule:
+      "Unclaimed land within 40 travel units of any own settlement and at least 26 from every settlement; report the two sites with the most food (then materials) within radius 6.",
+  },
+  found_settlement: {
+    kind: "found_settlement",
+    name: "Found settlement",
+    summary: "Start an additional settlement at a site found by scouts (up to three settlements).",
+    targetRule: "Only scouted sites that are still unclaimed, unexpired, and at least 26 travel units from every settlement.",
+  },
   recruit: {
     kind: "recruit",
     name: "Recruit",

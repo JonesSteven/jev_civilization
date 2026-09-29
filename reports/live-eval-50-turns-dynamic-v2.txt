@@ -1,0 +1,35 @@
+T1 p E04/Gradual thaw       226ms 12379tok | heart:farm_at_4195(59%) ironf:research_agriculture(54%) stone:fishery_at_2684(46%) winds:hunt_at_7334(27%)
+T2 n E06/On the riverbanks  139ms 11979tok | heart:farm_at_4344(61%) ironf:research_continue(97%) stone:fishery_at_2833(33%) winds:hunt_at_7483(22%)
+T3 p E01/Torrential rain    152ms 12752tok | heart:farm_at_3894(28%) ironf:research_fishing(28%) stone:research_agriculture(47%) winds:send_scouts(21%)
+T4 n E15/Low flow           168ms 12148tok | heart:farm_at_4045(19%) ironf:research_continue(88%) stone:research_continue(88%) winds:found_settlement_at_6266(26%)
+T5 p E31/Dense groves       167ms 12790tok | heart:build_defenses(18%) ironf:raid_windstep(31%) stone:fishery_at_2239(27%) winds:gather_food(38%)
+T6 n E26/Long rains         158ms 10523tok | heart:build_defenses(48%) ironf:farm_at_10022(35%) stone:gather_food(44%) winds:gather_food(66%)
+T7 p E32/Meadow expands     120ms 9555tok | heart:gather_food(30%) ironf:gather_food(41%) stone:gather_food(65%) winds:gather_food(60%)
+T8 n E17/Stone              173ms 10236tok | heart:gather_food(42%) ironf:gather_food(57%) stone:gather_food(62%) winds:gather_food(64%)
+T9 p E09/Through mountain valleys 121ms 10601tok | heart:gather_food(20%) ironf:raid_windstep(58%) stone:gather_food(50%) winds:gather_food(47%)
+T10 n E18/At the meadow edge 177ms 10600tok | heart:send_scouts(19%) ironf:gather_food(38%) stone:gather_food(67%) winds:gather_food(74%)
+T11 p E20/Fish               141ms 10968tok | heart:farm_at_4196(32%) ironf:raid_windstep(46%) stone:gather_food(61%) winds:gather_food(67%)
+T12 n E11/Through wild fruit 179ms 10746tok | heart:gather_food(37%) ironf:raid_windstep(43%) stone:gather_food(73%) winds:gather_food(85%)
+T13 p E03/Brief season       143ms 10682tok | heart:gather_food(48%) ironf:gather_food(54%) stone:gather_food(57%) winds:gather_food(79%)
+T14 n E30/Wildlife           167ms 10174tok | heart:gather_food(26%) ironf:gather_food(59%) stone:gather_food(60%) winds:gather_food(71%)
+T15 p E27/Mountain passes    201ms 10097tok | heart:gather_food(60%) ironf:gather_food(89%) stone:gather_food(52%) winds:gather_food(74%)
+T16 n E14/Persistent storms  133ms 10076tok | heart:gather_food(77%) ironf:gather_food(95%) stone:gather_food(52%) winds:gather_food(82%)
+T17 p E10/Scattered spawning 130ms 10389tok | heart:farm_at_4345(40%) ironf:gather_food(83%) stone:gather_food(62%) winds:gather_food(65%)
+T18 n E19/Saplings           168ms 10488tok | heart:research_masonry(24%) ironf:gather_food(80%) stone:gather_food(62%) winds:gather_food(65%)
+T19 p E13/Local fire         123ms 10723tok | heart:research_continue(91%) ironf:gather_food(51%) stone:gather_food(58%) winds:gather_food(66%)
+T20 n E07/Scorching summer   183ms 11382tok | heart:rest(35%) ironf:gather_food(64%) stone:gather_food(59%) winds:gather_food(69%)
+T21 p E21/Mushrooms          122ms 11127tok | heart:rest(29%) ironf:gather_food(67%) stone:gather_food(64%) winds:gather_food(71%)
+T22 n E08/Sparse growth      196ms 11191tok | heart:rest(43%) ironf:gather_food(59%) stone:farm_at_2685(46%) winds:gather_food(66%)
+T23 p E12/Dry air            157ms 10782tok | heart:farm_at_4494(43%) ironf:gather_food(92%) stone:gather_food(60%) winds:gather_food(59%)
+T24 n E22/Freezing rain      153ms 10651tok | heart:gather_food(41%) ironf:gather_food(96%) stone:gather_food(62%) winds:gather_food(70%)
+T25 p E24/Reeds              142ms 11226tok | heart:gather_food(29%) ironf:gather_food(60%) stone:gather_food(74%) winds:gather_food(63%)
+T26 n E05/Fruit bushes       167ms 11211tok | heart:housing_stone_at_3744(31%) ironf:gather_food(64%) stone:gather_food(62%) winds:gather_food(59%)
+FAIL 503 {"code":"jev_invalid_response","message":"Jev returned a response that failed validation. Please retry."}
+
+Action frequencies: {"hearthwood":{"establish_farm":7,"build_defenses":2,"gather_food":10,"send_scouts":1,"research_start":1,"research_continue":1,"rest":3,"build_housing":1},"ironfang":{"research_start":2,"research_continue":2,"raid":4,"establish_farm":1,"gather_food":17},"stonehaven":{"establish_fishery":3,"research_start":1,"research_continue":1,"gather_food":20,"establish_farm":1},"windstep":{"establish_hunt":2,"send_scouts":1,"found_settlement":1,"gather_food":22}}
+Input tokens total 285476, mean 10980/turn; latency median 158ms max 226ms; mean confidence 0.51
+Tribes: hearthwood pop 141 food 730 score 41.1 techs 1 | windstep pop 132 food 223 score 29.6 techs 0 | stonehaven pop 124 food 247 score 29.7 techs 1 | ironfang pop 70 food 0 score 23.2 techs 2
+retry turn 27 → 200 hearthwood:gather_food ironfang:gather_food stonehaven:gather_food windstep:gather_food
+turns 28–50 action frequencies: {"hearthwood":{"send_scouts":7,"establish_farm":5,"gather_food":10,"build_housing":1},"ironfang":{"gather_food":23},"stonehaven":{"gather_food":18,"research_start":1,"research_continue":1,"relocate":1,"establish_fishery":2},"windstep":{"gather_food":21,"establish_hunt":1,"build_housing":1}}
+hearthwood pop 202 tiles 137 settlements 1 score 46.0 | windstep pop 132 tiles 203 settlements 2 score 40.8 | stonehaven pop 128 tiles 53 settlements 1 score 38.1 | ironfang pop 65 tiles 117 settlements 1 score 26.4
+status finished attempts used 56 / 150

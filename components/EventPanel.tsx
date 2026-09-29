@@ -12,10 +12,9 @@ interface Props {
   paused: boolean;
   onPause: (v: boolean) => void;
   onConfirm: (optionId: string) => void;
-  onHighlight: (on: boolean) => void;
 }
 
-export default function EventPanel({ event, mode, busy, deciding, locked, paused, onPause, onConfirm, onHighlight }: Props) {
+export default function EventPanel({ event, mode, busy, deciding, locked, paused, onPause, onConfirm }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const isNature = event.source === "nature";
   // Nature's option is frozen server-side before the card is shown; reveal it directly.
@@ -23,11 +22,11 @@ export default function EventPanel({ event, mode, busy, deciding, locked, paused
   const decider = mode === "mock" ? "the mock policy (not Jev)" : "Jev";
 
   return (
-    <section className="panel panel-pad event-card" aria-labelledby="event-title" onMouseEnter={() => onHighlight(true)} onMouseLeave={() => onHighlight(false)}>
+    <section className="panel panel-pad event-card" aria-labelledby="event-title">
       <div className="event-meta">
         <span className={`chip ${isNature ? "badge-nature" : "badge-player"}`}>{isNature ? "Nature chooses" : "Your choice"}</span>
         <span className="chip">Turn {event.turn}</span>
-        <span className="chip" title="Affected area, highlighted on the map">Area: {event.footprintLabel}</span>
+        <span className="chip" title="Every environmental choice applies to the whole map">Applies to: the whole land</span>
         {event.fallback && <span className="chip">Fallback event</span>}
       </div>
       <h2 id="event-title">{event.title}</h2>
@@ -44,8 +43,6 @@ export default function EventPanel({ event, mode, busy, deciding, locked, paused
               className={`option ${isNature && checked ? "nature-picked" : ""}`}
               disabled={isNature || locked}
               onClick={() => setSelected(o.id)}
-              onFocus={() => onHighlight(true)}
-              onBlur={() => onHighlight(false)}
             >
               <div className="label">
                 <span>{o.label}</span>

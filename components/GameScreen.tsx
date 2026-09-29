@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { usePref } from "@/lib/client/prefs";
 import { TRIBES } from "@/content/tribes";
 import type { TribeId } from "@/lib/game/types";
@@ -27,7 +27,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
   const [showOwnership, setShowOwnership] = useState(true);
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [selectedTribe, setSelectedTribe] = useState<TribeId | null>(null);
-  const [highlight, setHighlight] = useState(false);
   const [bottomTab, setBottomTab] = useState<"log" | "inspector">("log");
   const [help, setHelp] = useState(false);
   const [onboarded, setOnboarded] = usePref("jc-onboarded", false);
@@ -35,11 +34,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
   const [dismissedElimination, setDismissedElimination] = useState(false);
 
 
-  const footprint = useMemo(() => {
-    if (!game?.event) return undefined;
-    const deciding = game.status === "deciding" || game.status === "resolving" || g.busy;
-    return highlight || deciding || game.event.source === "nature" ? game.event.footprint : undefined;
-  }, [game, highlight, g.busy]);
 
   if (g.loadError) {
     return (
@@ -66,8 +60,8 @@ export default function GameScreen({ gameId }: { gameId: string }) {
   const selectedTribeId = selectedTribe ?? game.supportedTribeId;
   const selTribe = game.tribes.find((t) => t.id === selectedTribeId) ?? game.tribes[0];
   const isMock = game.mode === "mock";
-  const settlementAt = selectedTile !== null ? (game.tribes.find((t) => t.alive && t.settlement === selectedTile)?.id ?? null) : null;
-  const inFootprint = selectedTile !== null && game.event ? game.event.footprint === null || game.event.footprint.includes(selectedTile) : false;
+  const settlementAt = selectedTile !== null ? (game.tribes.find((t) => t.alive && (t.settlement === selectedTile || t.outposts.includes(selectedTile)))?.id ?? null) : null;
+  const inFootprint = false;
 
   const closeOnboarding = () => setOnboarded(true);
 
@@ -84,7 +78,7 @@ export default function GameScreen({ gameId }: { gameId: string }) {
           {isMock ? "MOCK SIMULATION" : `LIVE · ${game.configuredModel}`}
         </span>
         <div className="turn-indicator" aria-live="polite">
-          <strong>{finished ? `Turn ${game.completedTurn} of 100` : `Turn ${cal.turn} of 100`}</strong>
+          <strong>{finished ? `Turn ${game.completedTurn} of ${game.totalTurns}` : `Turn ${cal.turn} of ${game.totalTurns}`}</strong>
           {!finished && (
             <>
               <span>Year {cal.year} · {cal.phase === "early" ? "Early" : "Late"} {SEASON_LABEL[cal.season]}</span>
@@ -134,7 +128,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
                 </select>
               </label>
               <label className="small"><input type="checkbox" checked={showOwnership} onChange={(e) => setShowOwnership(e.target.checked)} /> Territory</label>
-              <label className="small"><input type="checkbox" checked={highlight} onChange={(e) => setHighlight(e.target.checked)} disabled={!game.event} /> Event area</label>
               <span className="spacer" style={{ flex: 1 }} />
               <span className="small muted">Focus:</span>
               {game.tribes.filter((t) => t.alive).map((t) => (
@@ -148,7 +141,7 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               settlements={g.settlements}
               overlay={overlay}
               showOwnership={showOwnership}
-              footprint={footprint}
+              footprint={undefined}
               selectedTile={selectedTile}
               supportedTribe={game.supportedTribeId}
               onSelectTile={setSelectedTile}
@@ -156,7 +149,7 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               reducedMotion={g.reducedMotion}
               handleRef={mapRef}
               initialFocus={game.tribes.filter((t) => t.alive).map((t) => t.settlement)}
-              label={`World map, 150 by 100 tiles. Use arrow keys to pan, plus and minus to zoom, 0 to fit. Settlements: ${game.tribes.filter((t) => t.alive).map((t) => `${TRIBES[t.id].name} at ${t.settlement % 150}, ${Math.floor(t.settlement / 150)}`).join("; ")}.`}
+              label={`World map, 150 by 100 tiles. Circles are capitals, squares are outposts, dashed rings are scouted sites. Use arrow keys to pan, plus and minus to zoom, 0 to fit. Settlements: ${game.tribes.filter((t) => t.alive).map((t) => `${TRIBES[t.id].name} at ${t.settlement % 150}, ${Math.floor(t.settlement / 150)}`).join("; ")}.`}
             />
             <div className="legend-row" aria-hidden="true">
               <span><span className="swatch" style={{ background: "#5f93c4" }} />Water</span>
@@ -215,7 +208,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               paused={g.paused}
               onPause={g.setPaused}
               onConfirm={(id) => void g.submit(id)}
-              onHighlight={setHighlight}
             />
           )}
           {allGone && !finished && (

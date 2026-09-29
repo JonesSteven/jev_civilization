@@ -232,7 +232,14 @@ export function useGame(gameId: string) {
     }
   }, [gameId]);
 
-  const settlements = useMemo(() => (game ? game.tribes.map((t) => ({ id: t.id, tile: t.settlement, alive: t.alive, camp: t.camp && t.camp.capacity > 0 ? t.camp.condition : null })) : []), [game]);
+  const settlements = useMemo(() => (game ? game.tribes.map((t) => ({
+            id: t.id,
+            tile: t.settlement,
+            alive: t.alive,
+            camp: t.camp && t.camp.capacity > 0 ? t.camp.condition : null,
+            outposts: t.outposts,
+            scouted: t.scoutedSites.map((x) => x.tile),
+          })) : []), [game]);
 
   return {
     game,

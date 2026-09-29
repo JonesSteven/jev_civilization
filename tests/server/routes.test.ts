@@ -36,6 +36,13 @@ describe("route handlers", () => {
     expect((await createGame(req("POST", "/api/games", { body: { tribeId: "windstep", mode: "mock" }, origin: null }))).status).toBe(403);
     const bad = await createGame(req("POST", "/api/games", { body: { tribeId: "windstep", mode: "mock", supportedBonus: 5 } }));
     expect(bad.status).toBe(422);
+    for (const totalTurns of [5, 205, 33]) {
+      const res = await createGame(req("POST", "/api/games", { body: { tribeId: "windstep", mode: "mock", totalTurns } }));
+      expect(res.status).toBe(422);
+    }
+    const ok = await createGame(req("POST", "/api/games", { body: { tribeId: "windstep", mode: "mock", totalTurns: 150 } }));
+    expect(ok.status).toBe(201);
+    expect(((await ok.json()) as { game: { totalTurns: number } }).game.totalTurns).toBe(150);
   });
 
   it("issues an HttpOnly SameSite=Lax session cookie and enforces ownership (AC23)", async () => {

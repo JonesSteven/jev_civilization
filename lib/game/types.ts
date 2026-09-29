@@ -103,11 +103,27 @@ export interface MemoryEntry {
   text: string;
 }
 
+export interface ScoutedSite {
+  tile: number;
+  foundTurn: number;
+  /** Engine-computed resource summary shown to Jev and the player. */
+  food: number;
+  timber: number;
+  stone: number;
+  fish: number;
+  terrain: string;
+  distance: number;
+}
+
 export interface TribeState {
   id: TribeId;
   alive: boolean;
   eliminatedTurn: number | null;
-  settlement: number; // tile id
+  /** Capital settlement tile. Relocation, defenses, and settlement-level modifiers use the capital. */
+  settlement: number;
+  /** Additional settlements founded after scouting (at most BALANCE.actions.found.maxSettlements - 1). */
+  outposts: number[];
+  scoutedSites: ScoutedSite[];
   population: number;
   food: number;
   timber: number;
@@ -218,6 +234,8 @@ export interface GameState {
   generationAttempt: number;
   usedFallbackMap: boolean;
   completedTurn: number;
+  /** Match length chosen at creation (10–200). */
+  totalTurns: number;
   world: WorldState;
   tribes: Record<TribeId, TribeState>;
   activeEffects: ActiveEffect[];
@@ -249,7 +267,9 @@ export type ActionKind =
   | "expand"
   | "raid"
   | "defend"
-  | "recruit";
+  | "recruit"
+  | "send_scouts"
+  | "found_settlement";
 
 export type ValidatedTarget =
   | { type: "tile"; tile: number; label: string }

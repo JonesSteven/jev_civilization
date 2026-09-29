@@ -56,7 +56,8 @@ function heuristic(snap: Snapshot, tribe: TribeId, c: ActionCandidate): number {
       v = tribe === "ironfang" ? 0.8 : 0.25;
       break;
     case "research_start":
-      v = food.coverageTurns > 3 ? 1.0 : 0.3;
+      v = food.coverageTurns > 3 ? 1.0 : food.coverageTurns > 1.2 ? 0.8 : 0.3;
+      if ((tribe === "stonehaven" || tribe === "windstep") && c.id === "research_agriculture") v += 0.7;
       if (tribe === "ironfang" && (c.id === "research_agriculture" || c.id === "research_fishing")) v += 0.6;
       break;
     case "research_continue":
@@ -79,6 +80,12 @@ function heuristic(snap: Snapshot, tribe: TribeId, c: ActionCandidate): number {
       break;
     case "recruit":
       v = 0.9;
+      break;
+    case "send_scouts":
+      v = t.scoutedSites.length === 0 && (food.net < 0 || food.coverageTurns < 1.5) && t.population >= 80 ? 1.9 : 0.1;
+      break;
+    case "found_settlement":
+      v = t.population >= 100 ? 2.3 : 0.6;
       break;
   }
   return v;

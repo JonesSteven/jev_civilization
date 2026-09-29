@@ -17,6 +17,10 @@ export interface MapSettlement {
   alive: boolean;
   /** Portable camp condition 0–100, or null when the tribe has no camp shelter. */
   camp?: number | null;
+  /** Additional settlements founded after scouting. */
+  outposts?: number[];
+  /** Sites reported by scouts (shown as dashed rings). */
+  scouted?: number[];
 }
 
 export type MapAnimation =
@@ -345,10 +349,43 @@ function drawAsset(ctx: CanvasRenderingContext2D, a: Asset) {
   ctx.globalAlpha = 1;
 }
 
+function drawOutposts(ctx: CanvasRenderingContext2D, s: MapSettlement, scale: number) {
+  const p = TRIBES[s.id];
+  const r = Math.max(6, 7 / Math.sqrt(scale));
+  for (const tile of s.scouted ?? []) {
+    const [sx, sy] = center(tile);
+    ctx.strokeStyle = p.colorDark;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.arc(sx, sy, r + 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  for (const tile of s.outposts ?? []) {
+    const [ox, oy] = center(tile);
+    ctx.fillStyle = s.alive ? p.color : "rgba(60,50,40,0.6)";
+    ctx.strokeStyle = p.colorDark;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(ox - r, oy - r, r * 2, r * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (s.alive) {
+      ctx.fillStyle = "#fffaf0";
+      ctx.font = `bold ${Math.round(r * 1.2)}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(p.name[0] as string, ox, oy + 0.5);
+    }
+  }
+}
+
 function drawSettlement(ctx: CanvasRenderingContext2D, s: MapSettlement, supported: boolean, scale: number) {
   const [cx, cy] = center(s.tile);
   const r = Math.max(8, 10 / Math.sqrt(scale));
   const p = TRIBES[s.id];
+  drawOutposts(ctx, s, scale);
   if (!s.alive) {
     ctx.fillStyle = "rgba(60,50,40,0.6)";
     ctx.beginPath();

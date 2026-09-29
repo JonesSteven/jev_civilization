@@ -17,14 +17,14 @@ export default function Results({ game, log, onInspect }: { game: GameView; log:
 
   let headline: string;
   if (abandoned) headline = `Viewing ended on turn ${game.completedTurn}. The remaining turns were not simulated, so there is no final ranking.`;
-  else if (winners.length === 0) headline = "No tribe survived to turn 100. There is no surviving winner.";
+  else if (winners.length === 0) headline = `No tribe survived to turn ${game.totalTurns}. There is no surviving winner.`;
   else if (winners.includes(game.supportedTribeId)) headline = shared ? `${TRIBES[game.supportedTribeId].name} shares the victory with an exactly equal top score.` : `${TRIBES[game.supportedTribeId].name} wins with the highest civilization score.`;
   else headline = `${winners.map((w) => TRIBES[w].name).join(" and ")} ${shared ? "share the victory" : "wins"}. ${TRIBES[game.supportedTribeId].name} ${supported?.alive ? `finished in place ${place}` : "did not survive"}.`;
 
   return (
     <section className="panel panel-pad" aria-labelledby="results-title">
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <h2 id="results-title" style={{ margin: 0 }}>{abandoned ? "Match ended early" : "Final results after 100 turns"}</h2>
+        <h2 id="results-title" style={{ margin: 0 }}>{abandoned ? "Match ended early" : `Final results after ${game.totalTurns} turns`}</h2>
         <span className={`chip ${isMock ? "badge-mock" : "badge-live"}`}>{isMock ? "Mock simulation — not Jev" : "Live Jev decisions"}</span>
       </div>
       <p style={{ fontSize: 16, marginTop: 8 }}>{headline}</p>

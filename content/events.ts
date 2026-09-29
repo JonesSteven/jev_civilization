@@ -36,8 +36,7 @@ export interface EventDef {
 }
 
 const ANY = "any" as const;
-const region = (radius = 20): FootprintSpec => ({ kind: "region", radius });
-const basin = (radius = 26): FootprintSpec => ({ kind: "riverBasin", radius });
+/** Dynamic ruleset: every environmental choice applies to the whole map (terrain filters still differentiate tribes). */
 const WORLD: FootprintSpec = { kind: "world" };
 
 export const EVENTS: EventDef[] = [
@@ -47,29 +46,29 @@ export const EVENTS: EventDef[] = [
     question: "How much rain falls?",
     seasons: ["spring", "summer"],
     preconditions: [],
-    footprint: region(22),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E01_light",
         label: "Light rain",
-        description: "Farms in the area yield slightly less; forest ground stays firm and easier to cross.",
+        description: "Farms everywhere yield slightly less; forest ground stays firm and easier to cross.",
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 0.9, scope: "footprint", duration: 2 },
-          { op: "travelMod", delta: -1, scope: "footprint", duration: 2, terrain: ["forest"] },
+          { op: "yieldMult", channel: "farm", factor: 0.9, scope: "world", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 2, terrain: ["forest"] },
         ],
       },
       {
         id: "E01_steady",
         label: "Steady rain",
-        description: "Crops and wild plants in the area grow well; travel is unaffected.",
+        description: "Crops and wild plants everywhere grow well; travel is unaffected.",
         duration: 2,
         tone: "beneficial",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 1.15, scope: "footprint", duration: 2 },
-          { op: "yieldMult", channel: "forage", factor: 1.1, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 1.15, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "forage", factor: 1.1, scope: "world", duration: 2 },
         ],
       },
       {
@@ -79,10 +78,10 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 1.25, scope: "footprint", duration: 2 },
-          { op: "yieldMult", channel: "farm", factor: 0.6, scope: "footprint", duration: 2, nearWater: true },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 2 },
-          { op: "overlay", flag: "Flooded", fraction: 0.2, scope: "footprint", duration: 2, nearWater: true, terrain: ["meadow"] },
+          { op: "yieldMult", channel: "farm", factor: 1.25, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 0.6, scope: "world", duration: 2, nearWater: true },
+          { op: "travelMod", delta: 1, scope: "world", duration: 2 },
+          { op: "overlay", flag: "Flooded", fraction: 0.2, scope: "world", duration: 2, nearWater: true, terrain: ["meadow"] },
         ],
       },
     ],
@@ -178,18 +177,18 @@ export const EVENTS: EventDef[] = [
     question: "How does the thaw unfold?",
     seasons: ["spring"],
     preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
-    footprint: basin(),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E04_gradual",
         label: "Gradual thaw",
-        description: "Modest growth for farms and wild plants in the basin; travel is safe.",
+        description: "Modest growth for farms and wild plants everywhere; travel is safe.",
         duration: 2,
         tone: "beneficial",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "footprint", duration: 2 },
-          { op: "yieldMult", channel: "forage", factor: 1.1, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "forage", factor: 1.1, scope: "world", duration: 2 },
         ],
       },
       {
@@ -199,10 +198,10 @@ export const EVENTS: EventDef[] = [
         duration: 1,
         tone: "mixed",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 0.5, scope: "footprint", duration: 1, nearWater: true },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 1 },
-          { op: "overlay", flag: "Flooded", fraction: 0.25, scope: "footprint", duration: 1, nearWater: true, terrain: ["meadow"] },
-          { op: "fertility", delta: 12, scope: "footprint", nearWater: true, terrain: ["meadow"] },
+          { op: "yieldMult", channel: "farm", factor: 0.5, scope: "world", duration: 1, nearWater: true },
+          { op: "travelMod", delta: 1, scope: "world", duration: 1 },
+          { op: "overlay", flag: "Flooded", fraction: 0.25, scope: "world", duration: 1, nearWater: true, terrain: ["meadow"] },
+          { op: "fertility", delta: 12, scope: "world", nearWater: true, terrain: ["meadow"] },
         ],
       },
       {
@@ -212,8 +211,8 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 0.8, scope: "footprint", duration: 2 },
-          { op: "travelMod", delta: -1, scope: "footprint", duration: 2, terrain: ["forest"] },
+          { op: "yieldMult", channel: "farm", factor: 0.8, scope: "world", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 2, terrain: ["forest"] },
         ],
       },
     ],
@@ -224,46 +223,46 @@ export const EVENTS: EventDef[] = [
     question: "Which seeds do birds spread?",
     seasons: ["spring", "autumn"],
     preconditions: [],
-    footprint: region(18),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E05_lumber",
         label: "Lumber trees",
-        description: "Some open meadow becomes young forest now; two turns later the area's forests hold more timber.",
+        description: "Some open meadow across the land becomes young forest now; two turns later forests everywhere hold more timber.",
         duration: 0,
         tone: "mixed",
         effects: [
-          { op: "convertTile", from: "meadow", to: "forest", fraction: 0.08, scope: "footprint" },
+          { op: "convertTile", from: "meadow", to: "forest", fraction: 0.08, scope: "world" },
           {
             op: "delayed",
             afterTurns: 2,
             label: "Young trees mature",
-            effects: [{ op: "capacityAdjust", resource: "timber", fraction: 0.15, scope: "footprint", terrain: ["forest"] }],
+            effects: [{ op: "capacityAdjust", resource: "timber", fraction: 0.15, scope: "world", terrain: ["forest"] }],
           },
         ],
       },
       {
         id: "E05_wheat",
         label: "Wild wheat",
-        description: "Meadows in the area become permanently more fertile, strengthening farms.",
+        description: "Meadows everywhere become permanently more fertile, strengthening farms.",
         duration: 0,
         tone: "beneficial",
         effects: [
-          { op: "fertility", delta: 15, scope: "footprint", terrain: ["meadow"] },
-          { op: "overlay", flag: "Wheat", fraction: 0.1, scope: "footprint", terrain: ["meadow"] },
+          { op: "fertility", delta: 15, scope: "world", terrain: ["meadow"] },
+          { op: "overlay", flag: "Wheat", fraction: 0.1, scope: "world", terrain: ["meadow"] },
         ],
       },
       {
         id: "E05_fruit",
         label: "Fruit bushes",
-        description: "Renewable wild food grows across the area, but bushes crowd out some construction timber.",
+        description: "Renewable wild food grows across the land, but bushes crowd out some construction timber.",
         duration: 0,
         tone: "mixed",
         effects: [
-          { op: "capacityAdjust", resource: "forage", fraction: 0.4, scope: "footprint", terrain: ["meadow", "forest"] },
-          { op: "overlay", flag: "Fruit", fraction: 0.1, scope: "footprint", terrain: ["meadow", "forest"] },
-          { op: "capacityAdjust", resource: "timber", fraction: -0.1, scope: "footprint", terrain: ["forest"] },
+          { op: "capacityAdjust", resource: "forage", fraction: 0.4, scope: "world", terrain: ["meadow", "forest"] },
+          { op: "overlay", flag: "Fruit", fraction: 0.1, scope: "world", terrain: ["meadow", "forest"] },
+          { op: "capacityAdjust", resource: "timber", fraction: -0.1, scope: "world", terrain: ["forest"] },
         ],
       },
     ],
@@ -274,16 +273,16 @@ export const EVENTS: EventDef[] = [
     question: "Where do pollinators flourish?",
     seasons: ["spring", "summer"],
     preconditions: [],
-    footprint: region(20),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E06_meadows",
         label: "In the meadows",
-        description: "Farms in the area yield more for three turns.",
+        description: "Farms everywhere yield more for three turns.",
         duration: 3,
         tone: "beneficial",
-        effects: [{ op: "yieldMult", channel: "farm", factor: 1.2, scope: "footprint", duration: 3 }],
+        effects: [{ op: "yieldMult", channel: "farm", factor: 1.2, scope: "world", duration: 3 }],
       },
       {
         id: "E06_forest_edges",
@@ -292,8 +291,8 @@ export const EVENTS: EventDef[] = [
         duration: 3,
         tone: "beneficial",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint", terrain: ["forest"] },
-          { op: "yieldMult", channel: "forage", factor: 1.25, scope: "footprint", duration: 3 },
+          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "world", terrain: ["forest"] },
+          { op: "yieldMult", channel: "forage", factor: 1.25, scope: "world", duration: 3 },
         ],
       },
       {
@@ -303,8 +302,8 @@ export const EVENTS: EventDef[] = [
         duration: 3,
         tone: "beneficial",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "footprint", nearWater: true },
-          { op: "regen", resource: "forage", factor: 1.5, scope: "footprint", duration: 3, nearWater: true },
+          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "world", nearWater: true },
+          { op: "regen", resource: "forage", factor: 1.5, scope: "world", duration: 3, nearWater: true },
         ],
       },
     ],
@@ -358,7 +357,7 @@ export const EVENTS: EventDef[] = [
     question: "What happens to the forest understory?",
     seasons: ["summer", "autumn"],
     preconditions: [{ kind: "terrainPresent", terrain: "forest", min: 200 }],
-    footprint: { kind: "terrainPatch", terrain: "forest", maxTiles: 700 },
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -368,20 +367,20 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "footprint", terrain: ["forest"] },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 2, terrain: ["forest"] },
+          { op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "world", terrain: ["forest"] },
+          { op: "travelMod", delta: 1, scope: "world", duration: 2, terrain: ["forest"] },
         ],
       },
       {
         id: "E08_brush",
         label: "Thick brush",
-        description: "More wildlife shelters in the forest and breeds faster, but travel is slower for three turns.",
+        description: "More wildlife shelters in forests everywhere and breeds faster, but forest travel is slower for three turns.",
         duration: 3,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "wildlife", fraction: 0.4, scope: "footprint", terrain: ["forest"] },
-          { op: "regen", resource: "wildlife", factor: 1.5, scope: "footprint", duration: 3 },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 3, terrain: ["forest"] },
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.4, scope: "world", terrain: ["forest"] },
+          { op: "regen", resource: "wildlife", factor: 1.5, scope: "world", duration: 3 },
+          { op: "travelMod", delta: 1, scope: "world", duration: 3, terrain: ["forest"] },
         ],
       },
       {
@@ -391,8 +390,8 @@ export const EVENTS: EventDef[] = [
         duration: 3,
         tone: "mixed",
         effects: [
-          { op: "travelMod", delta: -1, scope: "footprint", duration: 3, terrain: ["forest"] },
-          { op: "yieldMult", channel: "forage", factor: 0.85, scope: "footprint", duration: 3 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 3, terrain: ["forest"] },
+          { op: "yieldMult", channel: "forage", factor: 0.85, scope: "world", duration: 3 },
         ],
       },
     ],
@@ -403,24 +402,24 @@ export const EVENTS: EventDef[] = [
     question: "Where do herds migrate?",
     seasons: ["spring", "autumn"],
     preconditions: [],
-    footprint: region(24),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E09_meadows",
         label: "Across the meadows",
-        description: "Meadow wildlife in the area is replenished.",
+        description: "Meadow wildlife everywhere is replenished.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.6, scope: "footprint", terrain: ["meadow"] }],
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.6, scope: "world", terrain: ["meadow"] }],
       },
       {
         id: "E09_forests",
         label: "Into the forests",
-        description: "Forest wildlife in the area is replenished.",
+        description: "Forest wildlife everywhere is replenished.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.6, scope: "footprint", terrain: ["forest"] }],
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.6, scope: "world", terrain: ["forest"] }],
       },
       {
         id: "E09_valleys",
@@ -429,8 +428,8 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "beneficial",
         effects: [
-          { op: "stockAdjust", resource: "wildlife", fraction: 0.8, scope: "footprint", terrain: ["mountain"] },
-          { op: "regen", resource: "wildlife", factor: 1.4, scope: "footprint", duration: 2, terrain: ["mountain"] },
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.8, scope: "world", terrain: ["mountain"] },
+          { op: "regen", resource: "wildlife", factor: 1.4, scope: "world", duration: 2, terrain: ["mountain"] },
         ],
       },
     ],
@@ -441,16 +440,16 @@ export const EVENTS: EventDef[] = [
     question: "What happens to fish spawning?",
     seasons: ["spring", "summer"],
     preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
-    footprint: basin(),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E10_abundant",
         label: "Abundant spawning",
-        description: "Fish stocks in this basin are strongly restored.",
+        description: "Fish stocks in every lake and river are strongly restored.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "stockAdjust", resource: "fish", fraction: 0.6, scope: "footprint" }],
+        effects: [{ op: "stockAdjust", resource: "fish", fraction: 0.6, scope: "world" }],
       },
       {
         id: "E10_scattered",
@@ -463,12 +462,12 @@ export const EVENTS: EventDef[] = [
       {
         id: "E10_poor",
         label: "Poor spawning",
-        description: "Fish regrow slowly for three turns and fisheries in the basin yield less for two.",
+        description: "Fish regrow slowly everywhere for three turns and every fishery yields less for two.",
         duration: 3,
         tone: "harsh",
         effects: [
-          { op: "regen", resource: "fish", factor: 0.4, scope: "footprint", duration: 3 },
-          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "footprint", duration: 2 },
+          { op: "regen", resource: "fish", factor: 0.4, scope: "world", duration: 3 },
+          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "world", duration: 2 },
         ],
       },
     ],
@@ -479,26 +478,26 @@ export const EVENTS: EventDef[] = [
     question: "How does a crop pest spread?",
     seasons: ["summer", "autumn"],
     preconditions: [],
-    footprint: region(20),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E11_wheat",
         label: "Through wheat fields",
-        description: "Farms in the area lose 30% of output for two turns.",
+        description: "Farms everywhere lose 30% of output for two turns.",
         duration: 2,
         tone: "harsh",
-        effects: [{ op: "yieldMult", channel: "farm", factor: 0.7, scope: "footprint", duration: 2 }],
+        effects: [{ op: "yieldMult", channel: "farm", factor: 0.7, scope: "world", duration: 2 }],
       },
       {
         id: "E11_fruit",
         label: "Through wild fruit",
-        description: "Wild forage in the area is reduced now and yields less for two turns.",
+        description: "Wild forage everywhere is reduced now and yields less for two turns.",
         duration: 2,
         tone: "harsh",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: -0.2, scope: "footprint" },
-          { op: "yieldMult", channel: "forage", factor: 0.7, scope: "footprint", duration: 2 },
+          { op: "stockAdjust", resource: "forage", fraction: -0.2, scope: "world" },
+          { op: "yieldMult", channel: "forage", factor: 0.7, scope: "world", duration: 2 },
         ],
       },
       {
@@ -508,8 +507,8 @@ export const EVENTS: EventDef[] = [
         duration: 4,
         tone: "harsh",
         effects: [
-          { op: "stockAdjust", resource: "timber", fraction: -0.1, scope: "footprint", terrain: ["forest"] },
-          { op: "regen", resource: "timber", factor: 0.3, scope: "footprint", duration: 4 },
+          { op: "stockAdjust", resource: "timber", fraction: -0.1, scope: "world", terrain: ["forest"] },
+          { op: "regen", resource: "timber", factor: 0.3, scope: "world", duration: 4 },
         ],
       },
     ],
@@ -520,18 +519,18 @@ export const EVENTS: EventDef[] = [
     question: "What do strong winds bring?",
     seasons: ANY,
     preconditions: [],
-    footprint: region(22),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E12_clouds",
         label: "Rain clouds",
-        description: "Crops in the area grow better for two turns; wet ground slows travel this turn.",
+        description: "Crops everywhere grow better for two turns; wet ground slows travel this turn.",
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "footprint", duration: 2 },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 1 },
+          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "world", duration: 2 },
+          { op: "travelMod", delta: 1, scope: "world", duration: 1 },
         ],
       },
       {
@@ -541,20 +540,20 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "travelMod", delta: -1, scope: "footprint", duration: 2, terrain: ["forest", "mountain"] },
-          { op: "stockAdjust", resource: "timber", fraction: -0.08, scope: "footprint", terrain: ["forest"] },
-          { op: "spoilage", add: -0.01, scope: "footprint", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 2, terrain: ["forest", "mountain"] },
+          { op: "stockAdjust", resource: "timber", fraction: -0.08, scope: "world", terrain: ["forest"] },
+          { op: "spoilage", add: -0.01, scope: "world", duration: 2 },
         ],
       },
       {
         id: "E12_branches",
         label: "Fallen branches",
-        description: "Settlements in the area collect 15 timber immediately, but wooden homes and camps take minor damage.",
+        description: "Every tribe collects 15 timber immediately, but wooden homes and camps everywhere take minor damage.",
         duration: 0,
         tone: "mixed",
         effects: [
-          { op: "settlementStock", resource: "timber", amount: 15, scope: "footprint" },
-          { op: "shelterDamage", amount: 6, scope: "footprint", types: ["wood", "camp"] },
+          { op: "settlementStock", resource: "timber", amount: 15, scope: "world" },
+          { op: "shelterDamage", amount: 6, scope: "world", types: ["wood", "camp"] },
         ],
       },
     ],
@@ -565,7 +564,7 @@ export const EVENTS: EventDef[] = [
     question: "What happens after lightning?",
     seasons: ["summer"],
     preconditions: [{ kind: "terrainPresent", terrain: "forest", min: 200 }],
-    footprint: { kind: "terrainPatch", terrain: "forest", maxTiles: 600 },
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -575,15 +574,15 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "timber", fraction: -0.2, scope: "footprint", terrain: ["forest"] },
-          { op: "overlay", flag: "Burned", fraction: 0.15, scope: "footprint", duration: 2, terrain: ["forest"] },
+          { op: "stockAdjust", resource: "timber", fraction: -0.2, scope: "world", terrain: ["forest"] },
+          { op: "overlay", flag: "Burned", fraction: 0.15, scope: "world", duration: 2, terrain: ["forest"] },
           {
             op: "delayed",
             afterTurns: 2,
             label: "Burned forest opens into meadow",
             effects: [
-              { op: "convertTile", from: "forest", to: "meadow", fraction: 0.1, scope: "footprint" },
-              { op: "fertility", delta: 10, scope: "footprint", terrain: ["meadow"] },
+              { op: "convertTile", from: "forest", to: "meadow", fraction: 0.1, scope: "world" },
+              { op: "fertility", delta: 10, scope: "world", terrain: ["meadow"] },
             ],
           },
         ],
@@ -595,20 +594,20 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "regen", resource: "timber", factor: 1.3, scope: "footprint", duration: 2 },
-          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "footprint", duration: 1 },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 2 },
+          { op: "regen", resource: "timber", factor: 1.3, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 1.1, scope: "world", duration: 1 },
+          { op: "travelMod", delta: 1, scope: "world", duration: 2 },
         ],
       },
       {
         id: "E13_scattered",
         label: "Scattered strikes",
-        description: "Small, dispersed damage: a little timber lost and light damage to all shelters in the area.",
+        description: "Small, dispersed damage: a little forest timber lost and light damage to every shelter.",
         duration: 0,
         tone: "harsh",
         effects: [
-          { op: "stockAdjust", resource: "timber", fraction: -0.06, scope: "footprint", terrain: ["forest"] },
-          { op: "shelterDamage", amount: 5, scope: "footprint" },
+          { op: "stockAdjust", resource: "timber", fraction: -0.06, scope: "world", terrain: ["forest"] },
+          { op: "shelterDamage", amount: 5, scope: "world" },
         ],
       },
     ],
@@ -619,26 +618,26 @@ export const EVENTS: EventDef[] = [
     question: "How severe are storms?",
     seasons: ["autumn", "winter"],
     preconditions: [],
-    footprint: region(24),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E14_brief",
         label: "Brief storms",
-        description: "Small immediate damage to shelters in the area.",
+        description: "Small immediate damage to every shelter.",
         duration: 0,
         tone: "mild",
-        effects: [{ op: "shelterDamage", amount: 6, scope: "footprint" }],
+        effects: [{ op: "shelterDamage", amount: 6, scope: "world" }],
       },
       {
         id: "E14_persistent",
         label: "Persistent storms",
-        description: "Travel is slower and fishing is poor in the area for three turns.",
+        description: "Travel is slower and fishing is poor everywhere for three turns.",
         duration: 3,
         tone: "harsh",
         effects: [
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 3 },
-          { op: "yieldMult", channel: "fish", factor: 0.7, scope: "footprint", duration: 3 },
+          { op: "travelMod", delta: 1, scope: "world", duration: 3 },
+          { op: "yieldMult", channel: "fish", factor: 0.7, scope: "world", duration: 3 },
         ],
       },
       {
@@ -648,9 +647,9 @@ export const EVENTS: EventDef[] = [
         duration: 0,
         tone: "harsh",
         effects: [
-          { op: "shelterDamage", amount: 15, scope: "footprint" },
-          { op: "stockAdjust", resource: "timber", fraction: 0.2, scope: "footprint", terrain: ["forest"] },
-          { op: "settlementStock", resource: "timber", amount: 10, scope: "footprint" },
+          { op: "shelterDamage", amount: 15, scope: "world" },
+          { op: "stockAdjust", resource: "timber", fraction: 0.2, scope: "world", terrain: ["forest"] },
+          { op: "settlementStock", resource: "timber", amount: 10, scope: "world" },
         ],
       },
     ],
@@ -661,7 +660,7 @@ export const EVENTS: EventDef[] = [
     question: "How does the river behave?",
     seasons: ["spring", "summer"],
     preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
-    footprint: basin(),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -671,9 +670,9 @@ export const EVENTS: EventDef[] = [
         duration: 3,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.2, scope: "footprint", nearWater: true },
-          { op: "regen", resource: "fish", factor: 0.5, scope: "footprint", duration: 3 },
-          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "footprint", duration: 3 },
+          { op: "stockAdjust", resource: "forage", fraction: 0.2, scope: "world", nearWater: true },
+          { op: "regen", resource: "fish", factor: 0.5, scope: "world", duration: 3 },
+          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "world", duration: 3 },
         ],
       },
       {
@@ -682,19 +681,19 @@ export const EVENTS: EventDef[] = [
         description: "Baseline conditions with a slight fishing improvement for two turns.",
         duration: 2,
         tone: "mild",
-        effects: [{ op: "yieldMult", channel: "fish", factor: 1.05, scope: "footprint", duration: 2 }],
+        effects: [{ op: "yieldMult", channel: "fish", factor: 1.05, scope: "world", duration: 2 }],
       },
       {
         id: "E15_high",
         label: "High flow",
-        description: "Fish stocks are replenished, but nearby fields flood and riverside shelters are damaged.",
+        description: "Fish stocks are replenished, but fields near water flood and riverside shelters are damaged.",
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "fish", fraction: 0.5, scope: "footprint" },
-          { op: "yieldMult", channel: "farm", factor: 0.6, scope: "footprint", duration: 2, nearWater: true },
-          { op: "overlay", flag: "Flooded", fraction: 0.25, scope: "footprint", duration: 2, nearWater: true, terrain: ["meadow"] },
-          { op: "shelterDamage", amount: 8, scope: "footprint", nearWater: true },
+          { op: "stockAdjust", resource: "fish", fraction: 0.5, scope: "world" },
+          { op: "yieldMult", channel: "farm", factor: 0.6, scope: "world", duration: 2, nearWater: true },
+          { op: "overlay", flag: "Flooded", fraction: 0.25, scope: "world", duration: 2, nearWater: true, terrain: ["meadow"] },
+          { op: "shelterDamage", amount: 8, scope: "world", nearWater: true },
         ],
       },
     ],
@@ -705,7 +704,7 @@ export const EVENTS: EventDef[] = [
     question: "How does ice form?",
     seasons: ["winter"],
     preconditions: [{ kind: "terrainPresent", terrain: "water", min: 50 }],
-    footprint: basin(),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -714,7 +713,7 @@ export const EVENTS: EventDef[] = [
         description: "Fishing remains possible at 90%; cold exposure is unchanged.",
         duration: 2,
         tone: "mild",
-        effects: [{ op: "yieldMult", channel: "fish", factor: 0.9, scope: "footprint", duration: 2 }],
+        effects: [{ op: "yieldMult", channel: "fish", factor: 0.9, scope: "world", duration: 2 }],
       },
       {
         id: "E16_thick",
@@ -723,8 +722,8 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "yieldMult", channel: "fish", factor: 0.4, scope: "footprint", duration: 2 },
-          { op: "travelMod", delta: -1, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "fish", factor: 0.4, scope: "world", duration: 2 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 2 },
         ],
       },
       {
@@ -734,8 +733,8 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "harsh",
         effects: [
-          { op: "yieldMult", channel: "fish", factor: 0.7, scope: "footprint", duration: 2 },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "fish", factor: 0.7, scope: "world", duration: 2 },
+          { op: "travelMod", delta: 1, scope: "world", duration: 2 },
         ],
       },
     ],
@@ -746,24 +745,24 @@ export const EVENTS: EventDef[] = [
     question: "What does erosion expose?",
     seasons: ANY,
     preconditions: [{ kind: "terrainPresent", terrain: "mountain", min: 100 }],
-    footprint: { kind: "mountainArea", radius: 18 },
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E17_stone",
         label: "Stone",
-        description: "Accessible stone deposits on nearby mountains are replenished.",
+        description: "Stone deposits on every mountain are replenished.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "stockAdjust", resource: "stone", fraction: 0.5, scope: "footprint", terrain: ["mountain"] }],
+        effects: [{ op: "stockAdjust", resource: "stone", fraction: 0.5, scope: "world", terrain: ["mountain"] }],
       },
       {
         id: "E17_soil",
         label: "Fertile soil",
-        description: "Nearby meadows become permanently more fertile.",
+        description: "Meadows everywhere become permanently more fertile.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "fertility", delta: 15, scope: "footprint", terrain: ["meadow"] }],
+        effects: [{ op: "fertility", delta: 15, scope: "world", terrain: ["meadow"] }],
       },
       {
         id: "E17_caves",
@@ -771,7 +770,7 @@ export const EVENTS: EventDef[] = [
         description: "New caves open in the mountains, providing natural shelter to whoever holds them.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "overlay", flag: "Cave", fraction: 0.06, scope: "footprint", terrain: ["mountain"] }],
+        effects: [{ op: "overlay", flag: "Cave", fraction: 0.06, scope: "world", terrain: ["mountain"] }],
       },
     ],
   },
@@ -781,7 +780,7 @@ export const EVENTS: EventDef[] = [
     question: "Where does a landslide settle?",
     seasons: ["spring", "autumn"],
     preconditions: [{ kind: "terrainPresent", terrain: "mountain", min: 100 }],
-    footprint: { kind: "mountainArea", radius: 14 },
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -791,19 +790,19 @@ export const EVENTS: EventDef[] = [
         duration: 4,
         tone: "harsh",
         effects: [
-          { op: "stockAdjust", resource: "timber", fraction: -0.15, scope: "footprint", terrain: ["forest"] },
-          { op: "travelMod", delta: 2, scope: "footprint", duration: 4, terrain: ["forest"] },
+          { op: "stockAdjust", resource: "timber", fraction: -0.15, scope: "world", terrain: ["forest"] },
+          { op: "travelMod", delta: 2, scope: "world", duration: 4, terrain: ["forest"] },
         ],
       },
       {
         id: "E18_meadow",
         label: "At the meadow edge",
-        description: "Meadows lose fertility permanently, but settlements in the area collect 10 exposed stone.",
+        description: "Meadows everywhere lose fertility permanently, but every tribe collects 10 exposed stone.",
         duration: 0,
         tone: "mixed",
         effects: [
-          { op: "fertility", delta: -15, scope: "footprint", terrain: ["meadow"] },
-          { op: "settlementStock", resource: "stone", amount: 10, scope: "footprint" },
+          { op: "fertility", delta: -15, scope: "world", terrain: ["meadow"] },
+          { op: "settlementStock", resource: "stone", amount: 10, scope: "world" },
         ],
       },
       {
@@ -813,8 +812,8 @@ export const EVENTS: EventDef[] = [
         duration: 4,
         tone: "mild",
         effects: [
-          { op: "travelMod", delta: -1, scope: "footprint", duration: 4, terrain: ["mountain"] },
-          { op: "travelMod", delta: 1, scope: "footprint", duration: 2, terrain: ["meadow"] },
+          { op: "travelMod", delta: -1, scope: "world", duration: 4, terrain: ["mountain"] },
+          { op: "travelMod", delta: 1, scope: "world", duration: 2, terrain: ["meadow"] },
         ],
       },
     ],
@@ -825,7 +824,7 @@ export const EVENTS: EventDef[] = [
     question: "What grows on recovering ground?",
     seasons: ["spring"],
     preconditions: [],
-    footprint: region(20),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -835,8 +834,8 @@ export const EVENTS: EventDef[] = [
         duration: 0,
         tone: "beneficial",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "footprint", terrain: ["meadow"] },
-          { op: "stockAdjust", resource: "wildlife", fraction: 0.2, scope: "footprint", terrain: ["meadow"] },
+          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "world", terrain: ["meadow"] },
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.2, scope: "world", terrain: ["meadow"] },
         ],
       },
       {
@@ -851,8 +850,8 @@ export const EVENTS: EventDef[] = [
             afterTurns: 3,
             label: "Saplings grow into timber",
             effects: [
-              { op: "stockAdjust", resource: "timber", fraction: 0.3, scope: "footprint", terrain: ["forest"] },
-              { op: "capacityAdjust", resource: "timber", fraction: 0.1, scope: "footprint", terrain: ["forest"] },
+              { op: "stockAdjust", resource: "timber", fraction: 0.3, scope: "world", terrain: ["forest"] },
+              { op: "capacityAdjust", resource: "timber", fraction: 0.1, scope: "world", terrain: ["forest"] },
             ],
           },
         ],
@@ -864,8 +863,8 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "beneficial",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.6, scope: "footprint" },
-          { op: "regen", resource: "forage", factor: 1.5, scope: "footprint", duration: 2 },
+          { op: "stockAdjust", resource: "forage", fraction: 0.6, scope: "world" },
+          { op: "regen", resource: "forage", factor: 1.5, scope: "world", duration: 2 },
         ],
       },
     ],
@@ -876,37 +875,37 @@ export const EVENTS: EventDef[] = [
     question: "Which species thrives?",
     seasons: ["summer"],
     preconditions: [],
-    footprint: region(22),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E20_grazers",
         label: "Grazers",
-        description: "Wildlife in the area increases, but grazing herds eat into crops for two turns.",
+        description: "Wildlife everywhere increases, but grazing herds eat into crops for two turns.",
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "wildlife", fraction: 0.5, scope: "footprint" },
-          { op: "yieldMult", channel: "farm", factor: 0.85, scope: "footprint", duration: 2 },
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.5, scope: "world" },
+          { op: "yieldMult", channel: "farm", factor: 0.85, scope: "world", duration: 2 },
         ],
       },
       {
         id: "E20_fish",
         label: "Fish",
-        description: "Fish in the area regrow twice as fast for three turns.",
+        description: "Fish everywhere regrow twice as fast for three turns.",
         duration: 3,
         tone: "beneficial",
-        effects: [{ op: "regen", resource: "fish", factor: 2, scope: "footprint", duration: 3 }],
+        effects: [{ op: "regen", resource: "fish", factor: 2, scope: "world", duration: 3 }],
       },
       {
         id: "E20_pollinators",
         label: "Pollinators",
-        description: "Farms and wild fruit in the area yield more for two turns.",
+        description: "Farms and wild fruit everywhere yield more for two turns.",
         duration: 2,
         tone: "beneficial",
         effects: [
-          { op: "yieldMult", channel: "farm", factor: 1.15, scope: "footprint", duration: 2 },
-          { op: "yieldMult", channel: "forage", factor: 1.15, scope: "footprint", duration: 2 },
+          { op: "yieldMult", channel: "farm", factor: 1.15, scope: "world", duration: 2 },
+          { op: "yieldMult", channel: "forage", factor: 1.15, scope: "world", duration: 2 },
         ],
       },
     ],
@@ -917,24 +916,24 @@ export const EVENTS: EventDef[] = [
     question: "What kind of wild harvest appears?",
     seasons: ["autumn"],
     preconditions: [],
-    footprint: region(22),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E21_nuts",
         label: "Nuts",
-        description: "Forest forage in the area is strongly replenished.",
+        description: "Forest forage everywhere is strongly replenished.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "footprint", terrain: ["forest"] }],
+        effects: [{ op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "world", terrain: ["forest"] }],
       },
       {
         id: "E21_roots",
         label: "Roots",
-        description: "Meadow forage in the area is strongly replenished.",
+        description: "Meadow forage everywhere is strongly replenished.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "footprint", terrain: ["meadow"] }],
+        effects: [{ op: "stockAdjust", resource: "forage", fraction: 0.5, scope: "world", terrain: ["meadow"] }],
       },
       {
         id: "E21_mushrooms",
@@ -943,8 +942,8 @@ export const EVENTS: EventDef[] = [
         duration: 0,
         tone: "beneficial",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.7, scope: "footprint", terrain: ["forest"], nearWater: true },
-          { op: "stockAdjust", resource: "forage", fraction: 0.15, scope: "footprint", terrain: ["forest"] },
+          { op: "stockAdjust", resource: "forage", fraction: 0.7, scope: "world", terrain: ["forest"], nearWater: true },
+          { op: "stockAdjust", resource: "forage", fraction: 0.15, scope: "world", terrain: ["forest"] },
         ],
       },
     ],
@@ -993,13 +992,13 @@ export const EVENTS: EventDef[] = [
     question: "What does a windstorm deposit?",
     seasons: ANY,
     preconditions: [],
-    footprint: region(20),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E23_seeds",
         label: "Seeds",
-        description: "Two turns from now, wild plants in the area spread: more forage now and more capacity for it.",
+        description: "Two turns from now, wild plants spread across the land: more forage and more capacity for it.",
         duration: 0,
         tone: "beneficial",
         effects: [
@@ -1008,8 +1007,8 @@ export const EVENTS: EventDef[] = [
             afterTurns: 2,
             label: "Windblown seeds sprout",
             effects: [
-              { op: "capacityAdjust", resource: "forage", fraction: 0.15, scope: "footprint" },
-              { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint" },
+              { op: "capacityAdjust", resource: "forage", fraction: 0.15, scope: "world" },
+              { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "world" },
             ],
           },
         ],
@@ -1017,18 +1016,18 @@ export const EVENTS: EventDef[] = [
       {
         id: "E23_silt",
         label: "Silt",
-        description: "Meadows near water in the area become permanently more fertile.",
+        description: "Meadows near water everywhere become permanently more fertile.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "fertility", delta: 12, scope: "footprint", terrain: ["meadow"], nearWater: true }],
+        effects: [{ op: "fertility", delta: 12, scope: "world", terrain: ["meadow"], nearWater: true }],
       },
       {
         id: "E23_driftwood",
         label: "Driftwood",
-        description: "Settlements near shorelines in the area collect 12 timber.",
+        description: "Tribes whose capital is near water collect 12 timber.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "settlementStock", resource: "timber", amount: 12, scope: "footprint", nearWater: true }],
+        effects: [{ op: "settlementStock", resource: "timber", amount: 12, scope: "world", nearWater: true }],
       },
     ],
   },
@@ -1038,7 +1037,7 @@ export const EVENTS: EventDef[] = [
     question: "Which vegetation spreads fastest?",
     seasons: ["spring", "summer"],
     preconditions: [],
-    footprint: region(20),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -1048,8 +1047,8 @@ export const EVENTS: EventDef[] = [
         duration: 3,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "footprint", nearWater: true },
-          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "footprint", duration: 3 },
+          { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: "world", nearWater: true },
+          { op: "yieldMult", channel: "fish", factor: 0.85, scope: "world", duration: 3 },
         ],
       },
       {
@@ -1059,8 +1058,8 @@ export const EVENTS: EventDef[] = [
         duration: 2,
         tone: "mixed",
         effects: [
-          { op: "capacityAdjust", resource: "timber", fraction: 0.15, scope: "footprint", terrain: ["forest"] },
-          { op: "regen", resource: "timber", factor: 0.7, scope: "footprint", duration: 2 },
+          { op: "capacityAdjust", resource: "timber", fraction: 0.15, scope: "world", terrain: ["forest"] },
+          { op: "regen", resource: "timber", factor: 0.7, scope: "world", duration: 2 },
         ],
       },
       {
@@ -1070,8 +1069,8 @@ export const EVENTS: EventDef[] = [
         duration: 0,
         tone: "mixed",
         effects: [
-          { op: "fertility", delta: 10, scope: "footprint", terrain: ["meadow"] },
-          { op: "capacityAdjust", resource: "forage", fraction: -0.1, scope: "footprint", terrain: ["meadow"] },
+          { op: "fertility", delta: 10, scope: "world", terrain: ["meadow"] },
+          { op: "capacityAdjust", resource: "forage", fraction: -0.1, scope: "world", terrain: ["meadow"] },
         ],
       },
     ],
@@ -1082,16 +1081,16 @@ export const EVENTS: EventDef[] = [
     question: "What changes in the soil?",
     seasons: ["summer", "autumn"],
     preconditions: [],
-    footprint: region(20),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E25_rich",
         label: "Rich soil",
-        description: "Meadows in the area become permanently more fertile.",
+        description: "Meadows everywhere become permanently more fertile.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "fertility", delta: 12, scope: "footprint", terrain: ["meadow"] }],
+        effects: [{ op: "fertility", delta: 12, scope: "world", terrain: ["meadow"] }],
       },
       {
         id: "E25_dry",
@@ -1100,19 +1099,19 @@ export const EVENTS: EventDef[] = [
         duration: 3,
         tone: "mixed",
         effects: [
-          { op: "dryFarm", factor: 0.75, scope: "footprint", duration: 3 },
-          { op: "travelMod", delta: -1, scope: "footprint", duration: 3 },
+          { op: "dryFarm", factor: 0.75, scope: "world", duration: 3 },
+          { op: "travelMod", delta: -1, scope: "world", duration: 3 },
         ],
       },
       {
         id: "E25_stony",
         label: "Stony soil",
-        description: "Settlements in the area collect 12 stone, but meadows lose fertility permanently.",
+        description: "Every tribe collects 12 stone, but meadows everywhere lose fertility permanently.",
         duration: 0,
         tone: "mixed",
         effects: [
-          { op: "settlementStock", resource: "stone", amount: 12, scope: "footprint" },
-          { op: "fertility", delta: -10, scope: "footprint", terrain: ["meadow"] },
+          { op: "settlementStock", resource: "stone", amount: 12, scope: "world" },
+          { op: "fertility", delta: -10, scope: "world", terrain: ["meadow"] },
         ],
       },
     ],
@@ -1203,7 +1202,7 @@ export const EVENTS: EventDef[] = [
     question: "How do wildlife populations recover?",
     seasons: ["spring"],
     preconditions: [],
-    footprint: region(14),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -1225,10 +1224,10 @@ export const EVENTS: EventDef[] = [
       {
         id: "E28_uneven",
         label: "Unevenly",
-        description: "A concentrated pocket of wildlife appears in the highlighted area only.",
+        description: "Wildlife stocks everywhere jump at once (+80% of capacity), with no lasting change to regrowth.",
         duration: 0,
         tone: "mixed",
-        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.8, scope: "footprint" }],
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.8, scope: "world" }],
       },
     ],
   },
@@ -1273,30 +1272,30 @@ export const EVENTS: EventDef[] = [
   {
     id: "E30",
     title: "Recovery",
-    question: "How does a depleted region recover?",
+    question: "How does depleted land recover?",
     seasons: ANY,
     preconditions: [],
-    footprint: region(20),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
         id: "E30_timber",
         label: "Timber",
-        description: "Forest timber in the area is restored and forests can hold a little more.",
+        description: "Forest timber everywhere is restored and forests can hold a little more.",
         duration: 0,
         tone: "beneficial",
         effects: [
-          { op: "stockAdjust", resource: "timber", fraction: 0.5, scope: "footprint", terrain: ["forest"] },
-          { op: "capacityAdjust", resource: "timber", fraction: 0.1, scope: "footprint", terrain: ["forest"] },
+          { op: "stockAdjust", resource: "timber", fraction: 0.5, scope: "world", terrain: ["forest"] },
+          { op: "capacityAdjust", resource: "timber", fraction: 0.1, scope: "world", terrain: ["forest"] },
         ],
       },
       {
         id: "E30_wildlife",
         label: "Wildlife",
-        description: "Hunting stocks in the area are restored.",
+        description: "Hunting stocks everywhere are restored.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.5, scope: "footprint" }],
+        effects: [{ op: "stockAdjust", resource: "wildlife", fraction: 0.5, scope: "world" }],
       },
       {
         id: "E30_soil",
@@ -1305,8 +1304,8 @@ export const EVENTS: EventDef[] = [
         duration: 0,
         tone: "mild",
         effects: [
-          { op: "fertility", delta: 10, scope: "footprint", terrain: ["meadow"] },
-          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint" },
+          { op: "fertility", delta: 10, scope: "world", terrain: ["meadow"] },
+          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "world" },
         ],
       },
     ],
@@ -1317,7 +1316,7 @@ export const EVENTS: EventDef[] = [
     question: "What natural shelter becomes available?",
     seasons: ["autumn", "winter"],
     preconditions: [],
-    footprint: region(22),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -1326,15 +1325,15 @@ export const EVENTS: EventDef[] = [
         description: "Mountain refuges open: cave tiles give natural shelter to whoever holds them.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "overlay", flag: "Cave", fraction: 0.08, scope: "footprint", terrain: ["mountain"] }],
+        effects: [{ op: "overlay", flag: "Cave", fraction: 0.08, scope: "world", terrain: ["mountain"] }],
       },
       {
         id: "E31_groves",
         label: "Dense groves",
-        description: "Sheltered groves in the forest give natural shelter to whoever holds them.",
+        description: "Sheltered groves appear in forests across the land, giving natural shelter to whoever holds them.",
         duration: 0,
         tone: "beneficial",
-        effects: [{ op: "overlay", flag: "Sheltered", fraction: 0.1, scope: "footprint", terrain: ["forest"] }],
+        effects: [{ op: "overlay", flag: "Sheltered", fraction: 0.1, scope: "world", terrain: ["forest"] }],
       },
       {
         id: "E31_banks",
@@ -1343,8 +1342,8 @@ export const EVENTS: EventDef[] = [
         duration: 0,
         tone: "mixed",
         effects: [
-          { op: "overlay", flag: "Sheltered", fraction: 0.15, scope: "footprint", nearWater: true, terrain: ["meadow", "forest"] },
-          { op: "shelterDamage", amount: 4, scope: "footprint", nearWater: true },
+          { op: "overlay", flag: "Sheltered", fraction: 0.15, scope: "world", nearWater: true, terrain: ["meadow", "forest"] },
+          { op: "shelterDamage", amount: 4, scope: "world", nearWater: true },
         ],
       },
     ],
@@ -1355,7 +1354,7 @@ export const EVENTS: EventDef[] = [
     question: "What changes along biome boundaries?",
     seasons: ANY,
     preconditions: [],
-    footprint: region(18),
+    footprint: WORLD,
     repeat: "standard",
     options: [
       {
@@ -1364,7 +1363,7 @@ export const EVENTS: EventDef[] = [
         description: "Some forest becomes open meadow: more farmland, less timber.",
         duration: 0,
         tone: "mixed",
-        effects: [{ op: "convertTile", from: "forest", to: "meadow", fraction: 0.08, scope: "footprint" }],
+        effects: [{ op: "convertTile", from: "forest", to: "meadow", fraction: 0.08, scope: "world" }],
       },
       {
         id: "E32_forest",
@@ -1372,7 +1371,7 @@ export const EVENTS: EventDef[] = [
         description: "Some meadow becomes forest: more timber, less open travel and farmland.",
         duration: 0,
         tone: "mixed",
-        effects: [{ op: "convertTile", from: "meadow", to: "forest", fraction: 0.08, scope: "footprint" }],
+        effects: [{ op: "convertTile", from: "meadow", to: "forest", fraction: 0.08, scope: "world" }],
       },
       {
         id: "E32_mixed",
@@ -1381,10 +1380,10 @@ export const EVENTS: EventDef[] = [
         duration: 3,
         tone: "mixed",
         effects: [
-          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "footprint" },
-          { op: "stockAdjust", resource: "wildlife", fraction: 0.3, scope: "footprint" },
-          { op: "yieldMult", channel: "farm", factor: 0.9, scope: "footprint", duration: 3 },
-          { op: "yieldMult", channel: "timber", factor: 0.9, scope: "footprint", duration: 3 },
+          { op: "stockAdjust", resource: "forage", fraction: 0.3, scope: "world" },
+          { op: "stockAdjust", resource: "wildlife", fraction: 0.3, scope: "world" },
+          { op: "yieldMult", channel: "farm", factor: 0.9, scope: "world", duration: 3 },
+          { op: "yieldMult", channel: "timber", factor: 0.9, scope: "world", duration: 3 },
         ],
       },
     ],

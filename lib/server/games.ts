@@ -1,7 +1,7 @@
 import "server-only";
 import { randomBytes, randomUUID } from "node:crypto";
 import { CONTENT_VERSION, contentHash } from "@/content/index";
-import { TOTAL_TURNS } from "@/lib/game/calendar";
+import { DEFAULT_TOTAL_TURNS, MAX_TOTAL_TURNS, MIN_TOTAL_TURNS } from "@/lib/game/calendar";
 import { deserializeState, hashState, serializeState, type SerializedGameState } from "@/lib/game/serialize";
 import { startGame } from "@/lib/game/turn";
 import { TRIBE_IDS, type DecisionMode, type GameState, type GameStatus, type TribeId } from "@/lib/game/types";
@@ -23,6 +23,7 @@ export interface GameRow {
   supported_tribe: TribeId;
   seed: string;
   completed_turn: number;
+  total_turns: number;
   version: number;
   schema_version: number;
   rules_version: string;
@@ -42,7 +43,7 @@ export interface GameRow {
 }
 
 export function statusForNextTurn(state: GameState): GameStatus {
-  if (state.completedTurn >= TOTAL_TURNS) return "finished";
+  if (state.completedTurn >= state.totalTurns) return "finished";
   return state.currentEvent?.source === "nature" ? "nature_pending" : "awaiting_player";
 }
 
@@ -68,7 +69,7 @@ export function metaOf(row: GameRow): GameMeta {
     configuredModel: row.configured_model,
     createdAt: row.created_at,
     attemptsUsed: row.attempts_used,
-    maxAttempts: getConfig().maxAttemptsPerGame,
+    maxAttempts: attemptBudget(row.total_turns),
     usage: { inputTokens: row.usage_input_tokens, outputTokens: row.usage_output_tokens, unknownAttempts: row.usage_unknown_attempts },
   };
 }
@@ -77,7 +78,12 @@ export function newSeed(): string {
   return randomBytes(6).toString("hex");
 }
 
-export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: string; mode: DecisionMode }) {
+/** Per-game Jev attempt budget: three attempts per turn, never above the configured cap. */
+export function attemptBudget(totalTurns: number): number {
+  return Math.min(getConfig().maxAttemptsPerGame, 3 * totalTurns);
+}
+
+export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: string; mode: DecisionMode; totalTurns?: number }) {
   const cfg = getConfig();
   if (!TRIBE_IDS.includes(input.tribeId)) throw new ApiError(422, "invalid_tribe", "Unknown tribe.");
   if (input.mode === "live" && !cfg.apiKey) {
@@ -86,7 +92,11 @@ export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: 
   if (input.mode === "mock" && !cfg.allowMock) throw new ApiError(403, "mock_not_permitted", "Mock simulation is disabled on this server.");
   const seed = input.seed && input.seed.trim().length > 0 ? input.seed.trim().slice(0, 64) : newSeed();
   // The supported tribe is not an input to world generation: same seed → same world for every selection.
-  const state = startGame(createInitialState(seed, CONTENT_VERSION, contentHash()));
+  const totalTurns = input.totalTurns ?? DEFAULT_TOTAL_TURNS;
+  if (!Number.isInteger(totalTurns) || totalTurns < MIN_TOTAL_TURNS || totalTurns > MAX_TOTAL_TURNS) {
+    throw new ApiError(422, "invalid_match_length", `Match length must be ${MIN_TOTAL_TURNS}–${MAX_TOTAL_TURNS} turns.`);
+  }
+  const state = startGame(createInitialState(seed, CONTENT_VERSION, contentHash(), totalTurns));
   const id = randomUUID();
   const now = Date.now();
   const status = statusForNextTurn(state);
@@ -94,9 +104,9 @@ export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: 
   tx((db) => {
     checkAndRecordGameCreation(db, sessionId);
     db.prepare(
-      `INSERT INTO games (id, session_id, created_at, updated_at, status, mode, supported_tribe, seed, completed_turn, version,
+      `INSERT INTO games (id, session_id, created_at, updated_at, status, mode, supported_tribe, seed, completed_turn, total_turns, version,
         schema_version, rules_version, content_version, content_hash, configured_model, state, initial_view)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 1, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       sessionId,
@@ -106,6 +116,7 @@ export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: 
       input.mode,
       input.tribeId,
       seed,
+      totalTurns,
       state.schemaVersion,
       state.rulesVersion,
       state.contentVersion,
@@ -121,9 +132,9 @@ export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: 
 
 export function listGames(sessionId: string) {
   const rows = getDb()
-    .prepare("SELECT id, status, mode, supported_tribe, seed, completed_turn, created_at, updated_at FROM games WHERE session_id = ? ORDER BY created_at DESC LIMIT 50")
-    .all(sessionId) as { id: string; status: string; mode: string; supported_tribe: string; seed: string; completed_turn: number; created_at: number; updated_at: number }[];
-  return rows.map((r) => ({ id: r.id, status: r.status, mode: r.mode, supportedTribeId: r.supported_tribe, seed: r.seed, completedTurn: r.completed_turn, createdAt: r.created_at, updatedAt: r.updated_at }));
+    .prepare("SELECT id, status, mode, supported_tribe, seed, completed_turn, total_turns, created_at, updated_at FROM games WHERE session_id = ? ORDER BY created_at DESC LIMIT 50")
+    .all(sessionId) as { id: string; status: string; mode: string; supported_tribe: string; seed: string; completed_turn: number; total_turns: number; created_at: number; updated_at: number }[];
+  return rows.map((r) => ({ id: r.id, status: r.status, mode: r.mode, supportedTribeId: r.supported_tribe, seed: r.seed, completedTurn: r.completed_turn, totalTurns: r.total_turns, createdAt: r.created_at, updatedAt: r.updated_at }));
 }
 
 export function pendingIntent(row: GameRow): PendingView | null {

@@ -1,9 +1,10 @@
 import { BALANCE, RULES_VERSION, STARTING } from "@/content/balance";
 import { TRIBES } from "@/content/tribes";
+import { DEFAULT_TOTAL_TURNS, MAX_TOTAL_TURNS, MIN_TOTAL_TURNS } from "../calendar";
 import { makeRng } from "../rng";
 import { Terrain, TILE_COUNT, TRIBE_IDS, type GameState, type TribeId, type TribeState, type WorldState } from "../types";
 import { tileId } from "./grid";
-import { claimStartTerritory, lastAssetFailure, placeStartingAssets, trySettlementPlacement, validatePlacement, type Settlements } from "./placement";
+import { claimStartTerritory, lastAssetFailure, placeStartingAssets, territoryGapOk, trySettlementPlacement, validatePlacement, type Settlements } from "./placement";
 import { createEmptyWorld, fillResources, generateTerrain } from "./terrain";
 
 export const SCHEMA_VERSION = 1;
@@ -30,6 +31,7 @@ export function generateWorld(seed: string): GenerationResult {
     const settlements = trySettlementPlacement(world, seed, attempt, (candidate) => {
       const copy = structuredClone(world);
       const territory = claimStartTerritory(copy, candidate);
+      if (!territoryGapOk(copy, territory)) return false;
       if (!placeStartingAssets(copy, candidate, territory)) return false;
       placedWorld = copy;
       return true;
@@ -60,6 +62,7 @@ export function fallbackWorld(seed: string): GenerationResult {
   for (let y = 30; y <= 52; y++) for (let x = 40; x <= 56; x++) set(x, y, Terrain.Forest);
   for (let y = 15; y <= 45; y++) for (let x = 100; x <= 125; x++) set(x, y, Terrain.Forest);
   for (let y = 62; y <= 88; y++) for (let x = 15; x <= 35; x++) set(x, y, Terrain.Forest);
+  for (let y = 60; y <= 70; y++) for (let x = 50; x <= 56; x++) set(x, y, Terrain.Forest);
   // Central ridge and an eastern range.
   for (let y = 30; y <= 38; y++) for (let x = 66; x <= 90; x++) set(x, y, Terrain.Mountain);
   for (let y = 60; y <= 80; y++) for (let x = 110; x <= 118; x++) set(x, y, Terrain.Mountain);
@@ -82,13 +85,14 @@ export function fallbackWorld(seed: string): GenerationResult {
   fillResources(world, seed, 99);
   const settlements: Settlements = {
     stonehaven: at(65, 38),
-    windstep: at(54, 42),
-    hearthwood: at(58, 52),
-    ironfang: at(70, 53),
+    windstep: at(42, 45),
+    hearthwood: at(60, 64),
+    ironfang: at(86, 62),
   };
   const check = validatePlacement(world, settlements);
   if (!check.ok) throw new Error(`fallback template invalid: ${check.reason}`);
   const territory = claimStartTerritory(world, settlements);
+  if (!territoryGapOk(world, territory)) throw new Error("fallback template territories too close");
   if (!placeStartingAssets(world, settlements, territory)) throw new Error(`fallback template assets invalid: ${lastAssetFailure}`);
   return { world, settlements, attempt: BALANCE.map.maxGenerationAttempts, usedFallback: true };
 }
@@ -101,6 +105,8 @@ export function initialTribe(id: TribeId, settlement: number): TribeState {
     alive: true,
     eliminatedTurn: null,
     settlement,
+    outposts: [],
+    scoutedSites: [],
     population: STARTING.population,
     food: id === "ironfang" ? STARTING.food.ironfang : STARTING.food.producing,
     timber: STARTING.timber,
@@ -121,7 +127,8 @@ export function initialTribe(id: TribeId, settlement: number): TribeState {
   };
 }
 
-export function createInitialState(seed: string, contentVersion: string, contentHash: string): GameState {
+export function createInitialState(seed: string, contentVersion: string, contentHash: string, totalTurns = DEFAULT_TOTAL_TURNS): GameState {
+  if (!Number.isInteger(totalTurns) || totalTurns < MIN_TOTAL_TURNS || totalTurns > MAX_TOTAL_TURNS) throw new Error("invalid match length");
   const gen = generateWorld(seed);
   const tribes = {} as Record<TribeId, TribeState>;
   for (const id of TRIBE_IDS) tribes[id] = initialTribe(id, gen.settlements[id]);
@@ -134,6 +141,7 @@ export function createInitialState(seed: string, contentVersion: string, content
     generationAttempt: gen.attempt,
     usedFallbackMap: gen.usedFallback,
     completedTurn: 0,
+    totalTurns,
     world: gen.world,
     tribes,
     activeEffects: [],

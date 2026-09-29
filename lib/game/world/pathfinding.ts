@@ -84,7 +84,7 @@ class MinHeap {
 }
 
 export interface DistanceMap {
-  source: number;
+  sources: number[];
   maxCost: number;
   dist: Int32Array; // -1 unreachable
   prev: Int32Array;
@@ -97,7 +97,7 @@ export interface DistanceMap {
  */
 export function dijkstra(
   cost: CostField,
-  source: number,
+  source: number | number[],
   maxCost: number,
   blocked?: ReadonlySet<number>,
   allowTargets?: ReadonlySet<number>,
@@ -108,15 +108,19 @@ export function dijkstra(
   const reached: number[] = [];
   const heap = new MinHeap();
   const nb = new Int32Array(4);
-  dist[source] = 0;
-  heap.push(0, source);
+  const sources = (Array.isArray(source) ? source : [source]).filter((s, i, a) => a.indexOf(s) === i).sort((a, b) => a - b);
+  const sourceSet = new Set(sources);
+  for (const s of sources) {
+    dist[s] = 0;
+    heap.push(0, s);
+  }
   while (heap.size > 0) {
     const [d, u] = heap.pop();
     if (done[u]) continue;
     done[u] = 1;
     reached.push(u);
     // Targets that are otherwise blocked can be reached but not traversed through.
-    if (u !== source && blocked?.has(u)) continue;
+    if (!sourceSet.has(u) && blocked?.has(u)) continue;
     const n = neighbors4(u, nb);
     for (let i = 0; i < n; i++) {
       const w = nb[i] as number;
@@ -133,16 +137,16 @@ export function dijkstra(
       }
     }
   }
-  return { source, maxCost, dist, prev, reached };
+  return { sources, maxCost, dist, prev, reached };
 }
 
 export function pathTo(map: DistanceMap, target: number): number[] {
   if ((map.dist[target] as number) < 0) return [];
   const path: number[] = [];
   let cur = target;
-  while (cur !== -1) {
+  let guard = 0;
+  while (cur !== -1 && guard++ < 20000) {
     path.push(cur);
-    if (cur === map.source) break;
     cur = map.prev[cur] as number;
   }
   return path.reverse();

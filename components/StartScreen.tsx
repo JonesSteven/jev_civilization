@@ -18,6 +18,7 @@ export default function StartScreen() {
   const [tribe, setTribe] = useState<TribeId | null>(null);
   const [seed, setSeed] = useState("");
   const [mode, setMode] = useState<"live" | "mock">("live");
+  const [totalTurns, setTotalTurns] = useState(50);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [help, setHelp] = useState(false);
@@ -35,7 +36,7 @@ export default function StartScreen() {
     setBusy(true);
     setError(null);
     try {
-      const g = await api.createGame({ tribeId: tribe, mode, ...(seed.trim() ? { seed: seed.trim() } : {}) });
+      const g = await api.createGame({ tribeId: tribe, mode, totalTurns, ...(seed.trim() ? { seed: seed.trim() } : {}) });
       router.push(`/game/${g.id}`);
     } catch (e) {
       setError(e instanceof ClientApiError ? e.message : "Could not start the match.");
@@ -53,7 +54,7 @@ export default function StartScreen() {
           <p>
             Four tribes decide for themselves. You support one of them, but you cannot give orders: on odd turns you choose how the
             environment changes, and on even turns Nature chooses. Every turn, Jev decides what each surviving tribe does, and the game
-            engine works out what happens. After 100 turns, the highest civilization score wins.
+            engine works out what happens. When the match ends, the highest civilization score wins.
           </p>
         </div>
         <button type="button" className="btn" onClick={() => setHelp(true)}>How it works</button>
@@ -112,6 +113,15 @@ export default function StartScreen() {
               </div>
             )}
           </fieldset>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <strong>Match length</strong>
+            <select value={totalTurns} onChange={(e) => setTotalTurns(Number(e.target.value))} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid var(--line-2)" }}>
+              {[10, 20, 30, 50, 75, 100, 150, 200].map((n) => (
+                <option key={n} value={n}>{n} turns{n === 50 ? " (default)" : ""}</option>
+              ))}
+            </select>
+            <span className="small muted">{totalTurns / 8} years of two seasons-turns each</span>
+          </label>
           <details>
             <summary>Advanced: world seed</summary>
             <label className="small" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
@@ -139,7 +149,7 @@ export default function StartScreen() {
                 <tr key={g.id}>
                   <td>{TRIBES[g.supportedTribeId as TribeId]?.name ?? g.supportedTribeId}</td>
                   <td><span className={`chip ${g.mode === "mock" ? "badge-mock" : "badge-live"}`}>{g.mode === "mock" ? "Mock" : "Live"}</span></td>
-                  <td className="num">{g.completedTurn}/100</td>
+                  <td className="num">{g.completedTurn}/{g.totalTurns}</td>
                   <td>{g.status.replace("_", " ")}</td>
                   <td className="mono">{g.seed}</td>
                   <td style={{ display: "flex", gap: 6 }}>

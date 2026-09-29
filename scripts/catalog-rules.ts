@@ -13,7 +13,8 @@ const CHANNELS = new Set(["farm", "hunt", "fish", "forage", "timber", "stone"]);
 function checkEffect(op: EffectOp, where: string, errors: string[], depth = 0) {
   if (!OPS.has(op.op)) errors.push(`${where}: unknown op ${op.op}`);
   const anyOp = op as unknown as Record<string, unknown>;
-  if ("scope" in anyOp && anyOp.scope !== "world" && anyOp.scope !== "footprint") errors.push(`${where}: bad scope`);
+  // Dynamic ruleset: every environmental choice applies to the whole map.
+  if ("scope" in anyOp && anyOp.scope !== "world") errors.push(`${where}: scope must be "world"`);
   if ("duration" in anyOp && anyOp.duration !== undefined) {
     const d = anyOp.duration as number;
     if (!Number.isInteger(d) || d < 1 || d > BALANCE.effects.maxDuration) errors.push(`${where}: duration ${d} outside 1–${BALANCE.effects.maxDuration}`);
@@ -50,6 +51,7 @@ function checkEffect(op: EffectOp, where: string, errors: string[], depth = 0) {
 
 function checkEvent(e: EventDef, errors: string[]) {
   if (e.options.length !== 3) errors.push(`${e.id}: must have exactly 3 options`);
+  if (e.footprint.kind !== "world") errors.push(`${e.id}: footprint must be the whole map`);
   if (e.seasons !== "any") for (const s of e.seasons) if (!SEASONS.includes(s)) errors.push(`${e.id}: bad season ${s}`);
   const sigs = new Set<string>();
   for (const o of e.options) {

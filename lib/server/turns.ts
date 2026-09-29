@@ -13,7 +13,7 @@ import { TRIBE_IDS, type ActionCandidate, type GameOutcome, type TribeId } from 
 import { buildSnapshot } from "@/lib/game/candidates";
 import { getConfig } from "./config";
 import { getDb, packJson, tx, unpackJson } from "./db";
-import { gameView, loadOwnedGame, stateOf, statusForNextTurn, type GameRow } from "./games";
+import { attemptBudget, gameView, loadOwnedGame, stateOf, statusForNextTurn, type GameRow } from "./games";
 import { ApiError } from "./http";
 import { callJev, jevErrorMessage, type AttemptRecord } from "./jev/adapter";
 import { MOCK_MODEL, mockRespond } from "./jev/mock";
@@ -24,7 +24,7 @@ import { checkAndRecordTurnStart } from "./limits";
 export const TurnBody = z
   .object({
     expectedVersion: z.number().int().min(1),
-    expectedTurn: z.number().int().min(1).max(100),
+    expectedTurn: z.number().int().min(1).max(200),
     eventId: z.string().regex(/^E\d{2}$/),
     idempotencyKey: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/),
     optionId: z.string().regex(/^E\d{2}_[a-z_]+$/).optional(),
@@ -112,7 +112,7 @@ export interface TurnRecord {
   reports: TurnResult["reports"];
   scores: TurnResult["scores"];
   eliminated: TribeId[];
-  tribes: { id: TribeId; alive: boolean; population: number; food: number; timber: number; stone: number; morale: number; militaryLevel: number; settlement: number }[];
+  tribes: { id: TribeId; alive: boolean; population: number; food: number; timber: number; stone: number; morale: number; militaryLevel: number; settlement: number; outposts: number[] }[];
   preStateHash: string;
   postStateHash: string;
   postStateVersion: number;
@@ -213,7 +213,7 @@ export async function submitTurn(sessionId: string, gameId: string, body: TurnBo
   } else if (body.optionId !== undefined) {
     throw new ApiError(422, "option_not_allowed", "Nature chooses on this turn; option IDs are not accepted.");
   }
-  if (row.mode === "live" && row.attempts_used >= getConfig().maxAttemptsPerGame) {
+  if (row.mode === "live" && row.attempts_used >= attemptBudget(row.total_turns)) {
     throw new ApiError(429, "jev_budget_exhausted", jevErrorMessage("jev_budget_exhausted"));
   }
   if (row.mode === "live" && !getConfig().apiKey) throw new ApiError(503, "jev_not_configured", jevErrorMessage("jev_not_configured"));
@@ -263,7 +263,7 @@ export async function retryTurn(sessionId: string, gameId: string, turn: number,
   }
   const leaseActive = row.lease_holder !== null && (row.lease_expires_at ?? 0) > Date.now();
   if (leaseActive) return pendingResponse(row);
-  if (row.mode === "live" && !intent.decisions && row.attempts_used >= getConfig().maxAttemptsPerGame) {
+  if (row.mode === "live" && !intent.decisions && row.attempts_used >= attemptBudget(row.total_turns)) {
     throw new ApiError(429, "jev_budget_exhausted", jevErrorMessage("jev_budget_exhausted"));
   }
   const token = tx((db) => {
@@ -308,7 +308,7 @@ async function decide(intent: IntentRow, row: GameRow, frozen: FrozenContext, to
       tx((db) => {
         if (!holdsLease(db, row.id, token)) return false;
         const g = db.prepare("SELECT attempts_used FROM games WHERE id = ?").get(row.id) as { attempts_used: number };
-        if (g.attempts_used >= getConfig().maxAttemptsPerGame) return false;
+        if (g.attempts_used >= attemptBudget(row.total_turns)) return false;
         db.prepare("UPDATE games SET attempts_used = attempts_used + 1 WHERE id = ?").run(row.id);
         db.prepare("UPDATE turn_intents SET attempts = attempts + 1, updated_at = ? WHERE id = ?").run(Date.now(), intent.id);
         const r = db
@@ -447,7 +447,7 @@ async function runIntent(intentId: string, token: number): Promise<TurnResponse>
     eliminated: result.eliminated,
     tribes: TRIBE_IDS.map((id) => {
       const t = result.state.tribes[id];
-      return { id, alive: t.alive, population: t.population, food: t.food, timber: t.timber, stone: t.stone, morale: t.morale, militaryLevel: t.militaryLevel, settlement: t.settlement };
+      return { id, alive: t.alive, population: t.population, food: t.food, timber: t.timber, stone: t.stone, morale: t.morale, militaryLevel: t.militaryLevel, settlement: t.settlement, outposts: t.outposts };
     }),
     preStateHash: intent.pre_state_hash,
     postStateHash: postHash,

@@ -6,8 +6,9 @@ import { shelterSummary } from "./shelter";
 import { Terrain, type GameState, type Season, type TribeId } from "./types";
 import { assetAtTile, sumStock } from "./world/territory";
 
-export function fortLevel(state: GameState, tribe: TribeId): number {
-  const a = assetAtTile(state.world, state.tribes[tribe].settlement);
+/** Fortification at a settlement tile (defaults to the capital). */
+export function fortLevel(state: GameState, tribe: TribeId, tile: number = state.tribes[tribe].settlement): number {
+  const a = assetAtTile(state.world, tile);
   return a && a.kind === "defenses" && a.owner === tribe ? (a.level ?? 0) : 0;
 }
 
@@ -15,8 +16,8 @@ export function fortCap(state: GameState, tribe: TribeId): number {
   return hasTech(state, tribe, "fortification") ? BALANCE.actions.defenses.techCap : BALANCE.actions.defenses.baseCap;
 }
 
-export function terrainDefense(state: GameState, tribe: TribeId): number {
-  return state.world.terrain[state.tribes[tribe].settlement] === Terrain.Mountain ? BALANCE.combat.mountainDefense : 1;
+export function terrainDefense(state: GameState, tribe: TribeId, tile: number = state.tribes[tribe].settlement): number {
+  return state.world.terrain[tile] === Terrain.Mountain ? BALANCE.combat.mountainDefense : 1;
 }
 
 export function attackStrength(state: GameState, tribe: TribeId): number {
@@ -25,13 +26,13 @@ export function attackStrength(state: GameState, tribe: TribeId): number {
   return t.population * (1 + BALANCE.combat.militaryStep * t.militaryLevel) * raidMod;
 }
 
-export function defenseStrength(state: GameState, tribe: TribeId, defending: boolean): number {
+export function defenseStrength(state: GameState, tribe: TribeId, defending: boolean, tile: number = state.tribes[tribe].settlement): number {
   const t = state.tribes[tribe];
   return (
     t.population *
     (1 + BALANCE.combat.militaryStep * t.militaryLevel) *
-    (1 + BALANCE.combat.fortStep * fortLevel(state, tribe)) *
-    terrainDefense(state, tribe) *
+    (1 + BALANCE.combat.fortStep * fortLevel(state, tribe, tile)) *
+    terrainDefense(state, tribe, tile) *
     (defending ? BALANCE.actions.defendMultiplier : 1)
   );
 }

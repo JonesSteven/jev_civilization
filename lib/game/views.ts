@@ -4,7 +4,7 @@
 import { EVENT_BY_ID } from "@/content/events";
 import { TECH_BY_ID } from "@/content/technologies";
 import { TRIBES } from "@/content/tribes";
-import { calendarOf, seasonOf, TOTAL_TURNS } from "./calendar";
+import { calendarOf, seasonOf } from "./calendar";
 import type { Snapshot } from "./candidates";
 import { accessibleTiles, livingTribes } from "./geo";
 import { relationLabel, turnsAgo } from "./memory";
@@ -23,6 +23,7 @@ export interface PublicTribeSummary {
   militaryLevel: number;
   fortification: number;
   settlementTerrain: string;
+  settlements: number;
   technologiesLearned: number;
   lastAction: string | null;
 }
@@ -36,6 +37,8 @@ export interface TribeView {
   shelter: { usableCapacity: number; coverage: number; averageCondition: number; unsheltered: number; spare: number; dormantCapacity: number; winterExposureRisk: string };
   military: { level: number; fortification: number; fortificationCap: number };
   territory: { claimedTiles: number; productiveTiles: number; workingRange: number; movementBudget: number; settlementTerrain: string };
+  settlements: { role: "capital" | "outpost"; terrain: string }[];
+  scoutedSites: { terrain: string; travelDistance: number; foodPotential: number; fish: number; timber: number; stone: number; reportedTurnsAgo: number }[];
   sites: { farms: number; huntingSites: number; fisheries: number; dormantAssets: number; laborCoverage: number };
   technologies: { learned: string[]; currentProject: string | null };
   reachableResources: Record<string, { available: number; capacity: number; level: string }>;
@@ -81,6 +84,7 @@ export function buildDecisionState(snap: Snapshot, memoryLimit = 6): DecisionSta
       militaryLevel: t.militaryLevel,
       fortification: t.alive ? fortLevel(s, id) : 0,
       settlementTerrain: TERRAIN_NAMES[s.world.terrain[t.settlement] as number] as string,
+      settlements: t.alive ? 1 + t.outposts.length : 0,
       technologiesLearned: t.learned.length,
       lastAction: last && last.turn === snap.turn - 1 ? last.kind : null,
     };
@@ -168,6 +172,8 @@ export function buildDecisionState(snap: Snapshot, memoryLimit = 6): DecisionSta
         movementBudget: geo.movementBudget,
         settlementTerrain: TERRAIN_NAMES[s.world.terrain[t.settlement] as number] as string,
       },
+      settlements: [t.settlement, ...t.outposts].map((tile, i) => ({ role: i === 0 ? ("capital" as const) : ("outpost" as const), terrain: TERRAIN_NAMES[s.world.terrain[tile] as number] as string })),
+      scoutedSites: t.scoutedSites.map((x) => ({ terrain: x.terrain, travelDistance: x.distance, foodPotential: x.food, fish: x.fish, timber: x.timber, stone: x.stone, reportedTurnsAgo: snap.turn - x.foundTurn })),
       sites: {
         farms: activeCount("farm"),
         huntingSites: activeCount("hunt"),
@@ -183,15 +189,15 @@ export function buildDecisionState(snap: Snapshot, memoryLimit = 6): DecisionSta
     };
   }
 
-  const inArea = living.filter((id) => a.footprint === null || a.footprint.includes(s.tribes[id].settlement)).map((id) => TRIBES[id].name);
+  const inArea = living.filter((id) => a.footprint === null || [s.tribes[id].settlement, ...s.tribes[id].outposts].some((x) => a.footprint!.includes(x))).map((id) => TRIBES[id].name);
   return {
     calendar: {
       turn: cal.turn,
       season: cal.season,
       year: cal.year,
       seasonTurn: cal.phase,
-      turnsRemaining: TOTAL_TURNS - cal.turn,
-      nextSeason: seasonOf(Math.min(snap.turn + 2, TOTAL_TURNS + 1)),
+      turnsRemaining: s.totalTurns - cal.turn,
+      nextSeason: seasonOf(snap.turn + 2),
     },
     announcedEvent: {
       id: a.eventId,

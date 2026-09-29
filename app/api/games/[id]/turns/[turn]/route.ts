@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string;
   return handle(req, {}, async (session) => {
     const row = loadOwnedGame(session?.id ?? null, id);
     const n = Number(turn);
-    if (!Number.isInteger(n) || n < 1 || n > 100) throw new ApiError(400, "invalid_turn", "Turn must be 1–100.");
+    if (!Number.isInteger(n) || n < 1 || n > 200) throw new ApiError(400, "invalid_turn", "Turn must be 1–200.");
     const record = loadTurnRecord(row.id, n);
     if (!record) throw new ApiError(404, "turn_not_found", "That turn has not been completed.");
     return json({ turn: record, mode: row.mode });

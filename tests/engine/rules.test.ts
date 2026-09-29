@@ -50,12 +50,12 @@ function assertInvariants(s: GameState) {
   for (const e of s.activeEffects) expect(e.remaining).toBeLessThanOrEqual(BALANCE.effects.maxDuration);
 }
 
-describe("full match with the mock policy", () => {
-  it("runs 100 turns, preserves invariants, and replays deterministically from recorded decisions (AC03, AC24)", () => {
-    let s = newGame("full-match");
+describe.each([50, 200])("full %i-turn match with the mock policy", (length) => {
+  it("runs every turn, preserves invariants, and replays deterministically from recorded decisions (AC03, AC24)", () => {
+    let s = newGame("full-match", length);
     const history: { option: string; choices: Partial<Record<TribeId, string>>; hash: string }[] = [];
     const start = cloneState(s);
-    for (let turn = 1; turn <= 100; turn++) {
+    for (let turn = 1; turn <= length; turn++) {
       expect(s.currentEvent?.turn).toBe(turn);
       const option = optionFor(s, turn);
       const r = step(s, {}, turn);
@@ -68,7 +68,7 @@ describe("full match with the mock policy", () => {
       assertInvariants(s);
       history.push({ option, choices, hash: hashState(s) });
     }
-    expect(s.completedTurn).toBe(100);
+    expect(s.completedTurn).toBe(length);
     expect(s.currentEvent).toBeNull();
     // Exact recorded replay: same inputs reproduce every state hash.
     let replay = start;
@@ -76,7 +76,7 @@ describe("full match with the mock policy", () => {
       replay = resolveTurn(replay, h.option, h.choices).state;
       expect(hashState(replay)).toBe(h.hash);
     }
-  });
+  }, 300_000);
 });
 
 describe("simultaneous resolution", () => {
@@ -157,11 +157,13 @@ describe("economy and development", () => {
 
   it("applies the starvation formula from measured food", () => {
     const s = newGame("starve");
-    s.tribes.ironfang.food = 20;
+    s.tribes.ironfang.food = 50;
+    const pop = s.tribes.ironfang.population;
     const r = step(s, { hearthwood: "rest", windstep: "rest", stonehaven: "rest", ironfang: "rest" });
-    // Ironfang has no production: requirement 40, 20 eaten → deficit 0.5 → ceil(40 × 0.5 × 0.1) = 2.
-    expect(r.reports.ironfang.starvation).toBe(2);
-    expect(r.state.tribes.ironfang.population).toBe(38);
+    // Ironfang has no production: requirement = population, 50 eaten → starvation = ceil(pop × deficit × 0.1).
+    const expected = Math.ceil(pop * ((pop - 50) / pop) * BALANCE.population.starvationRate);
+    expect(r.reports.ironfang.starvation).toBe(expected);
+    expect(r.state.tribes.ironfang.population).toBe(pop - expected);
     expect(r.state.tribes.ironfang.food).toBe(0);
   });
 
@@ -344,11 +346,12 @@ describe("scoring (AC11)", () => {
     const mods = new ModifierIndex(s, []);
     const geo = computeGeo(s, mods.travelDelta("spring"));
     const sc = scoreTribe(s, "hearthwood", geo.hearthwood);
-    expect(sc.population).toBeCloseTo(40 * (40 / 160), 6);
+    const S = BALANCE.score;
+    expect(sc.population).toBeCloseTo(S.population.weight * Math.min(s.tribes.hearthwood.population / S.population.target, 1), 6);
     expect(sc.resilience).toBeCloseTo(25 * (0.6 * 1 + 0.4 * 1), 6);
     expect(sc.development).toBe(0);
     expect(sc.influence).toBeGreaterThan(0);
-    expect(sc.influence).toBeLessThanOrEqual(15 * (25 / 300) + 1e-9);
+    expect(sc.influence).toBeLessThanOrEqual(S.influence.weight * (BALANCE.placement.startTerritoryTiles / S.influence.tiles) + 1e-9);
   });
 
   it("treats an exact highest-score tie as a shared victory", () => {

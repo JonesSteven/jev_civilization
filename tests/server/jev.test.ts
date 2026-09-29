@@ -19,7 +19,14 @@ describe("response validation (§11.3)", () => {
     expect(Object.values(d!.probabilities).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9);
     expect(d!.rawProbabilities.gather_food).toBe(0.705);
   });
-  it("breaks exact ties by the returned choice, then stable ID order", () => {
+  it("accepts sums at the inclusive tolerance boundary (Jev rounds to two decimals)", () => {
+    // Observed from live Jev: 0.20 + 0.69 + 0.10 = 0.99 in floating point is 0.9900000000000001 away by 1e-17.
+    expect(() => validateJevResponse(answer({ probabilities: { rest: 0.2, gather_food: 0.69, train: 0.1 } }), expected)).not.toThrow();
+    expect(() => validateJevResponse(answer({ probabilities: { rest: 0.2, gather_food: 0.71, train: 0.1 } }), expected)).not.toThrow();
+    expect(() => validateJevResponse(answer({ probabilities: { rest: 0.2, gather_food: 0.688, train: 0.1 } }), expected)).toThrow(InvalidResponseError);
+  });
+
+    it("breaks exact ties by the returned choice, then stable ID order", () => {
     const tie = { rest: 0.4, gather_food: 0.4, train: 0.2 };
     expect(validateJevResponse(answer({ probabilities: tie, choice: "rest" }), expected)[0]!.selected).toBe("rest");
     expect(validateJevResponse(answer({ probabilities: tie, choice: null }), expected)[0]!.selected).toBe("gather_food");

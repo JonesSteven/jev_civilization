@@ -44,6 +44,13 @@ export default function TribeDetail({ tribe, supported, onFocus, currentTurn }: 
             <div className="stat"><span>Claimed / productive tiles</span><strong>{tribe.claimedTiles} / {tribe.productiveTiles}</strong></div>
             <div className="stat"><span>Dormant assets</span><strong>{tribe.sites.dormant}</strong></div>
           </div>
+          <div className="section-title">Settlements</div>
+          <p className="small">
+            {1 + tribe.outposts.length} of 3 (capital{tribe.outposts.length ? ` + ${tribe.outposts.length} outpost${tribe.outposts.length > 1 ? "s" : ""}` : ""})
+            {tribe.scoutedSites.length > 0 && (
+              <> · Scouts report: {tribe.scoutedSites.map((x) => `${x.terrain} site ${x.distance} units away (food potential ${x.food}, turn ${x.foundTurn})`).join("; ")}</>
+            )}
+          </p>
           <div className="section-title">Technologies</div>
           <p>{tribe.technologies.length ? tribe.technologies.join(", ") : "None learned yet"}{tribe.project ? ` · Researching ${tribe.project.name} (${tribe.project.progress}/${tribe.project.required})` : ""}</p>
           <div className="section-title">Score {tribe.score.total.toFixed(1)}</div>

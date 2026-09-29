@@ -175,11 +175,26 @@ export interface PlacementCheck {
   reason?: string;
 }
 
+/** No start-territory tile may lie within `minTerritoryGap` (Manhattan) of another tribe's start territory. */
+export function territoryGapOk(world: WorldState, territory: Record<TribeId, number[]>): boolean {
+  const gap = BALANCE.placement.minTerritoryGap;
+  for (const id of TRIBE_IDS) {
+    const idx = tribeIndex(id);
+    for (const t of territory[id]) {
+      for (const n of tilesWithin(t, gap)) {
+        const o = world.owner[n] as number;
+        if (o >= 0 && o !== idx) return false;
+      }
+    }
+  }
+  return true;
+}
+
 /** Exact validation of a completed placement using weighted travel distances. */
 export function validatePlacement(world: WorldState, settlements: Settlements): PlacementCheck {
   const standard = buildCostField(world.terrain, null);
   const maps = {} as Record<TribeId, DistanceMap>;
-  for (const id of TRIBE_IDS) maps[id] = dijkstra(standard, settlements[id], 40);
+  for (const id of TRIBE_IDS) maps[id] = dijkstra(standard, settlements[id], BALANCE.placement.neighborWithin + 4);
   for (const a of TRIBE_IDS) {
     let hasNeighbor = false;
     for (const b of TRIBE_IDS) {
@@ -255,7 +270,7 @@ export function trySettlementPlacement(
         break;
       }
       placed[tribe] = chosen;
-      placedMaps.push(dijkstra(standard, chosen, 40));
+      placedMaps.push(dijkstra(standard, chosen, BALANCE.placement.neighborWithin + 4));
     }
     if (failed) continue;
     const settlements = placed as Settlements;

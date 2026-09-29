@@ -4,22 +4,44 @@ import { buildCostField, dijkstra, type CostField, type DistanceMap } from "./wo
 
 export interface TribeGeo {
   tribeId: TribeId;
+  /** Capital tile. */
   settlement: number;
+  /** Capital first, then outposts. */
+  settlements: number[];
   workingRange: number;
   movementBudget: number;
-  /** Base-terrain distances within working range (production, shelter activity, scoring). */
+  /** Base-terrain distances from the nearest own settlement, within working range (production, shelter, scoring). */
   work: DistanceMap;
-  /** Effective travel distances (weather and winter modifiers) up to max(movement budget, raid/recruit range). */
+  /** Base-terrain travel distances from the nearest own settlement, up to the longest possible raid/recruit/scout reach. */
   move: DistanceMap;
+  /** Multiplier on raid, recruit, and scouting reach from travel conditions at the capital (weather, winter). */
+  reachFactor: number;
+  /** Effective travel distances from the capital only, up to the movement budget (relocation). */
+  capitalMove: DistanceMap;
   moveCost: CostField;
+}
+
+export function settlementsOf(state: GameState, tribe: TribeId): number[] {
+  const t = state.tribes[tribe];
+  return [t.settlement, ...t.outposts];
+}
+
+/** Every settlement tile of every living tribe except `except`. */
+export function foreignSettlements(state: GameState, except: TribeId | null): number[] {
+  return livingTribes(state)
+    .filter((o) => o !== except)
+    .flatMap((o) => settlementsOf(state, o));
 }
 
 export function hasTech(state: GameState, tribe: TribeId, techId: string): boolean {
   return state.tribes[tribe].learned.includes(techId);
 }
 
+/** Reach grows with population (bigger communities work more distant land); Logistics adds a flat bonus. */
 export function workingRange(state: GameState, tribe: TribeId): number {
-  return hasTech(state, tribe, "logistics") ? BALANCE.territory.logisticsWorkingRange : BALANCE.territory.workingRange;
+  const T = BALANCE.territory;
+  const grown = Math.min(T.maxWorkingRange, T.workingRange + Math.floor(state.tribes[tribe].population / T.rangePerPopulation));
+  return grown + (hasTech(state, tribe, "logistics") ? T.logisticsRangeBonus : 0);
 }
 
 export function movementBudget(state: GameState, tribe: TribeId): number {
@@ -42,23 +64,36 @@ export function computeGeo(state: GameState, travelDelta: Int8Array): Record<Tri
     const k = key(id);
     if (!baseFields.has(k)) baseFields.set(k, buildCostField(state.world.terrain, id));
     if (!moveFields.has(k)) moveFields.set(k, buildCostField(state.world.terrain, id, travelDelta));
-    const others = new Set(living.filter((o) => o !== id).map((o) => state.tribes[o].settlement));
+    const others = new Set(foreignSettlements(state, id));
     const settlement = state.tribes[id].settlement;
+    const settlements = settlementsOf(state, id);
     const range = workingRange(state, id);
     const budget = movementBudget(state, id);
-    const moveMax = Math.max(budget, BALANCE.actions.raid.range, BALANCE.actions.recruit.range);
+    const A = BALANCE.actions;
+    const Tr = BALANCE.travel;
+    const moveMax = Math.ceil(Math.max(A.raid.range, A.recruit.range, A.scout.range) * Tr.reachMax);
     const moveCost = moveFields.get(k) as CostField;
+    const penalty = travelDelta[settlement] as number;
+    const reachFactor = Math.min(Tr.reachMax, Math.max(Tr.reachMin, 1 - Tr.reachStepPerPenalty * penalty));
     out[id] = {
       tribeId: id,
       settlement,
+      settlements,
       workingRange: range,
       movementBudget: budget,
-      work: dijkstra(baseFields.get(k) as CostField, settlement, range, others),
-      move: dijkstra(moveCost, settlement, moveMax, others, others),
+      work: dijkstra(baseFields.get(k) as CostField, settlements, range, others),
+      move: dijkstra(baseFields.get(k) as CostField, settlements, moveMax, others, others),
+      reachFactor,
+      capitalMove: dijkstra(moveCost, settlement, budget, others),
       moveCost,
     };
   }
   return out;
+}
+
+/** Effective reach for raids, recruiting, or scouting after travel conditions. */
+export function reach(geo: TribeGeo, baseRange: number): number {
+  return Math.floor(baseRange * geo.reachFactor);
 }
 
 export function inWorkingRange(geo: TribeGeo, tile: number): boolean {

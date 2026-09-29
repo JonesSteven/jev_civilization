@@ -35,6 +35,12 @@ export const NARRATION = {
   delayed: "Delayed effect: {label}.",
   settlementStock: "{tribe} collected {amount} {resource} from the {event}.",
   shelterDamage: "{tribe}'s shelters lost condition in the {event}.",
+ found_settlement: "{tribe} founded a new settlement and claimed {count} tiles around it.",
+  found_conflict: "{tribe} could not found its settlement: another tribe chose the same site. {refund} was refunded.",
+  scouts_found: "{tribe}'s scouts reported {count} possible settlement sites.",
+  scouts_none: "{tribe}'s scouts found no free land suitable for a new settlement.",
+  capture: "{tribe} took {count} border tiles from {target}.",
+  growth: "{tribe}'s territory grew by {count} tiles.",
   forced: "{tribe} had only one legal action (Rest); it was applied as a forced action.",
 } as const;
 

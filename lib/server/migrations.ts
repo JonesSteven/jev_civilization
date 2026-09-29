@@ -104,4 +104,8 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       CREATE INDEX rate_events_idx ON rate_events(session_id, kind, at);
     `,
   },
+  {
+    version: 2,
+    sql: `ALTER TABLE games ADD COLUMN total_turns INTEGER NOT NULL DEFAULT 100;`,
+  },
 ];

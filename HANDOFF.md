@@ -1,6 +1,53 @@
 # Jev Civilizations — Handoff Note
 
-Date: 29 September 2026 · rules-1.0.0 · content-1.0.0 · model `jev-1.13.0`
+Date: 29 September 2026 · current: rules-2.0.0 · content-2.0.0 · model `jev-1.13.0`
+
+The sections after the update below describe the original rules-1.0.0 delivery.
+
+## Update: `dynamic` branch (rules-2.0.0, content-2.0.0)
+
+This update responds to playtest feedback. It **deliberately departs from the PRD** in the ways listed below;
+everything else in the PRD still holds. All numbers are in `content/balance.ts` and are logged in `BALANCE_CHANGELOG`.
+
+| Feedback | What changed | PRD deviation |
+| --- | --- | --- |
+| Starts too close or overlapping | Settlements are ≥ 26 travel units apart (was 10), each tribe has a neighbour within 48, and every start-territory tile is ≥ 6 tiles from any other tribe's territory. Territories never share tiles, and a tile claimed by two tribes at once goes to nobody. | §6.2 spacing values |
+| 100 turns is long | Match length is chosen per game: 10–200 turns, default 50 (start screen; `totalTurns` on `POST /api/games`). The per-game Jev attempt budget is 3 × length (capped by `JEV_MAX_ATTEMPTS_PER_GAME`). DB migration 2 adds `total_turns`. | R08/AC03 fixed 100 turns |
+| Too static | Start population 100, shelter 120, food 400 (Ironfang 700), 4 starting sites. Births 4% per turn, 7% while stores cover ≥ 4 turns. Housing holds 40 (camps 30). Working range 8 + population/60 (max 16, Logistics +4). **Organic border growth**: each turn a tribe claims ~1 unclaimed border tile per 40 people (max 6). **Raids capture** up to 4 defender border tiles. Explicit Expand claims 16 tiles. Score targets: population 600, influence 400. | §7 starting values, §8.3 birth rate, §13 targets |
+| Stuck in a poor spot | **Send scouts** (15 food) surveys unclaimed land up to 40 travel units away and reports the two best sites ≥ 26 units from every settlement. **Found settlement** (80 food, 10 timber, ≥ 80 people) creates an outpost that claims 20 tiles and adds a camp for 30 people. Up to 3 settlements per tribe. People, stores, and technologies stay tribe-wide. Relocation and defenses apply to the capital; raids target a named settlement. | §6.3 single main settlement |
+| Local events felt irrelevant | All 32 events and 96 options apply to the whole map (terrain/near-water filters still differentiate tribes). Descriptions were rewritten; the catalog validator enforces world scope. The area highlight was removed. | R09 / §10.1 seeded footprints |
+
+Other rule changes made during tuning:
+- **Reach**: raid (36), recruit (24), and scout (40) reach is measured over base terrain, then scaled by travel conditions at the capital (−25% per +1 penalty, bounded 50–125%). Weather still fully affects relocation. Before this change, world-wide travel penalties left Ironfang with raid options on only 5 of 48 live turns.
+- **Raids** cost up to 15 food, or whatever remains, so an empty larder never locks raiders out. The Ironfang raid multiplier is ×1.5 and the food loot cap is 300.
+- **Trait tuning**: Hearthwood farm ×1.15 (was 1.25), Stonehaven fish ×1.45 (was 1.25).
+- **Candidate text**: scouting states local wild-food depletion and the founding cost against current stores (tested against live Jev).
+
+### Bug fixed from live testing
+Jev rounds probabilities to two decimals, so a valid answer can sum to exactly 0.99. Floating-point arithmetic put that
+1e-17 outside the ±0.01 tolerance and rejected it. In one live match this caused several extra retries and one paused
+turn. The tolerance is now inclusive (`lib/server/jev/validate.ts`), with boundary tests. The paused turn was then
+resumed through the real retry path with its identical frozen intent, which also exercised AC21 against live Jev.
+
+### Verification for this update
+- `npm test`: 69 tests pass. New tests cover scouting → founding, founding conflicts, organic growth never taking
+  owned land, raid border capture, match-length bounds and early finish, world-scope events, a 200-turn invariant +
+  exact re-simulation run, the length field, and the scaled budget.
+- `npm run test:e2e`: 6 browser tests pass (including a 20-turn results flow).
+- Lint, typecheck, build, catalog validation, and the secret scan are clean.
+- Mock simulations (`reports/simulation-100x50-mock.txt`, `reports/simulation-30x200-mock.txt`): 0 crashes.
+  Wins at 50 turns: Hearthwood 45, Windstep 37, Stonehaven 16, Ironfang 2 (Ironfang survived 91/100).
+  Wins at 200 turns: Hearthwood 10, Windstep 4, Stonehaven 5, Ironfang 11.
+  Typical 200-turn populations are 400–900 (the original rules reached about 100).
+  Engine time: 17–23 ms per turn on average, 54 ms worst case.
+- **Live Jev** (three 50-turn matches, `reports/live-eval-50-turns-dynamic*.txt`): the final run completed all 50 turns
+  with zero invalid responses. Median latency is 175 ms, input is about 12,000 tokens per turn, and mean confidence is 0.54.
+  Jev chose to scout and then **founded second settlements for Hearthwood and Windstep**.
+  Storage for a 50-turn live game is about 4.2 MB.
+- **Observed model behaviour** (not steered): Jev still strongly prefers food gathering. In the final run Ironfang
+  gathered on 46 of 50 turns and did not raid even when raids were offered. Controlled comparisons on a recorded
+  state showed this preference is context-driven (e.g. 4% for a food-rich tribe vs 86% for one with 7 food). The action
+  order shifts probabilities moderately (up to ~20 points) but rarely changes the top choice.
 
 ## What was delivered
 

@@ -15,6 +15,7 @@ import { attackStrength, defenseStrength, raidChance } from "../stats";
 import { TRIBE_IDS, type ActionCandidate, type GameOutcome, type GameState, type ResourceAmounts, type TribeId } from "../types";
 import { tilesWithin } from "../world/grid";
 import { addAsset, assetAtTile, assetById, isLand } from "../world/territory";
+import { capturableBorderTiles, claimAround, surveySites } from "../settlements";
 import { allocate, apportion, type Demand } from "./allocation";
 
 export interface ActionResolution {
@@ -50,6 +51,7 @@ export function resolveActions(
   const pre = snap.state;
   const actors = TRIBE_IDS.filter((id) => chosen[id] && pre.tribes[id].alive);
   const name = (id: TribeId) => tribeName(id);
+  const M0 = BALANCE.morale;
   const log = (o: GameOutcome) => outcomes.push(o);
 
   // ---- 1. Reserve all costs; mark defenders ----
@@ -64,12 +66,15 @@ export function resolveActions(
 
   // ---- 2. Relocations and competing location claims ----
   const relocTarget = new Map<TribeId, number>();
+  const foundTarget = new Map<TribeId, number>();
   for (const id of actors) {
     const c = chosen[id] as ActionCandidate;
     if (c.kind === "relocate" && c.target?.type === "path") relocTarget.set(id, c.target.tile);
+    if (c.kind === "found_settlement" && c.target?.type === "tile") foundTarget.set(id, c.target.tile);
   }
+  // Relocations and foundings compete for settlement sites: a site chosen twice goes to nobody.
   const destCount = new Map<number, number>();
-  for (const d of relocTarget.values()) destCount.set(d, (destCount.get(d) ?? 0) + 1);
+  for (const d of [...relocTarget.values(), ...foundTarget.values()]) destCount.set(d, (destCount.get(d) ?? 0) + 1);
   const relocated = new Set<TribeId>();
   const relocDests = new Set<number>();
   for (const [id, dest] of relocTarget) {
@@ -105,6 +110,29 @@ export function resolveActions(
     const dist = snap.geo[id]?.move.dist[dest] ?? 0;
     log({ kind: "relocate", tribeId: id, text: narrate("relocate", { tribe: name(id), distance: dist, place: c.target?.label ?? "" }), path, from, to: dest });
     moraleDelta(next, id, 0);
+  }
+  for (const [id, site] of foundTarget) {
+    const c = chosen[id] as ActionCandidate;
+    const t = next.tribes[id];
+    if ((destCount.get(site) ?? 0) > 1 || next.world.owner[site] !== -1 || claims.has(site)) {
+      addStock(next, id, c.costs, 1);
+      log({ kind: "found_conflict", tribeId: id, text: narrate("found_conflict", { tribe: name(id), refund: amountsText(c.costs) }), tiles: [site] });
+      continue;
+    }
+    t.outposts = [...t.outposts, site];
+    t.scoutedSites = t.scoutedSites.filter((x) => x.tile !== site);
+    const tiles = claimAround(next, id, site, BALANCE.actions.found.territoryTiles);
+    for (const x of tiles) changedTiles.add(x);
+    const add = BALANCE.actions.found.campCapacity;
+    if (t.camp) {
+      const total = t.camp.capacity + add;
+      t.camp.condition = Math.round((t.camp.capacity * t.camp.condition + add * 100) / total);
+      t.camp.capacity = total;
+    } else t.camp = { capacity: add, condition: 100 };
+    moraleDelta(next, id, M0.construction * 2);
+    t.milestones.push({ turn, text: `Founded settlement ${1 + t.outposts.length}` });
+    remember(next, id, turn, "founded", `Founded a new settlement on turn ${turn}`);
+    log({ kind: "found_settlement", tribeId: id, text: narrate("found_settlement", { tribe: name(id), count: tiles.length }), tiles, from: pre.tribes[id].settlement, to: site, path: [pre.tribes[id].settlement, site] });
   }
   for (const id of actors) {
     const c = chosen[id] as ActionCandidate;
@@ -307,6 +335,18 @@ export function resolveActions(
       case "defend":
         log({ kind: "defend", tribeId: id, text: narrate("defend", { tribe: name(id) }) });
         break;
+      case "send_scouts": {
+        // The survey reads the common pre-action snapshot, so it never depends on other tribes' actions this turn.
+        const geo = snap.geo[id] as TribeGeo;
+        const sites = surveySites(pre, id, geo, turn);
+        t.scoutedSites = sites;
+        const summary = sites.length
+          ? sites.map((x) => `${x.terrain} site ${x.distance} units away (${x.food} food potential)`).join("; ")
+          : "no free land meeting the spacing rule";
+        remember(next, id, turn, "scouting", `Scouts reported on turn ${turn}: ${summary}`);
+        log({ kind: "send_scouts", tribeId: id, text: narrate(sites.length ? "scouts_found" : "scouts_none", { tribe: name(id), count: sites.length }), tiles: sites.map((x) => x.tile) });
+        break;
+      }
       default:
         break;
     }
@@ -350,12 +390,12 @@ function resolveRaids(
 
   for (const r of raids) {
     const key = `${r.attacker}->${r.target}`;
-    if (relocated.has(r.target)) {
+    if (relocated.has(r.target) && r.tile === pre.tribes[r.target].settlement) {
       results.set(key, { success: false, escaped: true, chance: 0 });
       continue;
     }
     const atk = attackStrength(pre, r.attacker);
-    const def = defenseStrength(pre, r.target, defending.has(r.target));
+    const def = defenseStrength(pre, r.target, defending.has(r.target), r.tile);
     const chance = raidChance(atk, def);
     // Independent draw keyed by turn/attacker/target: array order never matters.
     const success = draw(pre.seed, "combat", turn, r.attacker, r.target) < chance;
@@ -422,6 +462,10 @@ function resolveRaids(
     adjustRelation(next, r.attacker, r.target, Rl.raider);
     if (res.success) {
       const got = loot.get(key) ?? {};
+      // Border pressure: a successful raid takes up to N defender border tiles touching the attacker's territory.
+      const captured = capturableBorderTiles(next, r.attacker, r.target, BALANCE.territory.raidCaptureTiles);
+      for (const tile of captured) next.world.owner[tile] = TRIBE_IDS.indexOf(r.attacker);
+      if (captured.length) outcomes.push({ kind: "capture", tribeId: r.attacker, text: narrate("capture", { tribe: an, target: tn, count: captured.length }), tiles: captured });
       outcomes.push({
         kind: "raid",
         tribeId: r.attacker,
@@ -452,7 +496,6 @@ function pathFromMove(geo: TribeGeo, target: number): number[] {
   let guard = 0;
   while (cur !== -1 && guard++ < 400) {
     path.push(cur);
-    if (cur === geo.move.source) break;
     cur = geo.move.prev[cur] as number;
   }
   return path.reverse();

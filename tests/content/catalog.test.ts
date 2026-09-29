@@ -24,6 +24,16 @@ describe("content catalog (AC17)", () => {
     for (const e of EVENTS) expect(e.options.length).toBe(3);
   });
 
+  it("applies every environmental choice to the whole map", () => {
+    for (const e of EVENTS) {
+      expect(e.footprint.kind).toBe("world");
+      for (const o of e.options) {
+        const ops = o.effects.flatMap((x) => (x.op === "delayed" ? x.effects : [x]));
+        for (const op of ops) if ("scope" in op) expect(op.scope).toBe("world");
+      }
+    }
+  });
+
   it("has every option wired to typed effects within bounds, with mechanically distinct options", () => {
     for (const e of EVENTS) {
       const sigs = new Set<string>();
@@ -41,7 +51,7 @@ describe("content catalog (AC17)", () => {
     expect(Object.keys(TRIBES).sort()).toEqual([...TRIBE_IDS].sort());
     expect(TECHNOLOGIES.length).toBe(8);
     for (const t of TECHNOLOGIES) for (const p of t.prerequisites) expect(TECH_BY_ID[p]).toBeDefined();
-    expect(Object.keys(ACTIONS).length).toBe(19);
+    expect(Object.keys(ACTIONS).length).toBe(21);
     expect(Object.keys(NARRATION).length).toBeGreaterThan(20);
     expect(HELP.length).toBeGreaterThanOrEqual(5);
   });

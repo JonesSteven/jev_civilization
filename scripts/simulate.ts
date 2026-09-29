@@ -1,5 +1,5 @@
 // Headless balance smoke test: run seeded full matches with the MOCK policy (not Jev).
-// Usage: npm run simulate -- --games 100 [--seed-prefix sim] [--verbose]
+// Usage: npm run simulate -- --games 100 [--turns 50] [--seed-prefix sim] [--verbose]
 import { CONTENT_VERSION, contentHash } from "@/content/index";
 import { TRIBE_IDS, type TribeId } from "@/lib/game/types";
 import { createInitialState } from "@/lib/game/world/generate";
@@ -7,12 +7,13 @@ import { buildDecisionContext, effectiveOption, resolveTurn, startGame } from "@
 import { mockDecide } from "@/lib/game/mockPolicy";
 import { makeRng } from "@/lib/game/rng";
 import { winners } from "@/lib/game/score";
-import { TOTAL_TURNS } from "@/lib/game/calendar";
+import { DEFAULT_TOTAL_TURNS } from "@/lib/game/calendar";
 
 const args = process.argv.slice(2);
 const games = Number(args[args.indexOf("--games") + 1] ?? 10) || 10;
 const prefix = args.includes("--seed-prefix") ? String(args[args.indexOf("--seed-prefix") + 1]) : "sim";
 const verbose = args.includes("--verbose");
+const turns = args.includes("--turns") ? Number(args[args.indexOf("--turns") + 1]) : DEFAULT_TOTAL_TURNS;
 
 const wins: Record<string, number> = {};
 const survival: Record<string, number> = {};
@@ -29,8 +30,8 @@ for (const id of TRIBE_IDS) { survival[id] = 0; actionFreq[id] = {}; finalPop[id
 for (let g = 0; g < games; g++) {
   const seed = `${prefix}-${g}`;
   try {
-    let state = startGame(createInitialState(seed, CONTENT_VERSION, contentHash()));
-    for (let turn = 1; turn <= TOTAL_TURNS; turn++) {
+    let state = startGame(createInitialState(seed, CONTENT_VERSION, contentHash(), turns));
+    for (let turn = 1; turn <= turns; turn++) {
       const prepared = state.currentEvent!;
       const playerPick = prepared.source === "player" ? makeRng(seed, "mock", "player", turn).pick([0, 1, 2]) : 0;
       const { EVENT_BY_ID } = await import("@/content/events");
@@ -72,7 +73,7 @@ for (let g = 0; g < games; g++) {
 }
 
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
-console.log(`\nMOCK-policy simulation: ${games} games, crashes ${crashes}`);
+console.log(`\nMOCK-policy simulation: ${games} games × ${turns} turns, crashes ${crashes}`);
 console.log(`Engine resolution per turn: avg ${(totalTurnMs / Math.max(1, turnsRun)).toFixed(1)} ms, max ${maxTurnMs.toFixed(1)} ms`);
 for (const id of TRIBE_IDS) {
   const top = Object.entries(actionFreq[id]!).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k}:${v}`).join(" ");

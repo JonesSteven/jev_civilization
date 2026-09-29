@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BALANCE } from "@/content/balance";
+import { BALANCE, STARTING } from "@/content/balance";
 import { choiceSource, seasonOf, yearOf } from "@/lib/game/calendar";
 import { draw, makeRng } from "@/lib/game/rng";
 import { hashState } from "@/lib/game/serialize";
@@ -7,6 +7,7 @@ import { MAP_HEIGHT, MAP_WIDTH, TILE_COUNT, Terrain, TRIBE_IDS } from "@/lib/gam
 import { fallbackWorld, generateWorld } from "@/lib/game/world/generate";
 import { buildCostField, dijkstra, landComponents } from "@/lib/game/world/pathfinding";
 import { validatePlacement } from "@/lib/game/world/placement";
+import { tilesWithin } from "@/lib/game/world/grid";
 import { newGame } from "../support/fixtures";
 
 describe("calendar (AC03, AC04)", () => {
@@ -77,7 +78,7 @@ describe("world generation", () => {
       expect(validatePlacement(g.world, g.settlements).ok).toBe(true);
       const cost = buildCostField(g.world.terrain, null);
       for (const a of TRIBE_IDS) {
-        const dm = dijkstra(cost, g.settlements[a], 40);
+        const dm = dijkstra(cost, g.settlements[a], 80);
         for (const b of TRIBE_IDS) if (a !== b) {
           const d = dm.dist[g.settlements[b]] as number;
           if (d !== -1) expect(d).toBeGreaterThanOrEqual(BALANCE.placement.minSeparation);
@@ -85,9 +86,18 @@ describe("world generation", () => {
       }
       // Starting assets: 2 sites for each producer, none for Ironfang; every asset on land and owned.
       const sites = (id: string, kind: string) => g.world.assets.filter((x) => x.owner === id && x.kind === kind).length;
-      expect(sites("hearthwood", "farm")).toBe(2);
-      expect(sites("windstep", "hunt")).toBe(2);
-      expect(sites("stonehaven", "fishery")).toBe(2);
+      expect(sites("hearthwood", "farm")).toBe(STARTING.startingSites);
+      expect(sites("windstep", "hunt")).toBe(STARTING.startingSites);
+      expect(sites("stonehaven", "fishery")).toBe(STARTING.startingSites);
+      // Starting territories never touch: every owned tile is at least minTerritoryGap from any other tribe's tile.
+      for (let i = 0; i < g.world.owner.length; i++) {
+        const o = g.world.owner[i] as number;
+        if (o < 0) continue;
+        for (const n of tilesWithin(i, BALANCE.placement.minTerritoryGap)) {
+          const other = g.world.owner[n] as number;
+          if (other >= 0) expect(other).toBe(o);
+        }
+      }
       expect(g.world.assets.filter((x) => x.owner === "ironfang").length).toBe(0);
       for (const a of g.world.assets) {
         expect(g.world.terrain[a.tile]).not.toBe(Terrain.Water);

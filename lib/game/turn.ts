@@ -4,7 +4,7 @@
 
 import { narrate } from "@/content/narration";
 import { tribeName } from "@/content/tribes";
-import { seasonOf, TOTAL_TURNS } from "./calendar";
+import { seasonOf } from "./calendar";
 import { buildSnapshot, generateAllCandidates, type Snapshot } from "./candidates";
 import { runEconomy, type ProductionReport } from "./economy";
 import { activateEnvironment, applyRecurring, expireEffects } from "./effects/dispatcher";
@@ -14,6 +14,7 @@ import { computeGeo, livingTribes } from "./geo";
 import { hashState } from "./serialize";
 import { ageMemories, relaxRelations } from "./memory";
 import { resolveActions } from "./resolve/actions";
+import { organicGrowth, pruneScoutedSites } from "./settlements";
 import { scoreTribe } from "./score";
 import { Overlay, TRIBE_IDS, type ActionCandidate, type GameOutcome, type GameState, type PreparedEvent, type ScoreBreakdown, type TribeId } from "./types";
 
@@ -75,7 +76,8 @@ function eliminate(state: GameState, id: TribeId, turn: number, outcomes: GameOu
     state.world.overlay[a.tile] = (state.world.overlay[a.tile] as number) | Overlay.Ruin;
     changedTiles.add(a.tile);
   }
-  state.world.overlay[t.settlement] = (state.world.overlay[t.settlement] as number) | Overlay.Ruin;
+  for (const tile of [t.settlement, ...t.outposts]) state.world.overlay[tile] = (state.world.overlay[tile] as number) | Overlay.Ruin;
+  t.scoutedSites = [];
   for (let i = 0; i < state.world.owner.length; i++) {
     if (state.world.owner[i] === idx) {
       state.world.owner[i] = -1;
@@ -133,12 +135,21 @@ export function resolveTurn(
   const reports = runEconomy(next, geo, mods, season, turn, outcomes);
   for (const id of TRIBE_IDS) if (eliminate(next, id, turn, outcomes, changed)) eliminated.push(id);
 
+  // Organic border growth: living tribes spread onto unclaimed border land as they grow.
+  const grown = organicGrowth(next, computeGeo(next, mods.travelDelta(season)));
+  for (const id of TRIBE_IDS) {
+    if (grown[id].length === 0) continue;
+    for (const t of grown[id]) changed.add(t);
+    outcomes.push({ kind: "growth", tribeId: id, text: narrate("growth", { tribe: tribeName(id), count: grown[id].length }), tiles: grown[id] });
+  }
+  pruneScoutedSites(next, turn);
+
   // 9. Finalize: durations, relations, scores, history, next event.
   expireEffects(next, changed);
   relaxRelations(next);
   ageMemories(next, turn);
   const finalMods = new ModifierIndex(next, next.activeEffects);
-  const finalGeo = computeGeo(next, finalMods.travelDelta(seasonOf(Math.min(turn + 1, TOTAL_TURNS))));
+  const finalGeo = computeGeo(next, finalMods.travelDelta(seasonOf(Math.min(turn + 1, pre.totalTurns))));
   const scores = {} as Record<TribeId, ScoreBreakdown>;
   for (const id of TRIBE_IDS) {
     scores[id] = scoreTribe(next, id, finalGeo[id]);
@@ -147,14 +158,14 @@ export function resolveTurn(
   }
   next.completedTurn = turn;
   next.currentEvent = null;
-  if (turn < TOTAL_TURNS) prepareEvent(next, turn + 1);
+  if (turn < next.totalTurns) prepareEvent(next, turn + 1);
 
   return { state: next, outcomes, reports, changedTiles: [...changed].sort((a, b) => a - b), scores, eliminated };
 }
 
 export function currentScores(state: GameState): Record<TribeId, ScoreBreakdown> {
   const mods = new ModifierIndex(state, state.activeEffects);
-  const geo = computeGeo(state, mods.travelDelta(seasonOf(Math.min(state.completedTurn + 1, TOTAL_TURNS))));
+  const geo = computeGeo(state, mods.travelDelta(seasonOf(Math.min(state.completedTurn + 1, state.totalTurns))));
   const out = {} as Record<TribeId, ScoreBreakdown>;
   for (const id of TRIBE_IDS) out[id] = scoreTribe(state, id, geo[id]);
   return out;

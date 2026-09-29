@@ -9,7 +9,8 @@ import { TECHNOLOGIES, TECH_BY_ID } from "@/content/technologies";
 import { TRIBES, tribeName } from "@/content/tribes";
 import { seasonOf } from "./calendar";
 import { ModifierIndex } from "./effects/modifiers";
-import { accessibleTiles, computeGeo, livingTribes, type TribeGeo } from "./geo";
+import { accessibleTiles, computeGeo, foreignSettlements, livingTribes, reach, settlementsOf, type TribeGeo } from "./geo";
+import { settlementBuffer, siteUsable } from "./settlements";
 import { activeSiteCount, capabilities, gatherPotential, laborFactor, sitePotential } from "./production";
 import { attackStrength, defenseStrength, fortCap, fortLevel, foodOutlook, raidChance, shelterOutlook } from "./stats";
 import {
@@ -94,8 +95,8 @@ function terrainName(state: GameState, tile: number): string {
   return TERRAIN_NAMES[state.world.terrain[tile] as number] as string;
 }
 
-function placeLabel(snap: Snapshot, geo: TribeGeo, tile: number, useMove = false): string {
-  const d = (useMove ? geo.move.dist[tile] : geo.work.dist[tile]) as number;
+function placeLabel(snap: Snapshot, geo: TribeGeo, tile: number, map: "work" | "move" | "capital" = "work"): string {
+  const d = (map === "capital" ? geo.capitalMove.dist[tile] : map === "move" ? geo.move.dist[tile] : geo.work.dist[tile]) as number;
   const dir = directionLabel(geo.settlement, tile);
   return `${dir} ${terrainName(snap.state, tile)} ${d} travel units away`;
 }
@@ -142,7 +143,7 @@ function tribeTileIndex(tribe: TribeId): number {
 function freeOwnedTiles(snap: Snapshot, tribe: TribeId, geo: TribeGeo): number[] {
   const w = snap.state.world;
   const idx = tribeTileIndex(tribe);
-  return geo.work.reached.filter((t) => w.owner[t] === idx && w.assetAt[t] === -1 && t !== geo.settlement && isLand(w, t));
+  return geo.work.reached.filter((t) => w.owner[t] === idx && w.assetAt[t] === -1 && !geo.settlements.includes(t) && isLand(w, t));
 }
 
 function distCompare(geo: TribeGeo) {
@@ -379,10 +380,10 @@ function relocationCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out
   const s = snap.state;
   const w = s.world;
   const idx = tribeTileIndex(tribe);
-  const others = livingTribes(s).filter((o) => o !== tribe).map((o) => s.tribes[o].settlement);
-  const dests = geo.move.reached.filter((tile) => {
-    const d = geo.move.dist[tile] as number;
-    if (tile === geo.settlement || d < 3 || d > geo.movementBudget) return false;
+  const others = foreignSettlements(s, tribe);
+  const dests = geo.capitalMove.reached.filter((tile) => {
+    const d = geo.capitalMove.dist[tile] as number;
+    if (geo.settlements.includes(tile) || d < 3 || d > geo.movementBudget) return false;
     if (!isLand(w, tile) || others.includes(tile)) return false;
     const o = w.owner[tile] as number;
     if (o !== -1 && o !== idx) return false;
@@ -398,19 +399,19 @@ function relocationCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out
     return sumStock(w, area, "forage") + sumStock(w, area, "wildlife") + sumStock(w, area, "fish") * 0.5 + fert * 2;
   };
   const safety = (tile: number) => (others.length ? Math.min(...others.map((o) => manhattan(o, tile))) : 0);
-  const byFood = rankTop(dests, (a, b) => foodScore(b) - foodScore(a) || (geo.move.dist[a] as number) - (geo.move.dist[b] as number) || a - b, 1)[0];
+  const byFood = rankTop(dests, (a, b) => foodScore(b) - foodScore(a) || (geo.capitalMove.dist[a] as number) - (geo.capitalMove.dist[b] as number) || a - b, 1)[0];
   const bySafety = rankTop(dests, (a, b) => safety(b) - safety(a) || foodScore(b) - foodScore(a) || a - b, 1)[0];
   const picks = [...new Set([byFood, bySafety].filter((x): x is number => x !== undefined))];
   const baseCost = buildCostField(w.terrain, tribe);
   const range = geo.workingRange;
   for (const dest of picks) {
-    const newWork = dijkstra(baseCost, dest, range, new Set(others));
+    const newWork = dijkstra(baseCost, [dest, ...geo.settlements.slice(1)], range, new Set(others));
     const fixed = w.assets.filter((a) => a.owner === tribe && a.kind !== "defenses");
     const dormantAfter = fixed.filter((a) => (newWork.dist[a.tile] as number) < 0).length;
     const nowActive = fixed.filter((a) => (geo.work.dist[a.tile] as number) >= 0).length;
     const newFood = Math.floor(foodScore(dest));
     const reason = dest === byFood ? "most wild food within reach" : "farthest from other settlements";
-    const path = pathTo(geo.move, dest);
+    const path = pathTo(geo.capitalMove, dest);
     const note = announcedNote(snap, dest);
     out.push(
       candidate(
@@ -418,10 +419,10 @@ function relocationCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out
         `relocate_to_${dest}`,
         "relocate",
         cost,
-        `${costText(cost)}; move the settlement to the ${placeLabel(snap, geo, dest, true)} (${reason}; about ${newFood} wild food stock nearby). Stores and portable camps travel with it; fixed buildings stay. ${dormantAfter} of ${fixed.length} fixed sites/housing would be outside working range (dormant) afterwards (${nowActive} active now).`,
-        [`Settlement center moves ${geo.move.dist[dest]} travel units`, "Any raid aimed at the old location this turn finds nothing"],
+        `${costText(cost)}; move the ${geo.settlements.length > 1 ? "capital" : "settlement"} to the ${placeLabel(snap, geo, dest, "capital")} (${reason}; about ${newFood} wild food stock nearby). Stores and portable camps travel with it; fixed buildings stay. ${dormantAfter} of ${fixed.length} fixed sites/housing would be outside working range (dormant) afterwards (${nowActive} active now).`,
+        [`Settlement center moves ${geo.capitalMove.dist[dest]} travel units`, "Any raid aimed at the old location this turn finds nothing"],
         [...(dormantAfter > 0 ? [`${dormantAfter} fixed assets stop producing or sheltering until the tribe returns`] : []), ...(note ? [note] : [])],
-        { type: "path", tile: dest, path, label: placeLabel(snap, geo, dest, true) },
+        { type: "path", tile: dest, path, label: placeLabel(snap, geo, dest, "capital") },
       ),
     );
   }
@@ -431,7 +432,7 @@ function relocationCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out
 export function expansionSet(snap: Snapshot, tribe: TribeId, geo: TribeGeo, score: (t: number) => number): number[] {
   const w = snap.state.world;
   const idx = tribeTileIndex(tribe);
-  const others = new Set(livingTribes(snap.state).filter((o) => o !== tribe).map((o) => snap.state.tribes[o].settlement));
+  const others = new Set(foreignSettlements(snap.state, tribe));
   const eligible = (t: number) => isLand(w, t) && w.owner[t] === -1 && (geo.work.dist[t] as number) >= 0 && !others.has(t);
   const owned = new Set<number>();
   for (const t of geo.work.reached) if (w.owner[t] === idx) owned.add(t);
@@ -508,38 +509,56 @@ function expansionCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out:
   }
 }
 
+/** Nearest reachable settlement tile of `target` from any of our settlements, or null. */
+function nearestSettlementOf(snap: Snapshot, geo: TribeGeo, target: TribeId, range: number): number | null {
+  let best: number | null = null;
+  for (const tile of settlementsOf(snap.state, target)) {
+    const d = geo.move.dist[tile] as number;
+    if (d < 0 || d > range) continue;
+    if (best === null || d < (geo.move.dist[best] as number) || (d === (geo.move.dist[best] as number) && tile < best)) best = tile;
+  }
+  return best;
+}
+
+function settlementName(state: GameState, tribe: TribeId, tile: number): string {
+  return tile === state.tribes[tribe].settlement ? `${tribeName(tribe)}'s ${state.tribes[tribe].outposts.length ? "capital" : "settlement"}` : `${tribeName(tribe)}'s outpost`;
+}
+
 function raidCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: ActionCandidate[]) {
   const R = BALANCE.actions.raid;
   const s = snap.state;
   const t = s.tribes[tribe];
-  if (t.militaryLevel < R.minMilitary || !affordable(s, tribe, R.cost)) return;
-  const targets = livingTribes(s).filter((o) => {
-    if (o === tribe) return false;
-    const d = geo.move.dist[s.tribes[o].settlement] as number;
-    return d >= 0 && d <= R.range;
-  });
+  if (t.militaryLevel < R.minMilitary) return;
+  // A desperate raid is always possible: it costs up to the listed food, or whatever remains in the stores.
+  const raidCost = { ...R.cost, food: Math.min(R.cost.food, t.food) };
+  const targets = livingTribes(s)
+    .filter((o) => o !== tribe)
+    .map((o) => ({ id: o, tile: nearestSettlementOf(snap, geo, o, reach(geo, R.range)) }))
+    .filter((x): x is { id: TribeId; tile: number } => x.tile !== null);
   if (targets.length === 0) return;
   const atk = attackStrength(s, tribe);
-  const weakest = rankTop(targets, (a, b) => defenseStrength(s, a, false) - defenseStrength(s, b, false) || (a < b ? -1 : 1), 1)[0] as TribeId;
-  const nearest = rankTop(targets, (a, b) => (geo.move.dist[s.tribes[a].settlement] as number) - (geo.move.dist[s.tribes[b].settlement] as number) || (a < b ? -1 : 1), 1)[0] as TribeId;
+  const weakest = rankTop(targets, (a, b) => defenseStrength(s, a.id, false, a.tile) - defenseStrength(s, b.id, false, b.tile) || (a.id < b.id ? -1 : 1), 1)[0]!;
+  const nearest = rankTop(targets, (a, b) => (geo.move.dist[a.tile] as number) - (geo.move.dist[b.tile] as number) || (a.id < b.id ? -1 : 1), 1)[0]!;
   const L = BALANCE.combat.loot;
-  for (const target of [...new Set([weakest, nearest])]) {
+  const picks = weakest.id === nearest.id ? [weakest] : [weakest, nearest];
+  for (const { id: target, tile } of picks) {
     const tt = s.tribes[target];
-    const def = defenseStrength(s, target, false);
-    const defD = defenseStrength(s, target, true);
+    const def = defenseStrength(s, target, false, tile);
+    const defD = defenseStrength(s, target, true, tile);
     const chance = Math.round(raidChance(atk, def) * 100);
     const chanceD = Math.round(raidChance(atk, defD) * 100);
-    const tile = tt.settlement;
+    const name = settlementName(s, target, tile);
+    const isCapital = tile === tt.settlement;
     out.push(
       candidate(
         tribe,
         `raid_${target}`,
         "raid",
-        R.cost,
-        `${costText(R.cost)}; raid ${tribeName(target)}'s settlement ${geo.move.dist[tile]} travel units away. Game-engine success chance ${chance}% (attack ${Math.round(atk)} vs defense ${Math.round(def)}); ${chanceD}% if ${tribeName(target)} chooses Defend. Success takes up to ${L.food} food, ${L.timber} timber, and ${L.stone} stone from its stores (it holds ${tt.food} food, ${tt.timber} timber, ${tt.stone} stone) and costs about 2% of our people; failure costs about 5%.`,
-        [`Success: loot up to ${Math.min(L.food, tt.food)} food`, "Relations with the target worsen"],
-        ["If the target relocates this turn, the raid finds nothing (no loot, no casualties)", "Several raids on one target share its loot"],
-        { type: "settlement", tribeId: target, tile, label: `${tribeName(target)} settlement` },
+        raidCost,
+        `${costText(raidCost)}; raid ${name} ${geo.move.dist[tile]} travel units away${geo.reachFactor < 1 ? ` (weather shortens raiding reach to ${reach(geo, R.range)} this turn)` : ""}. Game-engine success chance ${chance}% (attack ${Math.round(atk)} vs defense ${Math.round(def)}); ${chanceD}% if ${tribeName(target)} chooses Defend. Success takes up to ${L.food} food, ${L.timber} timber, and ${L.stone} stone from its stores (it holds ${tt.food} food, ${tt.timber} timber, ${tt.stone} stone), captures up to ${BALANCE.territory.raidCaptureTiles} of its border tiles that touch our territory, and costs about 2% of our people; failure costs about 5%.`,
+        [`Success: loot up to ${Math.min(L.food, tt.food)} food and up to ${BALANCE.territory.raidCaptureTiles} border tiles`, "Relations with the target worsen"],
+        [isCapital ? "If the target moves its capital this turn, the raid finds nothing (no loot, no casualties)" : "Outposts cannot relocate", "Several raids on one tribe share its loot"],
+        { type: "settlement", tribeId: target, tile, label: name },
       ),
     );
   }
@@ -556,14 +575,14 @@ function recruitCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
   const sources = livingTribes(s).filter((o) => {
     if (o === tribe) return false;
     const os = s.tribes[o];
-    const d = geo.move.dist[os.settlement] as number;
-    return d >= 0 && d <= R.range && os.population > 1 && os.food / Math.max(1, os.population) < 1;
+    return nearestSettlementOf(snap, geo, o, reach(geo, R.range)) !== null && os.population > 1 && os.food / Math.max(1, os.population) < 1;
   });
   const ranked = rankTop(sources, (a, b) => s.tribes[a].food / s.tribes[a].population - s.tribes[b].food / s.tribes[b].population || (a < b ? -1 : 1), 2);
   for (const src of ranked) {
     const os = s.tribes[src];
     const n = Math.min(R.max, Math.floor(os.population * R.fraction), spare, os.population - 1);
     if (n < 1) continue;
+    const tile = nearestSettlementOf(snap, geo, src, reach(geo, R.range)) as number;
     out.push(
       candidate(
         tribe,
@@ -573,7 +592,50 @@ function recruitCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
         `${costText(R.cost)}; invite up to ${n} people from ${tribeName(src)}, which has under one turn of food (${os.food} food for ${os.population}). They join only if housing is still free after this turn's raids.`,
         [`+up to ${n} population, reducing ${tribeName(src)} by the same amount`],
         [`Relations with ${tribeName(src)} worsen slightly`],
-        { type: "settlement", tribeId: src, tile: os.settlement, label: `${tribeName(src)} settlement` },
+        { type: "settlement", tribeId: src, tile, label: `${tribeName(src)} settlement` },
+      ),
+    );
+  }
+}
+
+function scoutingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: ActionCandidate[]) {
+  const s = snap.state;
+  const t = s.tribes[tribe];
+  const A = BALANCE.actions;
+  const settlementCount = 1 + t.outposts.length;
+  if (settlementCount >= A.found.maxSettlements) return;
+  if (affordable(s, tribe, A.scout.cost)) {
+    const known = t.scoutedSites.length ? ` Currently known sites: ${t.scoutedSites.length}; scouting again replaces them with a fresh survey.` : "";
+    const access = accessibleTiles(s, geo);
+    const wild = Math.floor(sumStock(s.world, access, "forage") + sumStock(s.world, access, "wildlife"));
+    const wildCap = Math.floor(sumCap(s.world, access, "forage") + sumCap(s.world, access, "wildlife"));
+    out.push(
+      candidate(
+        tribe,
+        "send_scouts",
+        "send_scouts",
+        A.scout.cost,
+        `${costText(A.scout.cost)}; scouts survey unclaimed land up to ${reach(geo, A.scout.range)} travel units from our settlements and report the best ${A.scout.sitesFound} sites for an additional settlement (at least ${BALANCE.placement.minSeparation} units from every settlement). A later Found settlement action can settle one, adding territory and a working area around it while people and stores stay shared. Our current working area holds ${wild} wild food of ${wildCap} capacity for ${t.population} people. Founding later costs ${A.found.cost.food} food and ${A.found.cost.timber} timber and needs at least ${A.found.minPopulation} people (we hold ${t.food} food and ${t.timber} timber). Reports stay valid for ${A.scout.expiresAfter} turns.${known}`,
+        ["Reveals candidate sites; a later Found settlement action can use them"],
+        ["Scouts may find nothing if no free land meets the spacing rule"],
+      ),
+    );
+  }
+  if (t.population < A.found.minPopulation || !affordable(s, tribe, A.found.cost) || t.scoutedSites.length === 0) return;
+  const buffer = settlementBuffer(s);
+  for (const site of t.scoutedSites) {
+    if (!siteUsable(s, site.tile, buffer)) continue;
+    const note = announcedNote(snap, site.tile);
+    out.push(
+      candidate(
+        tribe,
+        `found_settlement_at_${site.tile}`,
+        "found_settlement",
+        A.found.cost,
+        `${costText(A.found.cost)}; found a new settlement at the scouted ${directionLabel(geo.settlement, site.tile)} ${site.terrain} site ${site.distance} travel units away (nearby: ${site.food} wild food and farm potential, ${site.fish} fish, ${site.timber} timber, ${site.stone} stone capacity). It claims up to ${A.found.territoryTiles} surrounding tiles and adds a portable camp for ${A.found.campCapacity} people; working range then extends from it. Population, stores, and technologies stay shared across the tribe (settlement ${settlementCount + 1} of at most ${A.found.maxSettlements}).`,
+        [`New settlement with up to ${A.found.territoryTiles} tiles of territory`],
+        ["Fails (with refund) if another tribe settles the same site this turn", ...(note ? [note] : [])],
+        { type: "tile", tile: site.tile, label: `scouted ${site.terrain} site` },
       ),
     );
   }
@@ -599,6 +661,8 @@ const KIND_ORDER: ActionKind[] = [
   "raid",
   "defend",
   "recruit",
+  "send_scouts",
+  "found_settlement",
 ];
 
 /** Enforce the candidate cap: drop second location/target variants first, never a whole action type or a technology. */
@@ -656,6 +720,7 @@ export function generateCandidates(snap: Snapshot, tribe: TribeId): ActionCandid
   raidCandidates(snap, tribe, geo, out);
   out.push(candidate(tribe, "defend", "defend", ZERO, `No stock cost; stand ready so settlement defense is ×${BALANCE.actions.defendMultiplier} against any raid this turn. No lasting military gain.`, [`Defense ×${BALANCE.actions.defendMultiplier} this turn`]));
   recruitCandidates(snap, tribe, geo, out);
+  scoutingCandidates(snap, tribe, geo, out);
 
   const ordered = out
     .map((c, i) => ({ c, i }))

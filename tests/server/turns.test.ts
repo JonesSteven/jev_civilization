@@ -132,9 +132,10 @@ describe("turn orchestration", () => {
     expect(loadOwnedGame(session, id).completed_turn).toBe(1);
   });
 
-  it("surfaces an explicit budget-exhausted state", async () => {
-    const id = createGame(session, { tribeId: "windstep", mode: "live" });
-    getDb().prepare("UPDATE games SET attempts_used = 300 WHERE id = ?").run(id);
+  it("scales the attempt budget with match length and surfaces an explicit budget-exhausted state", async () => {
+    const id = createGame(session, { tribeId: "windstep", mode: "live", totalTurns: 20 });
+    expect(gameView(loadOwnedGame(session, id)).maxAttempts).toBe(60);
+    getDb().prepare("UPDATE games SET attempts_used = 60 WHERE id = ?").run(id);
     await expect(submitTurn(session, id, body(id))).rejects.toMatchObject({ code: "jev_budget_exhausted" });
   });
 

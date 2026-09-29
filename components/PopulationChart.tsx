@@ -9,7 +9,7 @@ const HEIGHT = 240;
 const M = { top: 12, right: 86, bottom: 28, left: 40 };
 
 function niceMax(v: number): number {
-  const step = v <= 50 ? 10 : v <= 200 ? 25 : 50;
+  const step = v <= 50 ? 10 : v <= 200 ? 25 : v <= 600 ? 100 : 250;
   return Math.max(step, Math.ceil(v / step) * step);
 }
 
@@ -19,19 +19,20 @@ export default function PopulationChart({ tribes }: { tribes: TribePanel[] }) {
   const [showTable, setShowTable] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const maxTurn = Math.max(1, ...tribes.flatMap((t) => t.history.map((h) => h.turn)));
-  const maxPop = niceMax(Math.max(40, ...tribes.flatMap((t) => t.history.map((h) => h.population))));
+  const maxPop = niceMax(Math.max(100, ...tribes.flatMap((t) => t.history.map((h) => h.population))));
   const x = (turn: number) => M.left + ((turn - 0) / maxTurn) * (WIDTH - M.left - M.right);
   const y = (p: number) => M.top + (1 - p / maxPop) * (HEIGHT - M.top - M.bottom);
   const series = useMemo(
     () =>
       tribes.map((t) => ({
         id: t.id,
-        points: [{ turn: 0, population: 40 }, ...t.history.map((h) => ({ turn: h.turn, population: h.population }))],
+        points: [{ turn: 0, population: 100 }, ...t.history.map((h) => ({ turn: h.turn, population: h.population }))],
       })),
     [tribes],
   );
   const ticks = Array.from({ length: 5 }, (_, i) => Math.round((maxPop / 4) * i));
-  const turnTicks = [0, 25, 50, 75, 100].filter((t) => t <= maxTurn);
+  const step = maxTurn <= 30 ? 5 : maxTurn <= 60 ? 10 : maxTurn <= 120 ? 25 : 50;
+  const turnTicks = Array.from({ length: Math.floor(maxTurn / step) + 1 }, (_, i) => i * step);
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = svgRef.current?.getBoundingClientRect();

@@ -35,10 +35,10 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<{ 
 export const api = {
   config: () => call<{ liveAvailable: boolean; mockPermitted: boolean; model: string }>("GET", "/api/config").then((r) => r.data),
   listGames: () =>
-    call<{ games: { id: string; status: string; mode: string; supportedTribeId: string; seed: string; completedTurn: number; createdAt: number }[] }>("GET", "/api/games").then(
+    call<{ games: { id: string; status: string; mode: string; supportedTribeId: string; seed: string; completedTurn: number; totalTurns: number; createdAt: number }[] }>("GET", "/api/games").then(
       (r) => r.data.games,
     ),
-  createGame: (body: { tribeId: string; seed?: string; mode: "live" | "mock" }) => call<{ game: GameView }>("POST", "/api/games", body).then((r) => r.data.game),
+  createGame: (body: { tribeId: string; seed?: string; mode: "live" | "mock"; totalTurns?: number }) => call<{ game: GameView }>("POST", "/api/games", body).then((r) => r.data.game),
   getGame: (id: string) => call<{ game: GameView }>("GET", `/api/games/${id}`).then((r) => r.data.game),
   submitTurn: (id: string, body: { expectedVersion: number; expectedTurn: number; eventId: string; idempotencyKey: string; optionId?: string }) =>
     call<{ game: GameView; turn?: TurnRecord; pending?: boolean }>("POST", `/api/games/${id}/turns`, body),

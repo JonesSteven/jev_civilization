@@ -3,7 +3,13 @@
 A playable Next.js demonstration of autonomous civilizations deciding with **Jev** (TypeSafe's direct API).
 You support one of four tribes but never give orders: on odd turns you change the environment, on even turns
 Nature does. Every turn Jev chooses one legal action for each surviving tribe; an ordinary deterministic game
-engine calculates everything that follows. A match is 100 turns and ends with a transparent score ranking.
+engine calculates everything that follows. A match lasts 10–200 turns (chosen at the start, default 50) and ends
+with a transparent score ranking.
+
+**Rules version 2 ("dynamic").** Compared with the original PRD values, tribes start farther apart with non-touching
+territories and larger populations (100). They grow quickly (4–7% births per turn) and their borders spread every
+turn. They can send scouts and found up to three settlements, and successful raids take border land. Every
+environmental choice applies to the whole map. See `HANDOFF.md` for the full list of deviations from the PRD.
 
 - Next.js 16 (App Router) + React 19 + TypeScript (strict), exact versions pinned in `package-lock.json`
 - Pure TypeScript engine in `lib/game/` (no DOM, database, or network)
@@ -39,7 +45,7 @@ Environment variables (see `.env.example`):
 | `ALLOW_MOCK_MODE` | Allow labeled mock simulation games | `false` in production, `true` otherwise |
 | `JEV_TIMEOUT_MS` | Per-attempt timeout | `10000` |
 | `JEV_MAX_ATTEMPTS_PER_TURN` | Total automatic attempts per turn | `3` |
-| `JEV_MAX_ATTEMPTS_PER_GAME` | Provider-attempt budget per game | `300` |
+| `JEV_MAX_ATTEMPTS_PER_GAME` | Cap on the per-game attempt budget (the budget is 3 × match length, up to this cap) | `300` |
 | `JEV_MAX_CONCURRENCY` | Process-wide concurrent Jev calls | `4` |
 | `APP_ORIGIN` | Public origin for same-origin mutation checks | request host |
 | `NEXT_TELEMETRY_DISABLED` | Disable framework telemetry | set to `1` |
@@ -86,7 +92,7 @@ npm run lint
 npm test                      # Vitest: engine, content catalog, Jev adapter (local HTTP stub), orchestration, routes
 npx playwright install chromium   # once
 npm run build && npm run test:e2e # Playwright browser tests against `next start` with an in-process Jev fake
-npm run simulate -- --games 100   # balance smoke run with the MOCK policy (not Jev)
+npm run simulate -- --games 100 --turns 50   # balance smoke run with the MOCK policy (not Jev)
 npm run validate:catalog
 npm run check:secrets             # after a build: scans bundles, committable files, and the DB for the key
 npm run probe:jev                 # optional: ONE real Jev request (uses your key; small cost)
@@ -116,7 +122,7 @@ node -e "const {DatabaseSync}=require('node:sqlite');new DatabaseSync(process.ar
 ```
 
 Players keep access through their anonymous session cookie; restoring the database restores their matches.
-Storage measured for a complete 100-turn game: about 5 MB (turn records ≈1.0 MB, map deltas ≈0.8 MB,
+Storage measured for a complete 100-turn game under rules version 1: about 5 MB (turn records ≈1.0 MB, map deltas ≈0.8 MB,
 full keyframes every ten turns ≈3.1 MB, current state ≈0.3 MB).
 
 ## Project layout

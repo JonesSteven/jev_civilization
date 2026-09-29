@@ -5,6 +5,7 @@ import type { TribeId } from "@/lib/game/types";
 import type { ExpectedQuestion } from "./request";
 
 export const SUM_TOLERANCE = 0.01;
+const FLOAT_EPSILON = 1e-9;
 
 export interface ValidatedDecision {
   tribeId: TribeId;
@@ -50,7 +51,8 @@ export function validateJevResponse(body: unknown, expected: ExpectedQuestion[])
     }
     for (const id of q.candidateIds) if (!(id in raw)) throw new InvalidResponseError(`answer ${q.questionId} omits option ${id}`);
     const sum = Object.values(raw).reduce((s, v) => s + v, 0);
-    if (Math.abs(sum - 1) > SUM_TOLERANCE) throw new InvalidResponseError(`answer ${q.questionId} probabilities sum to ${sum.toFixed(4)}`);
+    // Tolerance is inclusive: Jev rounds to two decimals, so sums of exactly 0.99 or 1.01 are valid.
+    if (Math.abs(sum - 1) > SUM_TOLERANCE + FLOAT_EPSILON) throw new InvalidResponseError(`answer ${q.questionId} probabilities sum to ${sum.toFixed(4)}`);
     if (!finite01(a.confidence)) throw new InvalidResponseError(`answer ${q.questionId} has invalid confidence`);
     const choice = a.choice === undefined || a.choice === null ? null : a.choice;
     if (choice !== null && (typeof choice !== "string" || !offered.has(choice))) throw new InvalidResponseError(`answer ${q.questionId} choice is not an offered option`);

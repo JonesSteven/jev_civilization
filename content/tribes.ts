@@ -39,7 +39,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
     description:
       "Settled cultivators who value a reliable harvest, family shelter, and maintaining the land around their homes. They prefer preparation and gradual development but will defend their settlements.",
     advantages: [
-      "Farming yield ×1.25",
+      "Farming yield ×1.15",
       "Timber gathering ×1.25",
       "Wooden housing takes half the ordinary weather damage",
       "Innate access to farms",
@@ -93,7 +93,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
       "Mountain communities skilled at using rock, caves, meadows, and nearby waterways. They value endurance, shelter, and carefully accumulated knowledge.",
     advantages: [
       "Stone gathering ×1.30",
-      "Fishing yield ×1.25",
+      "Fishing yield ×1.45",
       "Innate stone construction and fishing",
       "Mountain travel cost 2 instead of 3",
     ],
@@ -120,7 +120,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
       "Mobile raiders who gain supplies and prestige by intimidating or attacking neighboring settlements. They prefer a vulnerable target to slow accumulation, but prolonged scarcity can force them to learn new methods.",
     advantages: [
       "Starting military level 2",
-      "Raid attack ×1.25",
+      "Raid attack ×1.5",
       "Movement budget 8",
       "Portable camp housing",
     ],

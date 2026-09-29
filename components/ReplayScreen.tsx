@@ -48,8 +48,8 @@ export default function ReplayScreen({ gameId }: { gameId: string }) {
   if (!data || worlds.length === 0) return <main className="start"><div className="deciding"><span className="spinner" aria-hidden="true" /> Loading replay…</div></main>;
 
   const world = worlds[index] as DecodedWorld;
-  const tribes = turn ? turn.tribes : data.initial.tribes.map((t) => ({ id: t.id, alive: t.alive, population: t.population, food: t.food, settlement: t.settlement }));
-  const settlements = tribes.map((t) => ({ id: t.id as TribeId, tile: t.settlement, alive: t.alive }));
+  const tribes = turn ? turn.tribes : data.initial.tribes.map((t) => ({ id: t.id, alive: t.alive, population: t.population, food: t.food, settlement: t.settlement, outposts: t.outposts ?? [] }));
+  const settlements = tribes.map((t) => ({ id: t.id as TribeId, tile: t.settlement, alive: t.alive, outposts: t.outposts ?? [] }));
   const isMock = data.game.mode === "mock";
 
   return (

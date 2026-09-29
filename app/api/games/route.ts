@@ -13,6 +13,7 @@ const CreateBody = z
     tribeId: z.enum(TRIBE_IDS),
     seed: z.string().max(64).regex(/^[A-Za-z0-9 _.-]*$/, "Seed may contain letters, numbers, spaces, dots, dashes, and underscores.").optional(),
     mode: z.enum(["live", "mock"]),
+    totalTurns: z.number().int().min(10).max(200).multipleOf(5).optional(),
   })
   .strict();
 

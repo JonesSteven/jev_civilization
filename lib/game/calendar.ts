@@ -1,6 +1,9 @@
 import { SEASONS, type ChoiceSource, type Season } from "./types";
 
-export const TOTAL_TURNS = 100;
+/** Match length is chosen per game (PRD default was 100; the dynamic ruleset defaults to 50). */
+export const DEFAULT_TOTAL_TURNS = 50;
+export const MIN_TOTAL_TURNS = 10;
+export const MAX_TOTAL_TURNS = 200;
 
 export function choiceSource(turn: number): ChoiceSource {
   return turn % 2 === 1 ? "player" : "nature";
