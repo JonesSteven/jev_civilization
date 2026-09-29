@@ -1,21 +1,37 @@
 # Jev Civilizations
 
-A playable Next.js demonstration of autonomous civilizations deciding with **Jev** (TypeSafe's direct API).
-You support one of four tribes but never give orders: on odd turns you change the environment, on even turns
-Nature does. Every turn Jev chooses one legal action for each surviving tribe; an ordinary deterministic game
-engine calculates everything that follows. A match lasts 10–200 turns (chosen at the start, default 50) and ends
-with a transparent score ranking.
+### ▶ [Play the live demo](https://thunder-monocle.env-ca.veilstreamapp.com/)
 
-**Rules version 2 ("dynamic").** Compared with the original PRD values, tribes start farther apart with non-touching
-territories and larger populations (100). They grow quickly (4–7% births per turn) and their borders spread every
-turn. They can send scouts and found up to three settlements, and successful raids take border land. Every
-environmental choice applies to the whole map. See `HANDOFF.md` for the full list of deviations from the PRD.
+**[https://thunder-monocle.env-ca.veilstreamapp.com/](https://thunder-monocle.env-ca.veilstreamapp.com/)**
+
+Jev Civilizations is a small strategy game where four tribes run their own lives and you can only change the
+world around them.
+
+## What it does
+
+- **Pick a tribe to support.** Farmers, hunters, mountain fishers, or raiders — each lives off the land differently.
+- **You never give orders.** Instead, every other turn you choose how the environment changes: a wet spring, a
+  harsh winter, a wildlife boom, a crop pest. On the turns in between, Nature picks at random.
+- **The tribes decide for themselves.** Each turn an AI model, **Jev**, chooses one action for every tribe from the
+  moves that are actually possible for it — farm, hunt, build, research, move, scout for new land, found a new
+  settlement, or raid a neighbour.
+- **A game engine works out what happens.** Harvests, hunger, births, raids, and growing or shrinking borders are all
+  calculated by ordinary game rules, and the map changes to show it.
+- **See why things happened.** A decision inspector shows exactly what Jev was told and how strongly it preferred each
+  option, and an event log explains every result.
+- **The best civilization wins.** After the match (10–200 turns, 50 by default), tribes are ranked by population,
+  resilience, technology, and territory.
+
+No API key? The app also has a clearly labelled **mock mode** that uses a simple built-in policy instead of Jev, so
+you can play and develop offline.
+
+## How it's built
 
 - Next.js 16 (App Router) + React 19 + TypeScript (strict), exact versions pinned in `package-lock.json`
-- Pure TypeScript engine in `lib/game/` (no DOM, database, or network)
-- Server-only Jev adapter in `lib/server/jev/` — the only external runtime call
+- Pure TypeScript game engine in `lib/game/` (no DOM, database, or network)
+- Server-only Jev adapter in `lib/server/jev/` — the only external call the app makes
 - Local SQLite through Node's built-in `node:sqlite` (no native build step, no hosted database)
-- Canvas 2D map, locally authored SVG art, system fonts; no remote assets, analytics, or telemetry
+- Canvas 2D map, locally drawn SVG art, system fonts; no remote assets, analytics, or telemetry
 
 ## Requirements
 
@@ -122,8 +138,7 @@ node -e "const {DatabaseSync}=require('node:sqlite');new DatabaseSync(process.ar
 ```
 
 Players keep access through their anonymous session cookie; restoring the database restores their matches.
-Storage measured for a complete 100-turn game under rules version 1: about 5 MB (turn records ≈1.0 MB, map deltas ≈0.8 MB,
-full keyframes every ten turns ≈3.1 MB, current state ≈0.3 MB).
+A complete 50-turn game uses about 4 MB of storage (turn records, map changes, and a full snapshot every ten turns).
 
 ## Project layout
 
@@ -147,7 +162,3 @@ own licenses (see `THIRD_PARTY_NOTICES.md`).
 This project is **not affiliated with or endorsed by TypeSafe**. Live play uses your own TypeSafe API key, and you are
 responsible for its terms and costs. Game content is fiction. See `DISCLAIMER.md` for details, `SECURITY.md` to report
 vulnerabilities and for key handling, and `CONTRIBUTING.md` to contribute.
-
-See `HANDOFF.md` for requirement coverage, balance changes, verification results, and known limitations. The
-original product requirements document is private and not included; references to "PRD" sections and requirement IDs
-(R01, AC01, …) in `HANDOFF.md` and code comments refer to it.
