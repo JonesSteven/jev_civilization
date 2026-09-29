@@ -148,5 +148,6 @@ This project is **not affiliated with or endorsed by TypeSafe**. Live play uses 
 responsible for its terms and costs. Game content is fiction. See `DISCLAIMER.md` for details, `SECURITY.md` to report
 vulnerabilities and for key handling, and `CONTRIBUTING.md` to contribute.
 
-See `HANDOFF.md` for requirement coverage, balance changes, verification results, and known limitations, and
-`Jev_Civilizations_PRD.md` for the product requirements.
+See `HANDOFF.md` for requirement coverage, balance changes, verification results, and known limitations. The
+original product requirements document is private and not included; references to "PRD" sections and requirement IDs
+(R01, AC01, …) in `HANDOFF.md` and code comments refer to it.

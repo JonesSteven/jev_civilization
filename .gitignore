@@ -26,3 +26,6 @@ coverage/
 reports/tmp/
 
 .DS_Store
+
+# private product requirements (kept local, never published)
+Jev_Civilizations_PRD.md

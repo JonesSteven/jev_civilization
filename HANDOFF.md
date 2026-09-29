@@ -2,7 +2,7 @@
 
 Date: 29 September 2026 · current: rules-2.0.0 · content-2.0.0 · model `jev-1.13.0`
 
-The sections after the update below describe the original rules-1.0.0 delivery.
+The sections after the update below describe the original rules-1.0.0 delivery. The product requirements document (PRD) that the requirement IDs refer to is private and not part of this repository.
 
 ## Update: `dynamic` branch (rules-2.0.0, content-2.0.0)
 
