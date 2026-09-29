@@ -166,5 +166,5 @@ are listed under limitations.
 ## Files not to commit
 
 `.env.local` and `env.md` contain the API key and are listed in `.gitignore`, as are `data/` and test output.
-The code is published at `github.com/JonesSteven/jevcivdemo` (`main` = rules 1, `dynamic` = rules 2) under the
+The code is published at `github.com/JonesSteven/jev_civilization` (branch `main`, rules 2) under the
 MIT License; see `LICENSE`, `THIRD_PARTY_NOTICES.md`, `DISCLAIMER.md`, `SECURITY.md`, and `CONTRIBUTING.md`.
