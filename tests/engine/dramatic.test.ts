@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BALANCE, SCALE } from "@/content/balance";
 import { buildSnapshot, generateCandidates } from "@/lib/game/candidates";
-import { optionImpact } from "@/lib/game/impact";
+import { impactContext, optionImpact } from "@/lib/game/impact";
 import { EVENT_BY_ID } from "@/content/events";
 import { researchEffort } from "@/lib/game/stats";
 import { growthPhrase, shareOfPeople } from "@/lib/game/summary";
@@ -134,6 +134,32 @@ describe("epidemics", () => {
     expect(died("hearthwood")).toBe(Math.round(before.hearthwood * 0.4 * BALANCE.diseaseResistance.hearthwood));
     expect(died("hearthwood")).toBeLessThan(died("windstep"));
   });
+
+  it("every event card offers choices that matter to at least one tribe", () => {
+    let events = 0;
+    let allEmpty = 0;
+    let options = 0;
+    let emptyOptions = 0;
+    for (let g = 0; g < 6; g++) {
+      let s = newGame(`impact-${g}`, 100);
+      for (let t = 1; t <= 40 && s.currentEvent; t++) {
+        const p = s.currentEvent;
+        const ctx = impactContext(s);
+        const empty = EVENT_BY_ID[p.eventId]!.options.filter((o) => {
+          const im = optionImpact(s, o, p.footprint, ctx);
+          return im.helps.length === 0 && im.hurts.length === 0;
+        }).length;
+        events++;
+        options += 3;
+        emptyOptions += empty;
+        if (empty === 3) allEmpty++;
+        s = step(s, {}, t).state;
+      }
+    }
+    expect(events).toBeGreaterThan(100);
+    expect(allEmpty).toBe(0);
+    expect(emptyOptions / options).toBeLessThanOrEqual(0.06);
+  }, 120_000);
 
   it("the event card forecasts who a plague hurts", () => {
     const s = withSickness(newGame("plague-card"));

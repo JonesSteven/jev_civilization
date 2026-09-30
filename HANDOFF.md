@@ -20,7 +20,7 @@ Every number is in `content/balance.ts`, and the tuning steps are logged in `BAL
 | Compounding | Technologies are much stronger (Agriculture farms ×1.6, Fishing ×1.5, Tools ×1.6, Irrigation drought floor 90%). Research effort grows with population (+1 per 3,000 people, max 4). Up to 5 settlements. |
 | Raids | On success the defender loses 6% and the attacker 3%; on failure the attacker loses 10%. Forts give +35% per level. A tribe raided in the last two turns defends at ×1.6. **Conquest**: a successful raid by a tribe ≥5× larger ends a remnant under 300; half its survivors, plus its land, stores, and technologies, pass to the raider. |
 | Unions | New actions `offer_union` and `accept_union` (23 kinds). The offer requires ≥4× the target's size; a target of ≥300 people that is declining (or is ≤1/8 our size); and food for the joiners. It stays open for 2 turns. The smaller tribe's Jev decides whether to accept; if it does, 90% of its people, land, settlements, buildings, stores, and technologies join. `GameState.unionOffers` holds open offers. |
-| Ending | `isMatchOver`: the match finishes when one tribe (or none) is left. Results then say who "took over the land". Default length is 100 turns. |
+| Ending | `isMatchOver`: the match finishes when one tribe (or none) is left. Results then say who "took over the land". Default length stays at 50 turns. |
 | Score | Population weighs more: population 55 (target 10,000), resilience 15, development 15, influence 15 (target 600 tiles). |
 | Fates | `TribeState.fate` is `collapsed`, `conquered`, or `joined`, and `absorbedBy` names the other tribe. Both are optional, so older states still load. |
 
@@ -47,6 +47,25 @@ Every number is in `content/balance.ts`, and the tuning steps are logged in `BAL
   - Across the 12 earlier live tuning matches: 4× spread in 9, and a union or conquest in 6.
   - Cost is about 13k tokens per turn.
 - Tuning tools: `npm run simulate` now prints drama metrics (`--story` shows the summaries turn by turn). The new `npm run live-sim` plays full games against real Jev.
+
+### Second round (same branch)
+- **Prompt:** each tribe view now carries `advisories` (`growthAdvisories` in `lib/game/views.ts`). These are engine-computed notes on unsheltered people and the next winter, the birth limit at 1.5× shelter, depleted wild food, ready scouted sites, and the timber a house needs.
+  - The instructions explain that food alone does not make a community grow.
+  - The housing, timber, scouting, and founding candidates state their concrete benefit.
+  - Routine timber and stone income rose to 80 and 50 per turn, because housing was affordable only about one turn in seven.
+  - Same-seed live comparison (5 × 100 turns): founding 13 → 68, scouting 8 → 43, housing 117 → 154, gathering unchanged (about 70%).
+- **Every option matters:**
+  - Options that only moved timber, stone, travel, or terrain now also change food, people, or shelter.
+  - Natural shelter was scaled up to matter at the new population scale.
+  - The forecast (`lib/game/impact.ts`, shared `impactContext`) scores those effects too.
+  - Regional events centre on a random settlement.
+  - A catalog rule (`isMaterialEffect`) and a test enforce it: no event card has three "little effect" options, and at most 6% of options do (measured 4.2%).
+- **Nature's turn:**
+  - Nature's pick goes to Jev at once. The result is held in a review panel (`components/NatureReview.tsx`) with Nature's pick, both turns' summaries, and each tribe's action, until the player presses **Proceed to my turn**.
+  - The Pause Nature control is gone.
+- **Status:** `components/DecidingStatus.tsx` shows a progress bar, a staged checklist, and elapsed time while a turn is decided. The stages describe a turn, not live server telemetry.
+- **Default length:** back to 50 turns.
+- **Mock drama** fell to 47% of 100-turn games at 4× (mock tribes build much more housing and grow evenly). The live check still had 4 of 5.
 
 ### Known behaviour
 - Jev chooses Gather food most turns and rarely Defends or Trains, so a tribe next to Ironfang can be raided many turns in a row.

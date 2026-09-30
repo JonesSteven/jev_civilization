@@ -10,6 +10,7 @@ export const RULES_VERSION = "rules-3.0.0";
 export const SCALE = 10;
 
 export const BALANCE_CHANGELOG: { version: string; change: string }[] = [
+  { version: "rules-3.0.0", change: "Live Jev check: housing was chosen about half the times it was affordable, but at 30 timber per turn it was affordable only about one turn in seven (Jev almost never gathers timber). Routine timber 30→80 and stone 20→50 per turn. The prompt now also explains shelter, the birth limit, and fresh land (views.<tribe>.advisories and candidate text)." },
   { version: "rules-3.0.0", change: "Live Jev check: Windstep left the game in 5 of 6 departures across 12 live matches. Windstep hunt and gathering ×1.3→1.5; wildlife regrowth 0.30→0.35; Windstep hunting sites draw from radius 4 (was 3)." },
   { version: "rules-3.0.0", change: "Live Jev check: tribes rarely build housing, so shelter-capped births froze populations at the starting 1,200. Births now follow food (up to 1.5× shelter); the unsheltered face winter exposure instead." },
   { version: "rules-3.0.0", change: "Live Jev check: after a famine, morale stayed under the birth threshold for 20+ turns. Morale now drifts +3/turn toward 60 without hunger or cold (driftTarget was defined but unused)." },
@@ -114,8 +115,8 @@ export const BALANCE = {
     hunt: 18 * SCALE,
     fishery: 18 * SCALE,
     forage: 20 * SCALE,
-    routineTimber: 3 * SCALE,
-    routineStone: 2 * SCALE,
+    routineTimber: 8 * SCALE,
+    routineStone: 5 * SCALE,
     season: {
       farm: { spring: 0.8, summer: 1.2, autumn: 1.4, winter: 0.2 },
       hunt: { spring: 1.0, summer: 1.0, autumn: 1.0, winter: 0.8 },
@@ -242,7 +243,7 @@ export const BALANCE = {
     /** Condition loss multiplier by housing type for weather damage. */
     weatherDamage: { wood: 1.0, stone: 0.4, cave: 0.2, camp: 1.3 },
     /** Natural shelter per cave or sheltered tile in working range, capped per tribe. */
-    natural: { cave: 8 * SCALE, sheltered: 4 * SCALE, max: 24 * SCALE },
+    natural: { cave: 20 * SCALE, sheltered: 10 * SCALE, max: 80 * SCALE },
   },
 
   morale: {

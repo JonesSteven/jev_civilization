@@ -77,8 +77,9 @@ export const EVENTS: EventDef[] = [
       { op: "yieldMult", channel: "farm", factor: 1.5, scope: F, duration: 3 },
       { op: "yieldMult", channel: "forage", factor: 1.4, scope: F, duration: 3 },
     ]),
-    opt("E01_showers", "Passing showers", "mild", "A little extra growth in the region this turn, and firm forest paths.", [
-      { op: "yieldMult", channel: "farm", factor: 1.15, scope: F, duration: 1 },
+    opt("E01_showers", "Timely showers", "beneficial", "Rain arrives just when it is needed: farms and wild plants in the region grow better for two turns, and forest paths stay firm.", [
+      { op: "yieldMult", channel: "farm", factor: 1.3, scope: F, duration: 2 },
+      { op: "yieldMult", channel: "forage", factor: 1.2, scope: F, duration: 2 },
       { op: "travelMod", delta: -1, scope: F, duration: 2, terrain: ["forest"] },
     ]),
     opt("E01_torrential", "Torrential rain", "harsh", "Rivers burst their banks: riverside fields in the region yield half as much for three turns, homes near water are damaged, and travel slows.", [
@@ -108,8 +109,8 @@ export const EVENTS: EventDef[] = [
       { op: "yieldMult", channel: "farm", factor: 0.5, scope: W, duration: 2 },
       { op: "yieldMult", channel: "hunt", factor: 0.7, scope: W, duration: 2 },
     ]),
-    opt("E03_ordinary", "Ordinary harvest", "mild", "A dependable harvest: a small farm bonus everywhere this turn only.", [
-      { op: "yieldMult", channel: "farm", factor: 1.1, scope: W, duration: 1 },
+    opt("E03_ordinary", "Good harvest", "beneficial", "A solid harvest: farms everywhere yield a quarter more this turn.", [
+      { op: "yieldMult", channel: "farm", factor: 1.25, scope: W, duration: 1 },
     ]),
     opt("E03_extended", "Long golden autumn", "mixed", "Farms everywhere yield far more for two turns, but the warm weather spoils stored food faster.", [
       { op: "yieldMult", channel: "farm", factor: 1.8, scope: W, duration: 2 },
@@ -133,16 +134,20 @@ export const EVENTS: EventDef[] = [
     ]),
   ]),
   family("E05", "Seeds on the Wind", "Which seeds do birds spread?", ["spring", "autumn"], WORLD, [
-    opt("E05_lumber", "Lumber trees", "mixed", "Some open meadow across the land becomes young forest now; two turns later forests everywhere hold more timber.", [
+    opt("E05_lumber", "Lumber trees", "mixed", "Young forest spreads over some open meadow: game thrives in it (hunting +30% for three turns) while farms lose ground (−15%). Two turns later forests everywhere hold more timber.", [
       { op: "convertTile", from: "meadow", to: "forest", fraction: 0.1, scope: W },
+      { op: "yieldMult", channel: "hunt", factor: 1.3, scope: W, duration: 3 },
+      { op: "yieldMult", channel: "farm", factor: 0.85, scope: W, duration: 3 },
       { op: "delayed", afterTurns: 2, label: "Young trees mature", effects: [{ op: "capacityAdjust", resource: "timber", fraction: 0.3, scope: W, terrain: ["forest"] }] },
     ]),
     opt("E05_wheat", "Wild wheat", "beneficial", "Meadows everywhere become permanently more fertile, strengthening farms.", [
       { op: "fertility", delta: 25, scope: W, terrain: ["meadow"] },
       { op: "overlay", flag: "Wheat", fraction: 0.1, scope: W, terrain: ["meadow"] },
     ]),
-    opt("E05_fruit", "Fruit bushes", "mixed", "Wild food grows across the land for good, but bushes crowd out some timber.", [
+    opt("E05_fruit", "Fruit bushes", "beneficial", "Fruit bushes spread across the land: wild food is plentiful now, foraging yields half as much again for three turns, and the land holds more wild food for good. Bushes crowd out some timber.", [
       { op: "capacityAdjust", resource: "forage", fraction: 0.6, scope: W, terrain: ["meadow", "forest"] },
+      { op: "stockAdjust", resource: "forage", fraction: 0.6, scope: W, terrain: ["meadow", "forest"] },
+      { op: "yieldMult", channel: "forage", factor: 1.5, scope: W, duration: 3 },
       { op: "overlay", flag: "Fruit", fraction: 0.1, scope: W, terrain: ["meadow", "forest"] },
       { op: "capacityAdjust", resource: "timber", fraction: -0.15, scope: W, terrain: ["forest"] },
     ]),
@@ -192,30 +197,36 @@ export const EVENTS: EventDef[] = [
     ]),
   ]),
   family("E09", "Herd Migration", "What do the herds do in the region?", ["spring", "autumn"], WIDE_REGION, [
-    opt("E09_meadows", "Herds crowd the meadows", "beneficial", "Meadow game in the region is fully replenished and hunting yields far more for two turns.", [
+    opt("E09_meadows", "Herds crowd the meadows", "mixed", "Herds pour into the region's meadows: game is fully replenished and hunting yields far more for two turns, but grazing herds trample the fields (farms −25%).", [
       { op: "stockAdjust", resource: "wildlife", fraction: 1, scope: F, terrain: ["meadow"] },
       { op: "yieldMult", channel: "hunt", factor: 1.7, scope: F, duration: 2 },
+      { op: "yieldMult", channel: "farm", factor: 0.75, scope: F, duration: 2 },
     ], "herd migration"),
-    opt("E09_forests", "Herds shelter in the forests", "beneficial", "Forest game in the region is fully replenished and hunting yields more for two turns.", [
+    opt("E09_forests", "Herds shelter in the forests", "beneficial", "Forest game in the region is fully replenished: hunting yields more and even gatherers bring home meat (foraging +30%) for two turns.", [
       { op: "stockAdjust", resource: "wildlife", fraction: 1, scope: F, terrain: ["forest"] },
       { op: "yieldMult", channel: "hunt", factor: 1.4, scope: F, duration: 2 },
+      { op: "yieldMult", channel: "forage", factor: 1.3, scope: F, duration: 2 },
     ], "herd migration"),
-    opt("E09_leave", "Vanishing herds", "harsh", "The herds abandon the region: most game is gone and hunting yields a third as much for three turns.", [
+    opt("E09_leave", "Vanishing herds", "harsh", "The herds abandon the region: most game is gone, hunting yields a third as much and gathering a quarter less for three turns.", [
       { op: "stockAdjust", resource: "wildlife", fraction: -0.6, scope: F },
       { op: "yieldMult", channel: "hunt", factor: 0.35, scope: F, duration: 3 },
+      { op: "yieldMult", channel: "forage", factor: 0.75, scope: F, duration: 3 },
     ]),
   ]),
   family("E10", "Fish Spawning", "How do the fish spawn in the region?", ["spring", "summer"], WIDE_REGION, [
-    opt("E10_abundant", "Great salmon run", "beneficial", "Waters in the region fill with fish, and fisheries yield far more for two turns.", [
+    opt("E10_abundant", "Great salmon run", "beneficial", "Waters in the region fill with fish: fisheries yield far more for two turns, and anyone near the water can catch fish by hand (foraging +30%).", [
       { op: "stockAdjust", resource: "fish", fraction: 1, scope: F },
       { op: "yieldMult", channel: "fish", factor: 1.8, scope: F, duration: 2 },
+      { op: "yieldMult", channel: "forage", factor: 1.3, scope: F, duration: 2 },
     ]),
-    opt("E10_scattered", "Scattered spawning", "mild", "Fish stocks in the region rise a little.", [
-      { op: "stockAdjust", resource: "fish", fraction: 0.3, scope: F },
+    opt("E10_scattered", "Scattered spawning", "mild", "Fish stocks in the region rise, and shallow-water catches add a little to gathering (foraging +20%) for two turns.", [
+      { op: "stockAdjust", resource: "fish", fraction: 0.4, scope: F },
+      { op: "yieldMult", channel: "forage", factor: 1.2, scope: F, duration: 2 },
     ]),
-    opt("E10_poor", "Failed spawning", "harsh", "Hardly any fish return to the region: fisheries yield less than half for three turns and stocks barely recover.", [
+    opt("E10_poor", "Failed spawning", "harsh", "Hardly any fish return to the region: fisheries yield less than half for three turns, stocks barely recover, and shore gathering suffers (foraging −25%).", [
       { op: "regen", resource: "fish", factor: 0.2, scope: F, duration: 4 },
       { op: "yieldMult", channel: "fish", factor: 0.4, scope: F, duration: 3 },
+      { op: "yieldMult", channel: "forage", factor: 0.75, scope: F, duration: 3 },
     ]),
   ]),
   family("E11", "Crop Pest", "What does the pest attack in the region?", ["summer", "autumn"], REGION, [
@@ -226,9 +237,10 @@ export const EVENTS: EventDef[] = [
       { op: "stockAdjust", resource: "forage", fraction: -0.6, scope: F },
       { op: "yieldMult", channel: "forage", factor: 0.4, scope: F, duration: 3 },
     ]),
-    opt("E11_canopy", "Beetles in the canopy", "harsh", "Beetles kill much of the region's timber, and forests regrow slowly for four turns.", [
+    opt("E11_canopy", "Beetles in the canopy", "harsh", "Beetles kill much of the region's timber and the game flees the dying woods: hunting there falls by 40% for three turns and forests regrow slowly for four.", [
       { op: "stockAdjust", resource: "timber", fraction: -0.4, scope: F, terrain: ["forest"] },
       { op: "regen", resource: "timber", factor: 0.2, scope: F, duration: 4 },
+      { op: "yieldMult", channel: "hunt", factor: 0.6, scope: F, duration: 3 },
     ]),
   ]),
   family("E12", "Strong Winds", "What do strong winds bring?", ANY, WORLD, [
@@ -236,10 +248,12 @@ export const EVENTS: EventDef[] = [
       { op: "yieldMult", channel: "farm", factor: 1.3, scope: W, duration: 2 },
       { op: "travelMod", delta: 1, scope: W, duration: 1 },
     ]),
-    opt("E12_dry", "Dry air", "mixed", "Rough travel is easier and food keeps better, but brush fires destroy some timber.", [
+    opt("E12_dry", "Dry winds", "mixed", "Dry winds everywhere: food keeps better and rough ground is easy to cross, but brush fires destroy timber and wild plants and crops wither (foraging −30%, farms −15%) for two turns.", [
       { op: "travelMod", delta: -1, scope: W, duration: 2, terrain: ["forest", "mountain"] },
       { op: "stockAdjust", resource: "timber", fraction: -0.2, scope: W, terrain: ["forest"] },
-      { op: "spoilage", add: -0.02, scope: W, duration: 2 },
+      { op: "spoilage", add: -0.03, scope: W, duration: 2 },
+      { op: "yieldMult", channel: "forage", factor: 0.7, scope: W, duration: 2 },
+      { op: "yieldMult", channel: "farm", factor: 0.85, scope: W, duration: 2 },
     ]),
     opt("E12_branches", "Fallen branches", "mixed", `Every tribe collects ${15 * SCALE} timber, but wooden homes and camps everywhere take damage.`, [
       { op: "settlementStock", resource: "timber", amount: 15 * SCALE, scope: W },
@@ -310,14 +324,17 @@ export const EVENTS: EventDef[] = [
     ]),
   ]),
   family("E17", "Erosion", "What does erosion expose?", ANY, WORLD, [
-    opt("E17_stone", "Stone", "beneficial", "Stone deposits on every mountain are replenished.", [
+    opt("E17_stone", "Rock shelters", "beneficial", `Erosion exposes stone and overhangs: mountain stone is replenished, every tribe collects ${20 * SCALE} stone to build with, and some mountain tiles become natural shelter.`, [
       { op: "stockAdjust", resource: "stone", fraction: 0.8, scope: W, terrain: ["mountain"] },
+      { op: "settlementStock", resource: "stone", amount: 20 * SCALE, scope: W },
+      { op: "overlay", flag: "Cave", fraction: 0.04, scope: W, terrain: ["mountain"] },
     ]),
     opt("E17_soil", "Fertile soil", "beneficial", "Meadows everywhere become permanently more fertile.", [
       { op: "fertility", delta: 20, scope: W, terrain: ["meadow"] },
     ]),
-    opt("E17_caves", "Caves", "beneficial", "New caves open in the mountains, providing natural shelter to whoever holds them.", [
-      { op: "overlay", flag: "Cave", fraction: 0.08, scope: W, terrain: ["mountain"] },
+    opt("E17_caves", "Caves", "beneficial", "Many new caves open in the mountains, giving natural shelter to whoever holds them, and sheltered hollows appear in the forests.", [
+      { op: "overlay", flag: "Cave", fraction: 0.1, scope: W, terrain: ["mountain"] },
+      { op: "overlay", flag: "Sheltered", fraction: 0.06, scope: W, terrain: ["forest"] },
     ]),
   ]),
   family("E18", "Landslide", "Where does a landslide strike the region?", ["spring", "autumn"], REGION, [
@@ -330,8 +347,9 @@ export const EVENTS: EventDef[] = [
       { op: "fertility", delta: -25, scope: F, terrain: ["meadow"] },
       { op: "settlementStock", resource: "stone", amount: 10 * SCALE, scope: F },
     ]),
-    opt("E18_valley", "In an empty valley", "mild", "Minimal damage: a new pass eases mountain travel in the region for four turns, while debris slows meadow travel for two.", [
-      { op: "travelMod", delta: -1, scope: F, duration: 4, terrain: ["mountain"] },
+    opt("E18_valley", "Dammed river", "mixed", "A slide dams a river in the region: fish crowd behind the dam (fisheries +50% for two turns), but the rising water floods riverside fields (−30%).", [
+      { op: "yieldMult", channel: "fish", factor: 1.5, scope: F, duration: 2 },
+      { op: "yieldMult", channel: "farm", factor: 0.7, scope: F, duration: 2, nearWater: true },
       { op: "travelMod", delta: 1, scope: F, duration: 2, terrain: ["meadow"] },
     ]),
   ]),
@@ -340,7 +358,8 @@ export const EVENTS: EventDef[] = [
       { op: "stockAdjust", resource: "forage", fraction: 0.6, scope: W, terrain: ["meadow"] },
       { op: "stockAdjust", resource: "wildlife", fraction: 0.4, scope: W, terrain: ["meadow"] },
     ]),
-    opt("E19_saplings", "Saplings", "beneficial", "Three turns from now, forest timber recovers and forests can hold more timber.", [
+    opt("E19_saplings", "Saplings", "beneficial", "Undergrowth springs up in the forests, replenishing forest forage now; three turns from now forest timber recovers and forests can hold more timber.", [
+      { op: "stockAdjust", resource: "forage", fraction: 0.6, scope: W, terrain: ["forest"] },
       { op: "delayed", afterTurns: 3, label: "Saplings grow into timber", effects: [{ op: "stockAdjust", resource: "timber", fraction: 0.5, scope: W, terrain: ["forest"] }, { op: "capacityAdjust", resource: "timber", fraction: 0.2, scope: W, terrain: ["forest"] }] },
     ]),
     opt("E19_shrubs", "Shrubs", "beneficial", "Wild forage recovers quickly now and regrows twice as fast for two turns.", [
@@ -376,8 +395,9 @@ export const EVENTS: EventDef[] = [
     ]),
   ]),
   family("E22", "Snowfall", "How does the snow fall on the region?", ["winter"], REGION, [
-    opt("E22_powder", "Powder snow", "mild", "Colder for anyone unsheltered in the region.", [
-      { op: "exposure", add: 0.06, scope: F, duration: 2 },
+    opt("E22_powder", "Deep snow", "harsh", "Deep snow covers the region for two turns: one in ten of anyone unsheltered may die each turn, and hunting falls by a quarter.", [
+      { op: "exposure", add: 0.1, scope: F, duration: 2 },
+      { op: "yieldMult", channel: "hunt", factor: 0.75, scope: F, duration: 2 },
     ]),
     opt("E22_heavy", "Blizzard", "harsh", "A blizzard buries the region: nearly a third of anyone unsheltered may die each turn for two turns, hunting halves, and travel all but stops.", [
       { op: "exposure", add: 0.3, scope: F, duration: 2 },
@@ -389,14 +409,16 @@ export const EVENTS: EventDef[] = [
     ]),
   ]),
   family("E23", "Windstorm Deposits", "What does a windstorm deposit?", ANY, WORLD, [
-    opt("E23_seeds", "Seeds", "beneficial", "Two turns from now, wild plants spread across the land: more forage and more room for it.", [
+    opt("E23_seeds", "Seeds", "beneficial", "Windblown seeds sprout at once (foraging +30% for two turns); two turns from now wild plants spread across the land, with more forage and more room for it.", [
+      { op: "yieldMult", channel: "forage", factor: 1.3, scope: W, duration: 2 },
       { op: "delayed", afterTurns: 2, label: "Windblown seeds sprout", effects: [{ op: "capacityAdjust", resource: "forage", fraction: 0.3, scope: W }, { op: "stockAdjust", resource: "forage", fraction: 0.5, scope: W }] },
     ]),
     opt("E23_silt", "Silt", "beneficial", "Meadows near water everywhere become permanently more fertile.", [
       { op: "fertility", delta: 20, scope: W, terrain: ["meadow"], nearWater: true },
     ]),
-    opt("E23_driftwood", "Driftwood", "beneficial", `Tribes whose capital is near water collect ${15 * SCALE} timber.`, [
+    opt("E23_driftwood", "Driftwood and shoals", "beneficial", `The storm washes timber ashore, so tribes whose capital is near water collect ${15 * SCALE} timber, and it stirs the shallows, refilling fish stocks everywhere.`, [
       { op: "settlementStock", resource: "timber", amount: 15 * SCALE, scope: W, nearWater: true },
+      { op: "stockAdjust", resource: "fish", fraction: 0.5, scope: W },
     ]),
   ]),
   family("E24", "Spreading Vegetation", "Which vegetation spreads fastest?", ["spring", "summer"], WORLD, [
@@ -404,9 +426,10 @@ export const EVENTS: EventDef[] = [
       { op: "stockAdjust", resource: "forage", fraction: 0.6, scope: W, nearWater: true },
       { op: "yieldMult", channel: "fish", factor: 0.7, scope: W, duration: 3 },
     ]),
-    opt("E24_hardwood", "Hardwood", "mixed", "Forests everywhere can hold more timber permanently, but timber regrows slowly for two turns.", [
+    opt("E24_hardwood", "Hardwood", "mixed", "Dense hardwood forests grow everywhere: forests hold more timber for good and forest game thrives (hunting +30% for two turns), but felled timber regrows slowly.", [
       { op: "capacityAdjust", resource: "timber", fraction: 0.3, scope: W, terrain: ["forest"] },
       { op: "regen", resource: "timber", factor: 0.6, scope: W, duration: 2 },
+      { op: "yieldMult", channel: "hunt", factor: 1.3, scope: W, duration: 2 },
     ]),
     opt("E24_grain", "Wild grain", "mixed", "Meadows everywhere become more fertile for farms, but hold less wild forage.", [
       { op: "fertility", delta: 20, scope: W, terrain: ["meadow"] },
@@ -479,9 +502,10 @@ export const EVENTS: EventDef[] = [
     ]),
   ]),
   family("E30", "Recovery", "How does depleted land recover?", ANY, WORLD, [
-    opt("E30_timber", "Timber", "beneficial", "Forest timber everywhere is restored and forests can hold a little more.", [
+    opt("E30_timber", "Timber", "beneficial", "Forests everywhere recover: timber is restored, forests can hold a little more, and forest game returns.", [
       { op: "stockAdjust", resource: "timber", fraction: 0.6, scope: W, terrain: ["forest"] },
       { op: "capacityAdjust", resource: "timber", fraction: 0.1, scope: W, terrain: ["forest"] },
+      { op: "stockAdjust", resource: "wildlife", fraction: 0.4, scope: W, terrain: ["forest"] },
     ]),
     opt("E30_wildlife", "Wildlife", "beneficial", "Hunting stocks everywhere are restored.", [
       { op: "stockAdjust", resource: "wildlife", fraction: 0.6, scope: W },
@@ -504,11 +528,15 @@ export const EVENTS: EventDef[] = [
     ]),
   ]),
   family("E32", "Shifting Edges", "What changes along biome boundaries?", ANY, WORLD, [
-    opt("E32_meadow", "Meadow expands", "mixed", "Some forest becomes open meadow: more farmland, less timber.", [
+    opt("E32_meadow", "Meadow expands", "mixed", "Some forest becomes open meadow: fresh clearings make farms yield more (+20% for three turns), while hunters lose forest game (−15%).", [
       { op: "convertTile", from: "forest", to: "meadow", fraction: 0.15, scope: W },
+      { op: "yieldMult", channel: "farm", factor: 1.2, scope: W, duration: 3 },
+      { op: "yieldMult", channel: "hunt", factor: 0.85, scope: W, duration: 3 },
     ]),
-    opt("E32_forest", "Forest expands", "mixed", "Some meadow becomes forest: more timber and game, less farmland.", [
+    opt("E32_forest", "Forest expands", "mixed", "Some meadow becomes forest: more timber and game (hunting +20% for three turns), less farmland (farms −15%).", [
       { op: "convertTile", from: "meadow", to: "forest", fraction: 0.15, scope: W },
+      { op: "yieldMult", channel: "hunt", factor: 1.2, scope: W, duration: 3 },
+      { op: "yieldMult", channel: "farm", factor: 0.85, scope: W, duration: 3 },
     ]),
     opt("E32_mixed", "Mixed edge grows", "mixed", "More forage and wildlife now, but farms and timber gathering everywhere are weaker for three turns.", [
       { op: "stockAdjust", resource: "forage", fraction: 0.4, scope: W },

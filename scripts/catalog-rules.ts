@@ -53,6 +53,42 @@ function checkEffect(op: EffectOp, where: string, errors: string[], regional: bo
   }
 }
 
+const FOOD_CHANNELS = new Set(["farm", "hunt", "fish", "forage"]);
+const FOOD_STOCKS = new Set(["forage", "wildlife", "fish"]);
+
+/** True when an effect changes food, people, or shelter enough to matter to at least one tribe. */
+export function isMaterialEffect(op: EffectOp): boolean {
+  switch (op.op) {
+    case "yieldMult":
+      return FOOD_CHANNELS.has(op.channel) && Math.abs(Math.log(op.factor)) >= Math.log(1.15) - 1e-9;
+    case "dryFarm":
+    case "epidemic":
+    case "settlementStock":
+      return true;
+    case "regen":
+      return FOOD_STOCKS.has(op.resource) && (op.factor >= 1.5 || op.factor <= 0.5);
+    case "stockAdjust":
+    case "capacityAdjust":
+      return FOOD_STOCKS.has(op.resource) && Math.abs(op.fraction) >= 0.3;
+    case "exposure":
+    case "spoilage":
+      return Math.abs(op.add) >= 0.03;
+    case "shelterDamage":
+    case "recurringShelterDamage":
+      return op.amount >= 10;
+    case "fertility":
+      return Math.abs(op.delta) >= 15;
+    case "overlay":
+      return op.flag === "Cave" || op.flag === "Sheltered";
+    case "convertTile":
+      return op.fraction >= 0.1;
+    case "delayed":
+      return op.effects.some(isMaterialEffect);
+    default:
+      return false;
+  }
+}
+
 function checkEvent(e: EventDef, errors: string[]) {
   if (e.options.length !== 3) errors.push(`${e.id}: must have exactly 3 options`);
   const regional = e.footprint.kind !== "world";
@@ -62,6 +98,7 @@ function checkEvent(e: EventDef, errors: string[]) {
     if (!o.id.startsWith(`${e.id}_`)) errors.push(`${o.id}: id must start with ${e.id}_`);
     if (!/^E\d{2}_[a-z_]+$/.test(o.id)) errors.push(`${o.id}: id format`);
     if (o.effects.length === 0) errors.push(`${o.id}: decorative option (no effects)`);
+    else if (!o.effects.some(isMaterialEffect)) errors.push(`${o.id}: no effect on food, people, or shelter (every option must matter)`);
     if (!o.label || !o.description) errors.push(`${o.id}: missing copy`);
     const maxDur = Math.max(0, ...o.effects.map((x) => ("duration" in x && typeof x.duration === "number" ? x.duration : 0)));
     if (o.duration !== maxDur) errors.push(`${o.id}: displayed duration ${o.duration} ≠ longest effect ${maxDur}`);

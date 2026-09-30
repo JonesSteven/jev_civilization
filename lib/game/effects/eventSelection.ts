@@ -3,6 +3,7 @@ import { EVENTS, EVENT_BY_ID, type EventDef } from "@/content/events";
 import { choiceSource, seasonOf } from "../calendar";
 import { makeRng } from "../rng";
 import { TERRAIN_NAMES, TILE_COUNT, type GameState, type PreparedEvent } from "../types";
+import { livingTribes } from "../geo";
 import { selectFootprint } from "./footprint";
 
 function terrainCount(state: GameState, terrain: string): number {
@@ -57,13 +58,14 @@ export function prepareEvent(state: GameState, turn: number): PreparedEvent {
   }
 
   let eventId = chosen ?? BALANCE.events.fallbackEventId;
+  const settlementTiles = livingTribes(state).flatMap((id) => [state.tribes[id].settlement, ...state.tribes[id].outposts]);
   bag.order = bag.order.filter((id) => id !== eventId);
   let fallback = false;
-  let footprint = selectFootprint(state.world, (EVENT_BY_ID[eventId] as EventDef).footprint, state.seed, turn, eventId);
+  let footprint = selectFootprint(state.world, (EVENT_BY_ID[eventId] as EventDef).footprint, state.seed, turn, eventId, settlementTiles);
   if (!footprint) {
     eventId = BALANCE.events.fallbackEventId;
     fallback = true;
-    footprint = selectFootprint(state.world, (EVENT_BY_ID[eventId] as EventDef).footprint, state.seed, turn, eventId);
+    footprint = selectFootprint(state.world, (EVENT_BY_ID[eventId] as EventDef).footprint, state.seed, turn, eventId, settlementTiles);
   }
   if (!footprint) throw new Error("fallback event footprint unavailable");
 

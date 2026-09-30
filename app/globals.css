@@ -214,3 +214,23 @@ details > summary { cursor: pointer; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation-duration: 3s; }
 }
+
+/* Deciding status */
+.deciding-status { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--panel-2); }
+.deciding-status .progress { height: 6px; border-radius: 3px; background: #e6dcc5; overflow: hidden; margin-bottom: 8px; }
+.deciding-status .progress span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.deciding-status .progress span.animated { transition: width 0.2s linear; background-image: linear-gradient(90deg, var(--accent) 0%, #e2b867 50%, var(--accent) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
+.deciding-status .steps { list-style: none; margin: 0 0 4px; padding: 0; font-size: 13px; }
+.deciding-status .steps li { display: flex; gap: 6px; padding: 1px 0; }
+.deciding-status .steps li.todo { color: var(--ink-2); opacity: 0.6; }
+.deciding-status .steps li.active { font-weight: 600; }
+.deciding-status .steps li.done .mark { color: #2f6b2a; }
+.deciding-status .mark { width: 14px; flex: none; text-align: center; }
+
+/* Nature review */
+.picked-chip { margin-left: 8px; font-size: 11px; vertical-align: middle; }
+.review-results { margin-top: 10px; }
+.review-turn { margin: 6px 0 10px; }
+.review-turn h3 { font-size: 14px; margin: 0 0 4px; }
+.tribe-choices { margin-top: 4px; }

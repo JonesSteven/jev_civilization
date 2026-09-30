@@ -1,6 +1,7 @@
 // Compact, whitelisted decision context for Jev. Built only from canonical engine state.
 // Never includes the player's supported tribe, the seed, future Nature choices, or the event schedule.
 
+import { BALANCE } from "@/content/balance";
 import { EVENT_BY_ID } from "@/content/events";
 import { TECH_BY_ID } from "@/content/technologies";
 import { TRIBES } from "@/content/tribes";
@@ -8,7 +9,7 @@ import { calendarOf, seasonOf } from "./calendar";
 import type { Snapshot } from "./candidates";
 import { accessibleTiles, livingTribes } from "./geo";
 import { relationLabel, turnsAgo } from "./memory";
-import { activeSiteCount, capabilities, laborFactor } from "./production";
+import { activeSiteCount, capabilities, gatherPotential, laborFactor } from "./production";
 import { productiveOwnedTiles } from "./score";
 import { foodOutlook, fortCap, fortLevel, moraleLabel, shelterOutlook } from "./stats";
 import { TERRAIN_NAMES, TRIBE_IDS, type TribeId } from "./types";
@@ -45,6 +46,8 @@ export interface TribeView {
   neighbors: { id: TribeId; name: string; travelDistance: number | null; relation: string; population: number; militaryLevel: number; fortification: number; foodStatus: string }[];
   recentActions: string[];
   memory: string[];
+  /** Short engine-computed notes on what limits this tribe's growth (factual, never a recommendation of one action). */
+  advisories: string[];
 }
 
 export interface DecisionState {
@@ -52,6 +55,49 @@ export interface DecisionState {
   announcedEvent: { id: string; title: string; option: string; summary: string; area: string; durationTurns: number; settlementsInArea: string[] };
   publicTribes: PublicTribeSummary[];
   views: Partial<Record<TribeId, TribeView>>;
+}
+
+/** Turns until the next winter turn (0 when it is winter now). */
+function turnsToWinter(turn: number): number {
+  for (let k = 0; k < 8; k++) if (seasonOf(turn + k) === "winter") return k;
+  return 0;
+}
+
+const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
+
+/** What stands between this tribe and growth: shelter, the birth limit, depleted land, and ready opportunities. */
+export function growthAdvisories(
+  snap: Snapshot,
+  id: TribeId,
+  sh: ReturnType<typeof shelterOutlook>,
+  food: ReturnType<typeof foodOutlook>,
+  wild: { available: number; capacity: number },
+  timberPerGather: number,
+): string[] {
+  const t = snap.state.tribes[id];
+  const P = BALANCE.population;
+  const out: string[] = [];
+  if (sh.unsheltered > 0) {
+    const k = turnsToWinter(snap.turn);
+    out.push(
+      `${fmt(sh.unsheltered)} of ${fmt(t.population)} people have no shelter; ${k === 0 ? "it is winter now" : `winter starts in ${k} turn${k === 1 ? "" : "s"}`}, when ${Math.round(P.winterExposure * 100)}% of the unsheltered die each turn (more in storms). Housing protects them.`,
+    );
+  }
+  const H = BALANCE.actions.woodHousing;
+  if (sh.unsheltered > 0 && t.timber < H.cost.timber) {
+    out.push(`Wooden homes for ${fmt(H.capacity)} people cost ${fmt(H.cost.timber)} timber and stores hold ${fmt(t.timber)}; one turn of gathering timber yields about ${fmt(timberPerGather)}, enough for a home.`);
+  }
+  const birthCap = Math.floor(sh.usableCapacity * P.overcrowding);
+  if (t.population >= birthCap) out.push(`Births have stopped: the population is above ${P.overcrowding}× shelter (${fmt(birthCap)}). Only new housing lets the tribe grow again.`);
+  else if (t.population >= birthCap * 0.8) out.push(`Births will stop at ${fmt(birthCap)} people (${P.overcrowding}× shelter); new housing raises that limit.`);
+  if (wild.capacity > 0 && wild.available / wild.capacity < 0.35 && 1 + t.outposts.length < BALANCE.actions.found.maxSettlements) {
+    out.push(`Wild food in the working area is at ${Math.round((wild.available / wild.capacity) * 100)}% of capacity; scouting and founding a new settlement open fresh land.`);
+  }
+  if (t.scoutedSites.length > 0 && t.population >= BALANCE.actions.found.minPopulation) {
+    out.push(`Scouts have found ${t.scoutedSites.length} site${t.scoutedSites.length === 1 ? "" : "s"} for a new settlement, which adds a new working area and camp shelter for ${fmt(BALANCE.actions.found.campCapacity)}.`);
+  }
+  if (food.coverageTurns >= 3 && (sh.unsheltered > 0 || t.population >= birthCap * 0.8)) out.push(`Stores cover ${food.coverageTurns} turns of food: enough security to invest in shelter or new land.`);
+  return out;
 }
 
 function level(avail: number, cap: number): string {
@@ -184,6 +230,10 @@ export function buildDecisionState(snap: Snapshot, memoryLimit = 6): DecisionSta
       technologies: { learned: t.learned.map((x) => TECH_BY_ID[x]?.name ?? x), currentProject: project },
       reachableResources: resources,
       neighbors,
+      advisories: growthAdvisories(snap, id, sh, food, {
+        available: resources.forage!.available + resources.wildlife!.available,
+        capacity: resources.forage!.capacity + resources.wildlife!.capacity,
+      }, Math.min(Math.floor(gatherPotential(s, id, "timber", snap.mods, t.settlement)), resources.timber!.available)),
       recentActions: t.recentActions.slice(-3).map((r) => `${turnsAgo(snap.turn, r.turn)}: ${r.kind.replace(/_/g, " ")}`),
       memory: t.memory.slice(-memoryLimit).map((m) => `${turnsAgo(snap.turn, m.turn)}: ${m.text}`),
     };

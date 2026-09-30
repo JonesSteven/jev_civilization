@@ -6,7 +6,7 @@ import type { GameOutcome, TribeId } from "@/lib/game/types";
 import type { TurnSummary } from "@/lib/game/summary";
 import type { MapAnimation } from "@/components/MapCanvas";
 import { api, ClientApiError, idempotencyKeyFor } from "./api";
-import type { GameView, ReplayData, TurnRecord } from "./types";
+import type { EventCardView, GameView, ReplayData, TurnRecord } from "./types";
 import { usePref, useMediaQuery } from "./prefs";
 import { decodeWorld, type DecodedWorld } from "./world";
 
@@ -28,6 +28,16 @@ export interface UiError {
 }
 
 export type Speed = "normal" | "fast";
+
+/**
+ * Nature's turn, held for the player to read: the frozen card, the record once Jev and the engine have resolved it,
+ * and the player's own turn just before it. Cleared when the player proceeds to their turn.
+ */
+export interface NatureReview {
+  event: EventCardView;
+  record: TurnRecord | null;
+  previous: TurnRecord | null;
+}
 
 export function logFromRecord(r: TurnRecord): LogEntry {
   return {
@@ -82,7 +92,8 @@ export function useGame(gameId: string) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<UiError | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [paused, setPaused] = usePref("jc-paused", false);
+  const [natureReview, setNatureReview] = useState<NatureReview | null>(null);
+  const [decidingSince, setDecidingSince] = useState<number | null>(null);
   const [speed, setSpeed] = usePref<Speed>("jc-speed", "normal");
   const systemReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [reducedPref, setReducedMotion] = usePref<boolean | null>("jc-reduced-motion", null);
@@ -122,6 +133,7 @@ export function useGame(gameId: string) {
       applyGame(g);
       setLastTurn(record);
       setLog((prev) => [logFromRecord(record), ...prev.filter((e) => e.turn !== record.turn)]);
+      setNatureReview((r) => (r && r.event.turn === record.turn ? { ...r, record } : r));
       const items = animationsFor(record.outcomes, record.footprint);
       const durationMs = speed === "fast" ? 700 : 1800;
       if (!reducedMotion && items.length) {
@@ -148,6 +160,7 @@ export function useGame(gameId: string) {
       if (!game || !game.event || inflight.current) return;
       inflight.current = true;
       setBusy(true);
+      setDecidingSince(Date.now());
       setError(null);
       const turn = game.completedTurn + 1;
       try {
@@ -168,6 +181,7 @@ export function useGame(gameId: string) {
       } finally {
         inflight.current = false;
         setBusy(false);
+        setDecidingSince(null);
       }
     },
     [game, gameId, handleResult, applyGame, load],
@@ -177,6 +191,7 @@ export function useGame(gameId: string) {
     if (!game?.pending || inflight.current) return;
     inflight.current = true;
     setBusy(true);
+    setDecidingSince(Date.now());
     setError(null);
     try {
       const res = await api.retryTurn(gameId, game.pending.turn, { expectedVersion: game.version, idempotencyKey: game.pending.idempotencyKey });
@@ -189,6 +204,7 @@ export function useGame(gameId: string) {
     } finally {
       inflight.current = false;
       setBusy(false);
+      setDecidingSince(null);
     }
   }, [game, gameId, handleResult, applyGame]);
 
@@ -211,14 +227,20 @@ export function useGame(gameId: string) {
     return () => window.clearTimeout(t);
   }, [game, busy, gameId, applyGame, finishTurn]);
 
-  // Nature turns run automatically unless paused. The option is frozen server-side; pausing only delays it.
+  // Nature's option is frozen server-side. Its turn goes to Jev straight away; the result is then held for review
+  // until the player chooses to proceed.
   useEffect(() => {
-    if (!game || busy || animating || paused || error) return;
+    if (!game || busy || error) return;
     if (game.status !== "nature_pending" || !game.event) return;
-    const delay = speed === "fast" ? 500 : 1400;
-    const t = window.setTimeout(() => void submit(), delay);
+    const event = game.event;
+    const t = window.setTimeout(() => {
+      setNatureReview((r) => (r && r.event.turn === event.turn ? r : { event, record: null, previous: lastTurn && lastTurn.turn === event.turn - 1 ? lastTurn : null }));
+      void submit();
+    }, 300);
     return () => window.clearTimeout(t);
-  }, [game, busy, animating, paused, error, speed, submit]);
+  }, [game, busy, error, submit, lastTurn]);
+
+  const proceed = useCallback(() => setNatureReview(null), []);
 
   const abandon = useCallback(async () => {
     if (!game) return;
@@ -254,8 +276,9 @@ export function useGame(gameId: string) {
     busy,
     error,
     loadError,
-    paused,
-    setPaused,
+    natureReview,
+    proceed,
+    decidingSince,
     speed,
     setSpeed,
     reducedMotion,

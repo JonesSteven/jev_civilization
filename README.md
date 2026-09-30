@@ -24,7 +24,7 @@ world around them.
 - **See why things happened.** After every turn a plain-language summary says who gained or lost people and why
   ("Hit by the bitter winter, Windstep lost a third of its people to cold, while Stonehaven grew by 10%"). A decision
   inspector shows exactly what Jev was told, and the event log keeps every measured result.
-- **The best civilization wins.** The match lasts 10–200 turns (100 by default) or ends early when one tribe is left.
+- **The best civilization wins.** The match lasts 10–200 turns (50 by default) or ends early when one tribe is left.
   Tribes are ranked by population first, then resilience, technology, and territory.
 
 No API key? The app also has a clearly labelled **mock mode** that uses a simple built-in policy instead of Jev, so

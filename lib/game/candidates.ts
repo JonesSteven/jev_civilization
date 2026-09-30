@@ -165,7 +165,12 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
   const free = freeOwnedTiles(snap, tribe, geo).sort(distCompare(geo));
   const spot = free[0];
   const sh = shelterOutlook(snap.state, tribe, geo);
-  const shelterLine = `Current usable shelter ${sh.usableCapacity} for ${snap.state.tribes[tribe].population} people`;
+  const pop = snap.state.tribes[tribe].population;
+  const over = BALANCE.population.overcrowding;
+  const shelterLine = `Current usable shelter ${sh.usableCapacity} for ${pop} people (${sh.unsheltered} unsheltered)`;
+  /** What a housing option achieves: people protected from cold, and the higher birth limit. */
+  const benefit = (cap: number) =>
+    `Protects ${Math.min(cap, sh.unsheltered) > 0 ? `${Math.min(cap, sh.unsheltered)} of the unsheltered from winter cold and storms` : `${cap} future people`} and raises the birth limit from ${Math.floor(sh.usableCapacity * over)} to ${Math.floor((sh.usableCapacity + cap) * over)} people (births stop above ${over}× shelter).`;
   if (spot !== undefined) {
     if (affordable(snap.state, tribe, A.woodHousing.cost)) {
       const note = announcedNote(snap, spot);
@@ -175,7 +180,7 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
           `housing_wood_at_${spot}`,
           "build_housing",
           A.woodHousing.cost,
-          `${costText(A.woodHousing.cost)}; build wooden homes for ${A.woodHousing.capacity} people on the ${placeLabel(snap, geo, spot)}. Fixed: stays if the settlement moves. ${shelterLine}.`,
+          `${costText(A.woodHousing.cost)}; build wooden homes for ${A.woodHousing.capacity} people on the ${placeLabel(snap, geo, spot)}. ${benefit(A.woodHousing.capacity)} Fixed: stays if the settlement moves. ${shelterLine}.`,
           [`+${A.woodHousing.capacity} shelter capacity at full condition`],
           [tribe === "hearthwood" ? "Wooden homes take half weather damage for Hearthwood" : "Wooden homes take ordinary weather damage", ...(note ? [note] : [])],
           { type: "housing", housingType: "wood", tile: spot, label: placeLabel(snap, geo, spot) },
@@ -189,7 +194,7 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
           `housing_stone_at_${spot}`,
           "build_housing",
           A.stoneHousing.cost,
-          `${costText(A.stoneHousing.cost)}; build stone houses for ${A.stoneHousing.capacity} people on the ${placeLabel(snap, geo, spot)}. Durable against weather; stays if the settlement moves. ${shelterLine}.`,
+          `${costText(A.stoneHousing.cost)}; build stone houses for ${A.stoneHousing.capacity} people on the ${placeLabel(snap, geo, spot)}. ${benefit(A.stoneHousing.capacity)} Durable against weather; stays if the settlement moves. ${shelterLine}.`,
           [`+${A.stoneHousing.capacity} shelter capacity`],
           ["Stone housing takes 40% of ordinary weather damage"],
           { type: "housing", housingType: "stone", tile: spot, label: placeLabel(snap, geo, spot) },
@@ -204,7 +209,7 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
         "housing_camp",
         "build_housing",
         A.campHousing.cost,
-        `${costText(A.campHousing.cost)}; add portable camp shelter for ${A.campHousing.capacity} people that moves with the settlement. ${shelterLine}.`,
+        `${costText(A.campHousing.cost)}; add portable camp shelter for ${A.campHousing.capacity} people that moves with the settlement. ${benefit(A.campHousing.capacity)} ${shelterLine}.`,
         [`+${A.campHousing.capacity} portable shelter capacity`],
         ["Camps take 130% of ordinary weather damage"],
         { type: "housing", housingType: "camp", tile: null, label: "portable camp" },
@@ -300,6 +305,7 @@ function gatherCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: Ac
   const access = accessibleTiles(snap.state, geo);
   const t = snap.state.tribes[tribe];
   const caps = capabilities(snap.state, tribe);
+  const unsheltered = shelterOutlook(snap.state, tribe, geo).unsheltered;
   if (caps.foodGathering) {
     const avail = Math.floor(sumStock(w, access, "forage") + sumStock(w, access, "wildlife"));
     const pot = Math.floor(gatherPotential(snap.state, tribe, "food", snap.mods, t.settlement));
@@ -312,7 +318,11 @@ function gatherCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: Ac
           ZERO,
           `No stock cost; collect up to ${pot} food from forage and wildlife within working range (${avail} currently available there). Existing sites keep producing. Current stores: ${t.food} food, covering ${t.population > 0 ? (t.food / t.population).toFixed(1) : "0"} turns of consumption.`,
           [`+${Math.min(pot, avail)} food (less if other tribes gather from the same unclaimed land)`],
-          ["Reduces local forage and wildlife stocks"],
+          [
+            "Reduces local forage and wildlife stocks",
+            ...(unsheltered > 0 ? [`Does nothing for the ${unsheltered} people without shelter`] : []),
+            ...(t.food >= t.population * 3 ? [`Stores already cover ${(t.food / t.population).toFixed(1)} turns of food`] : []),
+          ],
         ),
       );
     }
@@ -321,7 +331,15 @@ function gatherCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: Ac
   if (timberAvail > 0) {
     const pot = Math.floor(gatherPotential(snap.state, tribe, "timber", snap.mods, t.settlement));
     out.push(
-      candidate(tribe, "gather_timber", "gather_timber", ZERO, `No stock cost; cut up to ${pot} timber from reachable forests (${timberAvail} available in working range).`, [`+${Math.min(pot, timberAvail)} timber`], ["Thins nearby forest; timber regrows slowly"]),
+      candidate(
+        tribe,
+        "gather_timber",
+        "gather_timber",
+        ZERO,
+        `No stock cost; cut up to ${pot} timber from reachable forests (${timberAvail} available in working range). Stores hold ${t.timber} timber; wooden homes for ${BALANCE.actions.woodHousing.capacity} people cost ${BALANCE.actions.woodHousing.cost.timber}${unsheltered > 0 ? `, and ${unsheltered} people are unsheltered` : ""}.`,
+        [`+${Math.min(pot, timberAvail)} timber${Math.min(pot, timberAvail) + t.timber >= BALANCE.actions.woodHousing.cost.timber ? " (enough to build housing next turn)" : ""}`],
+        ["Thins nearby forest; timber regrows slowly"],
+      ),
     );
   }
   const stoneAvail = Math.floor(sumStock(w, access, "stone"));
@@ -672,7 +690,7 @@ function scoutingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: 
         "send_scouts",
         A.scout.cost,
         `${costText(A.scout.cost)}; scouts survey unclaimed land up to ${reach(geo, A.scout.range)} travel units from our settlements and report the best ${A.scout.sitesFound} sites for an additional settlement (at least ${BALANCE.placement.minSeparation} units from every settlement). A later Found settlement action can settle one, adding territory and a working area around it while people and stores stay shared. Our current working area holds ${wild} wild food of ${wildCap} capacity for ${t.population} people. Founding later costs ${A.found.cost.food} food and ${A.found.cost.timber} timber and needs at least ${A.found.minPopulation} people (we hold ${t.food} food and ${t.timber} timber). Reports stay valid for ${A.scout.expiresAfter} turns.${known}`,
-        ["Reveals candidate sites; a later Found settlement action can use them"],
+        [`Reveals up to ${A.scout.sitesFound} sites where a new settlement would open fresh land for food and growth`],
         ["Scouts may find nothing if no free land meets the spacing rule"],
       ),
     );
@@ -689,7 +707,7 @@ function scoutingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: 
         "found_settlement",
         A.found.cost,
         `${costText(A.found.cost)}; found a new settlement at the scouted ${directionLabel(geo.settlement, site.tile)} ${site.terrain} site ${site.distance} travel units away (nearby: ${site.food} wild food and farm potential, ${site.fish} fish, ${site.timber} timber, ${site.stone} stone capacity). It claims up to ${A.found.territoryTiles} surrounding tiles and adds a portable camp for ${A.found.campCapacity} people; working range then extends from it. Population, stores, and technologies stay shared across the tribe (settlement ${settlementCount + 1} of at most ${A.found.maxSettlements}).`,
-        [`New settlement with up to ${A.found.territoryTiles} tiles of territory`],
+        [`New settlement with up to ${A.found.territoryTiles} tiles of fresh territory, a new working area for food, and camp shelter for ${A.found.campCapacity} people`],
         ["Fails (with refund) if another tribe settles the same site this turn", ...(note ? [note] : [])],
         { type: "tile", tile: site.tile, label: `scouted ${site.terrain} site` },
       ),

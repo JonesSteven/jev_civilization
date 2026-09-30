@@ -13,7 +13,7 @@ import { productiveOwnedTiles, scoreTribe, winners } from "@/lib/game/score";
 import { worldView, type WorldView } from "@/lib/game/serialize";
 import { isMatchOver } from "@/lib/game/turn";
 import { foodOutlook, fortCap, fortLevel, moraleLabel, shelterOutlook } from "@/lib/game/stats";
-import { optionImpact, tribesInArea } from "@/lib/game/impact";
+import { impactContext, optionImpact, tribesInArea } from "@/lib/game/impact";
 import { TRIBE_IDS, type EffectOp, type GameState, type ScoreBreakdown, type TribeFate, type TribeId } from "@/lib/game/types";
 
 export interface TribePanel {
@@ -102,14 +102,7 @@ export function eventCard(state: GameState) {
   if (!p) return null;
   const ev = EVENT_BY_ID[p.eventId];
   if (!ev) return null;
-  const geo = presentGeo(state);
-  const unsheltered: Partial<Record<TribeId, number>> = {};
-  for (const id of TRIBE_IDS) {
-    const g = geo[id];
-    if (!g || !state.tribes[id].alive) continue;
-    const sh = shelterOutlook(state, id, g);
-    unsheltered[id] = state.tribes[id].population > 0 ? sh.unsheltered / state.tribes[id].population : 0;
-  }
+  const ctx = impactContext(state);
   return {
     turn: p.turn,
     eventId: ev.id,
@@ -129,7 +122,7 @@ export function eventCard(state: GameState) {
       duration: o.duration,
       tone: o.tone,
       effects: o.effects.map(describeEffect),
-      impact: optionImpact(state, o, p.footprint, unsheltered),
+      impact: optionImpact(state, o, p.footprint, ctx),
     })),
   };
 }

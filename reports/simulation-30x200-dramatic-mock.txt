@@ -1,16 +1,16 @@
 rules-3.0.0 · content-3.0.0 · 2026-09-29
 MOCK-policy simulation: 30 games × 200 turns, crashes 0
-Engine resolution per turn: avg 29.9 ms, max 57.2 ms
-hearthwood  wins   9 survive  26 pop 11001 score  67.9 techs 3.0 [joined 2, conquered 2] | gather_food:3121 build_housing:648 establish_farm:583 gather_timber:306 found_settlement:123 repair_shelter:117
-windstep    wins   2 survive  22 pop  5460 score  48.6 techs 2.5 [joined 2, conquered 6] | gather_food:3099 build_housing:407 repair_shelter:351 gather_timber:339 establish_hunt:244 defend:221
-stonehaven  wins   4 survive  26 pop  7677 score  61.2 techs 2.5 [conquered 3, joined 1] | gather_food:3235 build_housing:577 establish_farm:425 establish_fishery:299 gather_timber:286 defend:197
-ironfang    wins  15 survive  24 pop  8301 score  65.5 techs 5.5 [joined 6] | raid:2650 gather_food:654 build_housing:638 establish_fishery:277 establish_farm:270 research_continue:266
+Engine resolution per turn: avg 33.7 ms, max 69.7 ms
+hearthwood  wins  13 survive  29 pop 16970 score  80.4 techs 3.9 [conquered 1] | gather_food:2684 build_housing:1070 establish_farm:958 establish_fishery:227 gather_timber:168 defend:164
+windstep    wins   2 survive  27 pop 12169 score  72.2 techs 3.3 [joined 1, conquered 2] | gather_food:2904 build_housing:922 establish_hunt:590 establish_farm:458 defend:158 repair_shelter:150
+stonehaven  wins   4 survive  29 pop 13834 score  78.7 techs 3.0 [conquered 1] | gather_food:2881 build_housing:909 establish_fishery:710 establish_farm:673 defend:116 found_settlement:115
+ironfang    wins  12 survive  22 pop  8682 score  63.5 techs 5.3 [joined 8] | raid:2052 gather_food:730 build_housing:619 establish_fishery:355 establish_farm:315 research_continue:252
 
 Drama
-  turn  25: largest ÷ smallest  p25 3.2×  median 4.0×  p75 4.7×   ≥4× or a tribe gone: 47%   (living only: median 3.9×, p75 4.4×)
-  turn  50: largest ÷ smallest  p25 1.8×  median 2.7×  p75 6.7×   ≥4× or a tribe gone: 33%   (living only: median 2.2×, p75 3.5×)
-  turn 200: largest ÷ smallest  p25 10.8×  median gone  p75 gone   ≥4× or a tribe gone: 80%   (living only: median 2.4×, p75 4.1×)
-  games losing a tribe: 70% (first loss: median turn 88, before turn 15 in 3%)
-  games with a collapse 0%, a conquest 33%, a union 37%; two or more tribes gone 3%
-  people per game by cause: starvation -44098, raid_losses -38473, epidemic -10972, exposure -10255, union -311, conquered -102, recruited_away -49, recruit 49, conquest_gain 51, union_gain 280, births 132318
+  turn  25: largest ÷ smallest  p25 3.3×  median 5.9×  p75 7.3×   ≥4× or a tribe gone: 67%   (living only: median 5.6×, p75 7.0×)
+  turn  50: largest ÷ smallest  p25 1.8×  median 2.4×  p75 10.5×   ≥4× or a tribe gone: 30%   (living only: median 2.2×, p75 2.9×)
+  turn 200: largest ÷ smallest  p25 1.9×  median 4.0×  p75 gone   ≥4× or a tribe gone: 47%   (living only: median 1.9×, p75 2.8×)
+  games losing a tribe: 43% (first loss: median turn 52, before turn 15 in 0%)
+  games with a collapse 0%, a conquest 13%, a union 30%; two or more tribes gone 0%
+  people per game by cause: starvation -73704, raid_losses -42599, exposure -17314, epidemic -16499, union -216, recruited_away -40, conquered -38, conquest_gain 19, recruit 40, union_gain 194, births 197811
   one tribe left standing: 0%

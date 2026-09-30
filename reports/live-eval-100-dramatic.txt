@@ -1,3 +1,25 @@
+Live Jev (jev-1.13.0) · rules-3.0.0 · content-3.0.0 · 2026-09-29 (second round: prompt advisories, event rework, routine timber 80)
+5 matches × 100 turns, seeds final-0 … final-4, same seeds as the first round below (npm run live-sim -- --games 5 --turns 100 --seed-prefix final --parallel 5)
+About 1.4–1.6M tokens per match. Turn-by-turn logs with summaries: reports/live-final-<n>-100.log
+
+final-0  winner Hearthwood   final pop: Hearthwood 9345, Windstep 1730, Stonehaven 3725, Ironfang 4976   spread t25 1.8× · t50 2.0× · t100 5.4×
+final-1  winner Hearthwood   final pop: Hearthwood 2794, Windstep 1075, Stonehaven 2226, Ironfang 2175   spread t25 1.5× · t50 1.5× · t100 2.6×
+final-2  winner Hearthwood   final pop: Hearthwood 6415, Windstep —,    Stonehaven 1387, Ironfang 5757   spread t25 3.1× · t50 7.2× · Windstep conquered by Ironfang on turn 62
+final-3  winner Ironfang     final pop: Hearthwood 5221, Windstep 1418, Stonehaven 3299, Ironfang 6143   spread t25 2.3× · t50 2.6× · t100 4.3×
+final-4  winner Hearthwood   final pop: Hearthwood 4143, Windstep 2541, Stonehaven 1359, Ironfang 438    spread t25 3.8× · t50 4.1× · t100 9.5×
+
+Largest ≥ 4× smallest (or a tribe gone) at turn 100: 4 of 5.
+
+Jev's action mix over the same five seeds (≈1,950 tribe decisions per round):
+                     first round   prompt only   prompt + timber 80/turn
+  gather food             1377          1433          1372
+  build housing            117           144           154
+  found settlement          13            66            68
+  send scouts                8            50            43
+  raid                      97            76            69
+Housing was affordable only about one turn in seven at 30 timber per turn, which capped it regardless of the prompt.
+
+---- First round (before the second-round changes) ----
 Live Jev (jev-1.13.0) · rules-3.0.0 · content-3.0.0 · 2026-09-29
 5 matches × 100 turns, seeds final-0 … final-4, player choices seeded random (npm run live-sim -- --games 5 --turns 100 --seed-prefix final --parallel 5)
 About 1.2–1.4M tokens per match (≈13k per turn). Turn-by-turn logs with summaries: reports/live-final-<n>-100.log

@@ -17,7 +17,7 @@ export const HELP: HelpSection[] = [
     id: "objective",
     title: "In a nutshell",
     body: [
-      "You support one tribe but never give it orders. Every other turn you choose what the weather and the land do; on the turns between, Nature chooses at random.",
+      "You support one tribe but never give it orders. Every other turn you choose what the weather and the land do; on the turns between, Nature chooses at random and the tribes respond at once. You then read what Nature chose and what happened, and press \"Proceed to my turn\" when you are ready.",
       "Each turn Jev (TypeSafe's decision model) picks one action for every tribe. The game engine then works out the harvests, hunger, births, raids, and borders.",
       "After each turn a short summary says who gained or lost people and why. The match ends at its turn limit (10–200 turns) or as soon as only one tribe is left.",
     ],

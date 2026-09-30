@@ -9,6 +9,7 @@ import { useGame } from "@/lib/client/useGame";
 import { fateText } from "@/lib/client/labels";
 import EventLog, { TurnStory } from "./EventLog";
 import EventPanel from "./EventPanel";
+import NatureReview from "./NatureReview";
 import HelpDialog from "./HelpDialog";
 import JevInspector from "./JevInspector";
 import MapCanvas, { type MapHandle, type OverlayMode } from "./MapCanvas";
@@ -65,6 +66,13 @@ export default function GameScreen({ gameId }: { gameId: string }) {
   const regionalFootprint = !finished && game.event?.regional ? game.event.footprint : undefined;
   const inFootprint = selectedTile !== null && !!regionalFootprint && regionalFootprint.includes(selectedTile);
   const lastEntry = g.log.length ? g.log.reduce((a, b) => (b.turn > a.turn ? b : a)) : null;
+  const review = g.natureReview;
+  const status = {
+    since: g.decidingSince,
+    model: game.configuredModel,
+    tribeNames: game.tribes.filter((t) => t.alive).map((t) => TRIBES[t.id].name),
+    reducedMotion: g.reducedMotion,
+  };
 
   const closeOnboarding = () => setOnboarded(true);
 
@@ -93,11 +101,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
           </span>
         </div>
         <span className="spacer" />
-        {!finished && (
-          <button type="button" className="btn btn-sm" onClick={() => g.setPaused(!g.paused)} aria-pressed={g.paused}>
-            {g.paused ? "▶ Resume Nature" : "⏸ Pause Nature"}
-          </button>
-        )}
         <label className="small" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
           Speed
           <select value={g.speed} onChange={(e) => g.setSpeed(e.target.value as "normal" | "fast")} style={{ background: "#3c3223", color: "#f6ecd8", borderRadius: 6, border: "1px solid #5b4c35" }}>
@@ -200,13 +203,24 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               </div>
             </div>
           )}
-          {lastEntry?.summary && (
+          {!review && lastEntry?.summary && (
             <section className="panel panel-pad last-turn" aria-label="What happened last turn">
               <h3>Last turn ({lastEntry.turn}): {lastEntry.eventTitle}: {lastEntry.optionLabel}</h3>
               <TurnStory entry={lastEntry} />
             </section>
           )}
-          {!finished && game.event && (
+          {review && (
+            <NatureReview
+              key={`review-${review.event.turn}`}
+              review={review}
+              mode={game.mode}
+              status={status}
+              deciding={deciding}
+              finished={finished}
+              onProceed={g.proceed}
+            />
+          )}
+          {!review && !finished && game.event && (
             <EventPanel
               key={game.event.turn}
               event={game.event}
@@ -214,8 +228,7 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               busy={g.busy}
               deciding={deciding}
               locked={deciding || game.status === "turn_failed"}
-              paused={g.paused}
-              onPause={g.setPaused}
+              status={status}
               onConfirm={(id) => void g.submit(id)}
             />
           )}

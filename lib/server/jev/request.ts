@@ -42,6 +42,8 @@ export function instructionFor(tribeId: TribeId): string {
     `Read its detailed situation at views.${tribeId} and the public world summary. ` +
     `Choose only from the provided actions. Other tribes decide simultaneously; their actions for this turn are unknown. ` +
     `Consider the stated costs and consequences rather than recalculating them. ` +
+    `Food alone does not make a community grow: births stop once people outnumber shelter by ${BALANCE.population.overcrowding}×, and people without shelter die in winter and storms. ` +
+    `Building housing, and scouting for and founding new settlements when nearby land is exhausted, are investments that let a well-fed community keep growing; the advisories at views.${tribeId}.advisories summarize what currently limits it. ` +
     `A tribe that falls below ${BALANCE.population.collapseBelow} people breaks apart, so a small or starving community may be wiser to accept a union offer from a much larger neighbour than to disappear.`
   );
 }
