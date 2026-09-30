@@ -78,7 +78,7 @@ test("Nature's result waits for the player, and reload shows the player's turn",
   await page.reload();
   await expect(page.getByText("Turn 3 of 50")).toBeVisible();
   await expect(page.getByRole("button", { name: "Confirm choice" })).toBeVisible();
-  await expect(page.locator(".last-turn")).toContainText("Last turn (2)");
+  await expect(page.locator(".log-turn").nth(0)).toContainText("Turn 2");
 });
 
 test("player-only mode never hands a turn to the computer", async ({ page }) => {

@@ -32,9 +32,9 @@ export default function Scoreboard({ tribes, supported, selected, onSelect }: { 
         <thead>
           <tr>
             <th scope="col">Tribe</th>
-            <th scope="col" title="Population">Pop</th>
-            <th scope="col" title="Turns of food at current population">Food</th>
-            <th scope="col">Score</th>
+            <th scope="col" className="col-pop" title="Population">Pop</th>
+            <th scope="col" className="col-food" title="Turns of food at current population">Food</th>
+            <th scope="col" className="col-score">Score</th>
           </tr>
         </thead>
         <tbody>
@@ -76,7 +76,7 @@ export default function Scoreboard({ tribes, supported, selected, onSelect }: { 
                 })()}
               </td>
               <td className="num">{t.foodOutlook ? t.foodOutlook.coverageTurns.toFixed(1) : "—"}</td>
-              <td className="num"><strong>{t.score.total.toFixed(1)}</strong></td>
+              <td className="num"><strong>{t.alive ? t.score.total.toFixed(1) : "—"}</strong></td>
             </tr>
           ))}
         </tbody>

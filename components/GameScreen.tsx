@@ -7,7 +7,7 @@ import { TRIBES } from "@/content/tribes";
 import type { TribeId } from "@/lib/game/types";
 import { useGame } from "@/lib/client/useGame";
 import { fateText } from "@/lib/client/labels";
-import EventLog, { TurnStory } from "./EventLog";
+import EventLog from "./EventLog";
 import EventPanel from "./EventPanel";
 import NatureReview from "./NatureReview";
 import HelpDialog from "./HelpDialog";
@@ -74,7 +74,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
   const settlementAt = selectedTile !== null ? (game.tribes.find((t) => t.alive && (t.settlement === selectedTile || t.outposts.includes(selectedTile)))?.id ?? null) : null;
   const regionalFootprint = !finished && game.event?.regional ? game.event.footprint : undefined;
   const inFootprint = selectedTile !== null && !!regionalFootprint && regionalFootprint.includes(selectedTile);
-  const lastEntry = g.log.length ? g.log.reduce((a, b) => (b.turn > a.turn ? b : a)) : null;
   const review = g.natureReview;
   const status = {
     since: g.decidingSince,
@@ -235,12 +234,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
                 <Link className="btn" href="/">Return to menu</Link>
               </div>
             </div>
-          )}
-          {!review && lastEntry?.summary && (
-            <section className="panel panel-pad last-turn" aria-label="What happened last turn">
-              <h3>Last turn ({lastEntry.turn}): {lastEntry.eventTitle}: {lastEntry.optionLabel}</h3>
-              <TurnStory entry={lastEntry} />
-            </section>
           )}
           {review && (
             <NatureReview

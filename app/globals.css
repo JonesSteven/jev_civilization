@@ -98,6 +98,13 @@ button, input, select { font: inherit; color: inherit; }
 .map-side .scoreboard, .map-side .tribe-detail { padding: 10px 12px; }
 .map-side .scoreboard th, .map-side .scoreboard td { padding: 5px 3px; font-size: 13px; }
 .map-side .scoreboard .pop-delta { display: block; margin-left: 0; }
+/* Fixed columns so long labels (e.g. "joined Hearthwood") wrap instead of widening the table past the panel. */
+.scoreboard table { table-layout: fixed; }
+.scoreboard .col-pop { width: 64px; }
+.scoreboard .col-food { width: 42px; }
+.scoreboard .col-score { width: 46px; }
+.scoreboard .tname { flex-wrap: wrap; min-width: 0; }
+.scoreboard .tname .chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .map-side .tribe-detail .stats { grid-template-columns: 1fr; }
 .side-hint { margin: 0 4px; }
 /* Supported tribe: summary card beside the map, under the tribes table */
@@ -151,7 +158,6 @@ button, input, select { font: inherit; color: inherit; }
 .turn-story { margin: 4px 0 2px; }
 .turn-headline { margin: 0 0 3px; font-weight: 600; }
 .log-details summary { cursor: pointer; margin-top: 2px; }
-.last-turn .turn-headline { font-size: 15px; }
 .pop-delta { font-size: 11px; margin-left: 4px; font-weight: 600; }
 .pop-delta.up { color: #2f6b2a; }
 .pop-delta.down { color: #9a2f1f; }
