@@ -9,7 +9,8 @@ import { calendarOf, seasonOf } from "./calendar";
 import type { Snapshot } from "./candidates";
 import { accessibleTiles, livingTribes } from "./geo";
 import { relationLabel, turnsAgo } from "./memory";
-import { activeSiteCount, capabilities, gatherPotential, laborFactor } from "./production";
+import { activeSiteCount, capabilities, gatherPotential, housingCapacity, laborFactor } from "./production";
+import { acceptableOffers, unionEligible } from "./unions";
 import { productiveOwnedTiles } from "./score";
 import { foodOutlook, fortCap, fortLevel, moraleLabel, shelterOutlook } from "./stats";
 import { TERRAIN_NAMES, TRIBE_IDS, type TribeId } from "./types";
@@ -85,7 +86,7 @@ export function growthAdvisories(
   }
   const H = BALANCE.actions.woodHousing;
   if (sh.unsheltered > 0 && t.timber < H.cost.timber) {
-    out.push(`Wooden homes for ${fmt(H.capacity)} people cost ${fmt(H.cost.timber)} timber and stores hold ${fmt(t.timber)}; one turn of gathering timber yields about ${fmt(timberPerGather)}, enough for a home.`);
+    out.push(`Wooden homes for ${fmt(housingCapacity("wood", t.population))} people cost ${fmt(H.cost.timber)} timber and stores hold ${fmt(t.timber)}; one turn of gathering timber yields about ${fmt(timberPerGather)}, enough for a home.`);
   }
   const birthCap = Math.floor(sh.usableCapacity * P.overcrowding);
   if (t.population >= birthCap) out.push(`Births have stopped: the population is above ${P.overcrowding}× shelter (${fmt(birthCap)}). Only new housing lets the tribe grow again.`);
@@ -95,6 +96,16 @@ export function growthAdvisories(
   }
   if (t.scoutedSites.length > 0 && t.population >= BALANCE.actions.found.minPopulation) {
     out.push(`Scouts have found ${t.scoutedSites.length} site${t.scoutedSites.length === 1 ? "" : "s"} for a new settlement, which adds a new working area and camp shelter for ${fmt(BALANCE.actions.found.campCapacity)}.`);
+  }
+  for (const o of livingTribes(snap.state)) {
+    if (o !== id && unionEligible(snap.state, id, o)) {
+      const other = snap.state.tribes[o];
+      out.push(`${TRIBES[o].name} has only ${fmt(other.population)} people to our ${fmt(t.population)}. Offering a union would bring about ${fmt(other.population * BALANCE.union.joinShare)} people, its land, stores, and technologies into our tribe if it accepts.`);
+    }
+  }
+  for (const offer of acceptableOffers(snap.state, id, snap.turn)) {
+    const big = snap.state.tribes[offer.from];
+    out.push(`${TRIBES[offer.from].name} (${fmt(big.population)} people) has offered to take us in. Joining would keep ${fmt(t.population * BALANCE.union.joinShare)} of our people fed and sheltered inside a far larger tribe; alone we risk ${t.population < BALANCE.combat.conquestBelow ? "conquest" : "further decline"}, and below ${fmt(BALANCE.population.collapseBelow)} people a tribe breaks apart.`);
   }
   if (food.coverageTurns >= 3 && (sh.unsheltered > 0 || t.population >= birthCap * 0.8)) out.push(`Stores cover ${food.coverageTurns} turns of food: enough security to invest in shelter or new land.`);
   return out;

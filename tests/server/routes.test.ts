@@ -45,6 +45,21 @@ describe("route handlers", () => {
     expect(((await ok.json()) as { game: { totalTurns: number } }).game.totalTurns).toBe(150);
   });
 
+  it("creates games in each choice mode and rejects unknown modes", async () => {
+    type Created = { game: { status: string; settings: { choiceMode: string; stance: string }; event: { source: string; natureOptionId: string | null } } };
+    const make = (body: Record<string, unknown>) => createGame(req("POST", "/api/games", { body: { tribeId: "stonehaven", mode: "mock", ...body } }));
+    const player = (await (await make({ choiceMode: "player", stance: "hurt" })).json()) as Created;
+    expect(player.game.settings).toEqual({ choiceMode: "player", stance: "random" });
+    expect(player.game.status).toBe("awaiting_player");
+    const computer = (await (await make({ choiceMode: "computer", stance: "help" })).json()) as Created;
+    expect(computer.game.settings).toEqual({ choiceMode: "computer", stance: "help" });
+    expect(computer.game.status).toBe("nature_pending");
+    expect(computer.game.event.natureOptionId).toBeTruthy();
+    const fallback = (await (await make({})).json()) as Created;
+    expect(fallback.game.settings).toEqual({ choiceMode: "alternate", stance: "random" });
+    expect((await make({ choiceMode: "robot" })).status).toBe(422);
+  });
+
   it("issues an HttpOnly SameSite=Lax session cookie and enforces ownership (AC23)", async () => {
     const res = await createGame(req("POST", "/api/games", { body: { tribeId: "hearthwood", mode: "mock", seed: "routes" } }));
     expect(res.status).toBe(201);

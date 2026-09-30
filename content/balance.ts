@@ -10,6 +10,7 @@ export const RULES_VERSION = "rules-3.0.0";
 export const SCALE = 10;
 
 export const BALANCE_CHANGELOG: { version: string; change: string }[] = [
+  { version: "rules-3.0.0", change: "Much faster, more extreme (third round): tribe traits farm ×1.4, fish ×1.8, hunt/gather ×1.8, raid ×2; disease resistance Hearthwood 0.25, Windstep/Ironfang 1.3; births 5% +10% well-fed (well-fed after 2 turns of stores, and only for tribes that have not shrunk for 3 turns); hunger 50%, winter exposure 8%; collapse below 200 people; research +1 effort per 2,000 people; unions at 3× (6× for a steady neighbour), conquest at 4×, union minimum 250; Ironfang starting food 10,000. 100 mock games × 50 turns: ≥8× spread or a tribe gone in 60% (was 32% with 4×), a tribe lost in 50% (was 22%)." },
   { version: "rules-3.0.0", change: "Live Jev check: housing was chosen about half the times it was affordable, but at 30 timber per turn it was affordable only about one turn in seven (Jev almost never gathers timber). Routine timber 30→80 and stone 20→50 per turn. The prompt now also explains shelter, the birth limit, and fresh land (views.<tribe>.advisories and candidate text)." },
   { version: "rules-3.0.0", change: "Live Jev check: Windstep left the game in 5 of 6 departures across 12 live matches. Windstep hunt and gathering ×1.3→1.5; wildlife regrowth 0.30→0.35; Windstep hunting sites draw from radius 4 (was 3)." },
   { version: "rules-3.0.0", change: "Live Jev check: tribes rarely build housing, so shelter-capped births froze populations at the starting 1,200. Births now follow food (up to 1.5× shelter); the unsheltered face winter exposure instead." },
@@ -115,13 +116,15 @@ export const BALANCE = {
     hunt: 18 * SCALE,
     fishery: 18 * SCALE,
     forage: 20 * SCALE,
+    /** Passive foraging grows with the number of foragers (still limited by the wild food in reach). */
+    foragePerPerson: 0.12,
     routineTimber: 8 * SCALE,
     routineStone: 5 * SCALE,
     season: {
-      farm: { spring: 0.8, summer: 1.2, autumn: 1.4, winter: 0.2 },
-      hunt: { spring: 1.0, summer: 1.0, autumn: 1.0, winter: 0.8 },
-      fish: { spring: 1.0, summer: 1.1, autumn: 1.0, winter: 0.6 },
-      forage: { spring: 0.9, summer: 1.1, autumn: 1.2, winter: 0.4 },
+      farm: { spring: 0.9, summer: 1.2, autumn: 1.3, winter: 0.5 },
+      hunt: { spring: 1.0, summer: 1.0, autumn: 1.0, winter: 0.85 },
+      fish: { spring: 1.0, summer: 1.1, autumn: 1.0, winter: 0.75 },
+      forage: { spring: 0.9, summer: 1.1, autumn: 1.2, winter: 0.6 },
     },
     irrigationDryFloor: 0.9,
     /** Labor: each active farm, hunting site, or fishery needs this many people for full output. */
@@ -131,23 +134,23 @@ export const BALANCE = {
   },
 
   tribeMods: {
-    hearthwood: { farm: 1.15, timber: 1.25, woodWeatherDamage: 0.5 },
-    windstep: { hunt: 1.5, gatherFood: 1.5, campExposure: 0.6, huntRadiusBonus: 1 },
-    stonehaven: { stone: 1.3, fish: 1.45 },
-    ironfang: { raid: 1.5 },
+    hearthwood: { farm: 1.4, timber: 1.25, woodWeatherDamage: 0.5 },
+    windstep: { hunt: 1.8, gatherFood: 1.8, campExposure: 0.6, huntRadiusBonus: 1 },
+    stonehaven: { stone: 1.3, fish: 1.8 },
+    ironfang: { raid: 2.0 },
   },
 
   /**
    * Share of an epidemic's deaths each tribe suffers. Dense farming villages that live beside their animals
    * carry old immunities (the "germs" of Guns, Germs, and Steel); scattered hunters and raiders do not.
    */
-  diseaseResistance: { hearthwood: 0.35, windstep: 1.0, stonehaven: 0.8, ironfang: 1.0 },
+  diseaseResistance: { hearthwood: 0.25, windstep: 1.3, stonehaven: 0.8, ironfang: 1.3 },
 
   /**
    * Larger populations invent faster: each research action adds 1 effort turn, plus 1 for every
    * `peoplePerExtraEffort` people, up to `maxEffortPerTurn`.
    */
-  research: { peoplePerExtraEffort: 300 * SCALE, maxEffortPerTurn: 4 },
+  research: { peoplePerExtraEffort: 200 * SCALE, maxEffortPerTurn: 4 },
 
   tech: {
     agricultureFarm: 1.6,
@@ -157,9 +160,17 @@ export const BALANCE = {
 
   actions: {
     restMorale: 4,
+    /**
+     * Work scales with the workforce: a gathering action yields the larger of a flat amount and a share per person,
+     * and new housing shelters the larger of its base capacity and a share of the population (economies of scale).
+     */
     gatherFood: 30 * SCALE,
+    gatherFoodPerPerson: 0.3,
     gatherTimber: 20 * SCALE,
+    gatherTimberPerPerson: 0.1,
     quarryStone: 15 * SCALE,
+    quarryStonePerPerson: 0.06,
+    housingShare: { wood: 0.2, stone: 0.2, camp: 0.15 },
     farmCost: { food: 0, timber: 15 * SCALE, stone: 0 },
     huntCost: { food: 0, timber: 15 * SCALE, stone: 0 },
     fisheryCost: { food: 0, timber: 20 * SCALE, stone: 0 },
@@ -186,11 +197,14 @@ export const BALANCE = {
    */
   union: {
     /** The offering tribe must have at least this many times the target's people. */
-    sizeRatio: 4,
+    sizeRatio: 3,
     /** Targets smaller than this are too small to negotiate with (they collapse or are conquered instead). */
-    minPopulation: 30 * SCALE,
-    /** A target is "declining" if it has fewer people than this many turns ago, or under one turn of food. */
+    minPopulation: 25 * SCALE,
+    /** A target is "declining" if it has at most `declineShare` of the people it had this many turns ago. */
     declineLookback: 5,
+    declineShare: 0.8,
+    /** No offers before this turn: early lean spells are not yet a reason to give up independence. */
+    earliestTurn: 10,
     /** At this size ratio a union can be offered even to a neighbour that is not declining. */
     overwhelmingRatio: 8,
     /** Offers stay open for this many turns after the one they were made in. */
@@ -213,28 +227,33 @@ export const BALANCE = {
     loot: { food: 300 * SCALE, timber: 50 * SCALE, stone: 25 * SCALE },
     successLoss: { attacker: 0.03, defender: 0.06 },
     failureLoss: { attacker: 0.1, defender: 0.02 },
-    /** A successful raid by a tribe this many times larger conquers a defender below the union minimum. */
-    conquestRatio: 5,
+    /** A successful raid by a tribe this many times larger conquers a defender left below `conquestBelow` people. */
+    conquestRatio: 4,
+    conquestBelow: 50 * SCALE,
     /** Share of a conquered remnant that survives and joins the conqueror. */
     conquestJoinShare: 0.5,
   },
 
   population: {
     /** Share of the population lost per turn at a total famine (scaled by the share of food missing). */
-    starvationRate: 0.4,
-    winterExposure: 0.05,
+    starvationRate: 0.5,
+    winterExposure: 0.08,
     birthRate: 0.05,
     /** Extra birth rate while food stocks cover at least `wellFedTurns` turns (turns surplus into growth). */
-    wellFedBirthBonus: 0.05,
-    wellFedTurns: 3,
+    wellFedBirthBonus: 0.1,
+    wellFedTurns: 2,
+    /** The well-fed bonus needs this many turns without the population shrinking. */
+    momentumTurns: 3,
+    /** …and needs at least this share of the tribe's own peak population. */
+    recoveryShare: 0.6,
     birthMinMorale: 50,
     /** Births stop once the population exceeds this multiple of usable shelter. */
-    overcrowding: 1.5,
+    overcrowding: 2,
     spoilage: 0.06,
     storageSpoilage: 0.01,
     maxSpoilage: 0.3,
     /** A tribe that falls below this many people breaks apart and disappears. */
-    collapseBelow: 6 * SCALE,
+    collapseBelow: 20 * SCALE,
     /** Share of people killed by an epidemic outbreak that spreads to a neighbour in contact. */
     epidemicSpreadShare: 0.5,
   },
@@ -262,6 +281,9 @@ export const BALANCE = {
     researchCancel: -2,
     wellFed: 1,
     driftTarget: 60,
+    /** A tribe that loses at least `shockShare` of its people in one turn loses this much morale (births stop below 50). */
+    shock: -25,
+    shockShare: 0.2,
     driftStep: 3,
   },
 
@@ -303,7 +325,7 @@ export const STARTING = {
   morale: 60,
   housingCapacity: 120 * SCALE,
   fortification: 0,
-  food: { producing: 400 * SCALE, ironfang: 700 * SCALE },
+  food: { producing: 400 * SCALE, ironfang: 1000 * SCALE },
   timber: 80 * SCALE,
   stone: 50 * SCALE,
   military: { ironfang: 2, other: 0 },

@@ -4,7 +4,7 @@ import { CONTENT_VERSION, contentHash } from "@/content/index";
 import { DEFAULT_TOTAL_TURNS, MAX_TOTAL_TURNS, MIN_TOTAL_TURNS } from "@/lib/game/calendar";
 import { deserializeState, hashState, serializeState, type SerializedGameState } from "@/lib/game/serialize";
 import { isMatchOver, startGame } from "@/lib/game/turn";
-import { TRIBE_IDS, type DecisionMode, type GameState, type GameStatus, type TribeId } from "@/lib/game/types";
+import { TRIBE_IDS, type ChoiceMode, type ComputerStance, type DecisionMode, type GameState, type GameStatus, type TribeId } from "@/lib/game/types";
 import { createInitialState } from "@/lib/game/world/generate";
 import { getConfig } from "./config";
 import { getDb, packJson, tx, unpackJson } from "./db";
@@ -83,7 +83,10 @@ export function attemptBudget(totalTurns: number): number {
   return Math.min(getConfig().maxAttemptsPerGame, 3 * totalTurns);
 }
 
-export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: string; mode: DecisionMode; totalTurns?: number }) {
+export function createGame(
+  sessionId: string,
+  input: { tribeId: TribeId; seed?: string; mode: DecisionMode; totalTurns?: number; choiceMode?: ChoiceMode; stance?: ComputerStance },
+) {
   const cfg = getConfig();
   if (!TRIBE_IDS.includes(input.tribeId)) throw new ApiError(422, "invalid_tribe", "Unknown tribe.");
   if (input.mode === "live" && !cfg.apiKey) {
@@ -96,7 +99,9 @@ export function createGame(sessionId: string, input: { tribeId: TribeId; seed?: 
   if (!Number.isInteger(totalTurns) || totalTurns < MIN_TOTAL_TURNS || totalTurns > MAX_TOTAL_TURNS) {
     throw new ApiError(422, "invalid_match_length", `Match length must be ${MIN_TOTAL_TURNS}–${MAX_TOTAL_TURNS} turns.`);
   }
-  const state = startGame(createInitialState(seed, CONTENT_VERSION, contentHash(), totalTurns));
+  // The world never depends on the supported tribe; only the computer's environmental picks may be steered by it.
+  const settings = { choiceMode: input.choiceMode ?? "alternate", stance: input.choiceMode === "player" ? "random" : (input.stance ?? "random"), supportedTribe: input.tribeId } as const;
+  const state = startGame(createInitialState(seed, CONTENT_VERSION, contentHash(), totalTurns, settings));
   const id = randomUUID();
   const now = Date.now();
   const status = statusForNextTurn(state);

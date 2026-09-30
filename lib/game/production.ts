@@ -19,13 +19,13 @@ export function capabilities(state: GameState, tribe: TribeId): Capabilities {
   const innate = TRIBES[tribe].innate;
   const ag = hasTech(state, tribe, "agriculture");
   const fi = hasTech(state, tribe, "fishing");
-  // Ironfang has no forage or food gathering until it learns Agriculture or Fishing.
-  const foodUnlock = tribe !== "ironfang" || ag || fi;
+  // Every tribe, raiders included, can forage and gather wild food from the start.
+  const foodUnlock = true;
   return {
     farming: innate.includes("farming") || ag,
     hunting: innate.includes("hunting"),
     fishing: innate.includes("fishing") || fi,
-    forage: innate.includes("forage") || (tribe === "ironfang" && foodUnlock),
+    forage: innate.includes("forage") || tribe === "ironfang",
     stoneBuilding: innate.includes("stoneConstruction") || hasTech(state, tribe, "masonry"),
     foodGathering: foodUnlock,
   };
@@ -93,27 +93,37 @@ export function activeSiteCount(state: GameState, tribe: TribeId, geo: TribeGeo)
   return n;
 }
 
+/** Shelter one housing action adds: its base capacity, or a share of the population for a large tribe. */
+export function housingCapacity(kind: "wood" | "stone" | "camp", population: number): number {
+  const A = BALANCE.actions;
+  const base = kind === "wood" ? A.woodHousing.capacity : kind === "stone" ? A.stoneHousing.capacity : A.campHousing.capacity;
+  return Math.max(base, Math.round((population * A.housingShare[kind]) / 10) * 10);
+}
+
 export function gatherPotential(state: GameState, tribe: TribeId, kind: "food" | "timber" | "stone", mods: ModifierIndex, settlementTile: number): number {
   const A = BALANCE.actions;
   const tools = hasTech(state, tribe, "tools") ? BALANCE.tech.toolsGather : 1;
+  const pop = state.tribes[tribe].population;
   if (kind === "food") {
-    let v = A.gatherFood;
+    let v = Math.max(A.gatherFood, pop * A.gatherFoodPerPerson);
     if (tribe === "windstep") v *= BALANCE.tribeMods.windstep.gatherFood;
     return v * mods.yieldMultiplier("forage", settlementTile, false);
   }
   if (kind === "timber") {
-    let v = A.gatherTimber * tools;
+    let v = Math.max(A.gatherTimber, pop * A.gatherTimberPerPerson) * tools;
     if (tribe === "hearthwood") v *= BALANCE.tribeMods.hearthwood.timber;
     return v * mods.yieldMultiplier("timber", settlementTile, false);
   }
-  let v = A.quarryStone * tools;
+  let v = Math.max(A.quarryStone, pop * A.quarryStonePerPerson) * tools;
   if (tribe === "stonehaven") v *= BALANCE.tribeMods.stonehaven.stone;
   return v * mods.yieldMultiplier("stone", settlementTile, false);
 }
 
 export function foragePotential(state: GameState, tribe: TribeId, season: Season, mods: ModifierIndex, settlementTile: number): number {
   if (!capabilities(state, tribe).forage) return 0;
-  return BALANCE.production.forage * BALANCE.production.season.forage[season] * mods.yieldMultiplier("forage", settlementTile, false);
+  const P = BALANCE.production;
+  const base = Math.max(P.forage, state.tribes[tribe].population * P.foragePerPerson);
+  return base * P.season.forage[season] * mods.yieldMultiplier("forage", settlementTile, false);
 }
 
 export function currentSeason(state: GameState): Season {

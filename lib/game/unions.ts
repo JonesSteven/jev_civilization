@@ -125,11 +125,11 @@ function pastPopulation(state: GameState, id: TribeId, lookback: number): number
   return h ? h.population : (t.history[0]?.population ?? t.population);
 }
 
-/** Losing people over the last few turns, or with under one turn of food. */
+/** Has shrunk to at most `declineShare` of its size a few turns ago. */
 export function isDeclining(state: GameState, id: TribeId): boolean {
   const t = state.tribes[id];
   if (!t.alive) return false;
-  return t.food < t.population || t.population < pastPopulation(state, id, BALANCE.union.declineLookback);
+  return t.population <= pastPopulation(state, id, BALANCE.union.declineLookback) * BALANCE.union.declineShare;
 }
 
 /** Why `offerer` could offer `target` a union right now, or null if it cannot. */
@@ -138,6 +138,7 @@ export function unionEligible(state: GameState, offerer: TribeId, target: TribeI
   const a = state.tribes[offerer];
   const b = state.tribes[target];
   if (offerer === target || !a.alive || !b.alive) return false;
+  if (state.completedTurn + 1 < U.earliestTurn) return false;
   if (b.population < U.minPopulation) return false;
   if (a.population < b.population * U.sizeRatio) return false;
   if (a.food < b.population * U.foodPerJoiner) return false;
@@ -154,6 +155,25 @@ export function acceptableOffers(state: GameState, id: TribeId, turn: number): U
 
 export function hasOpenOffer(state: GameState, from: TribeId, to: TribeId, turn: number): boolean {
   return (state.unionOffers ?? []).some((o) => o.from === from && o.to === to && turn - o.turn <= BALANCE.union.offerTurns);
+}
+
+/**
+ * Diplomacy runs alongside each turn's action: every living tribe that qualifies to be taken in receives an offer
+ * from the largest tribe able to make one (unless that tribe already has an open offer to it). The smaller tribe
+ * decides whether to accept on a later turn.
+ */
+export function makeUnionOffers(state: GameState, turn: number, outcomes: GameOutcome[]) {
+  const living = TRIBE_IDS.filter((id) => state.tribes[id].alive);
+  for (const target of living) {
+    const offerers = living
+      .filter((o) => unionEligible(state, o, target))
+      .sort((a, b) => state.tribes[b].population - state.tribes[a].population || (a < b ? -1 : 1));
+    const from = offerers[0];
+    if (!from || hasOpenOffer(state, from, target, turn)) continue;
+    state.unionOffers = [...(state.unionOffers ?? []).filter((o) => !(o.from === from && o.to === target)), { from, to: target, turn }];
+    remember(state, target, turn, "union_offer", `${tribeName(from)} offered on turn ${turn} to take in our people; we can accept for the next ${BALANCE.union.offerTurns} turns`);
+    outcomes.push({ kind: "offer_union", tribeId: from, target, text: narrate("offer_union", { tribe: tribeName(from), target: tribeName(target) }) });
+  }
 }
 
 /** Drop offers that can no longer be accepted after `turn`. */

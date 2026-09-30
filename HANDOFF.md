@@ -65,7 +65,33 @@ Every number is in `content/balance.ts`, and the tuning steps are logged in `BAL
   - The Pause Nature control is gone.
 - **Status:** `components/DecidingStatus.tsx` shows a progress bar, a staged checklist, and elapsed time while a turn is decided. The stages describe a turn, not live server telemetry.
 - **Default length:** back to 50 turns.
+- (Superseded in the third round: the supported bar moved beside the map, and results moved from the review panel into the log.)
 - **Mock drama** fell to 47% of 100-turn games at 4× (mock tribes build much more housing and grow evenly). The live check still had 4 of 5.
+
+### Third round (same branch)
+- **Layout:** the supported-tribe summary is a card (`components/SupportedCard.tsx`) under the Tribes table, beside the map.
+- **Event log:**
+  - Each turn now lists what every tribe did (`groupActivity` in `lib/client/labels.ts`): its action in plain words and that action's results, including raids from both sides (outcomes now carry `target`).
+  - The review panel no longer repeats results. It points to the log.
+  - Replays show the same activity list.
+- **Choice modes:** `GameState.settings` holds `choiceMode` (player / alternate / computer), `stance` (help / hurt / random), and `supportedTribe`. The start screen offers both choices.
+  - `choiceSourceFor` decides who chooses each turn.
+  - Help/hurt picks the option with the best (or worst) forecast for the supported tribe relative to its rivals' average (`relativeScore` / `steeredPick` in `lib/game/impact.ts`). Ties are broken by seeded order, so picks replay exactly.
+  - Settings never reach Jev (tested).
+  - Computer-only games auto-play (about 3 s per turn, 1 s on fast) with Pause/Resume.
+- **Much faster, more extreme** (logged in `BALANCE_CHANGELOG`):
+  - **Stronger traits:** farm ×1.4, fish ×1.8, hunt/gather ×1.8, raid ×2. Disease resistance: Hearthwood 0.25, Windstep and Ironfang 1.3.
+  - **Momentum births:** 5%, or 15% for a thriving tribe. Thriving means stores for 2 turns, this turn's own harvest covering what it eats, no shrinking for 3 turns, and at least 60% of its own peak population.
+  - **Losing heart:** a tribe that loses 20% or more in one turn loses 25 morale, so births stall.
+  - **Harsher shocks:** hunger 50%, winter exposure 8%.
+  - **Milder seasons:** winter farms 50%.
+  - **Scale:** gathering, foraging, and new housing scale with population, which removes the flat-payoff rubber band. Births are allowed up to 2× shelter.
+  - **Collapse and conquest:** tribes collapse below 200 people. Conquest takes a raided remnant under 500 by a tribe 4× larger.
+  - **Automatic union offers:** from turn 10, a tribe 3× larger than a neighbour that has shrunk to 80% of its size 5 turns earlier (or 8× larger than a steady one) offers. The smaller tribe's Jev decides whether to accept. The offer action was removed from candidates.
+  - **Ironfang** now hunts (innate hunting, 4 starting hunting sites) and forages from turn 1. Without that it always starved and was absorbed first.
+- **Results:**
+  - Mock (100 × 50, `reports/simulation-100x50-dramatic-mock.txt`): a tribe lost in 70% of games; 8× spread or a tribe gone in 70%; departures spread across all four tribes; 10% of losses come before turn 15.
+  - Live (5 × 50, same seeds): a tribe was gone by turn 50 in 4 of 5 matches, each time a different tribe; before this round the same seeds had no departures.
 
 ### Known behaviour
 - Jev chooses Gather food most turns and rarely Defends or Trains, so a tribe next to Ironfang can be raided many turns in a row.

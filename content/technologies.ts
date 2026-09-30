@@ -19,7 +19,7 @@ export const TECHNOLOGIES: TechnologyDef[] = [
     effortTurns: 2,
     cost: { food: 40 * SCALE, timber: 20 * SCALE, stone: 0 },
     prerequisites: [],
-    effect: `Unlocks farms; farm yield ${x(BALANCE.tech.agricultureFarm)} (also for innate farmers). Enables food gathering for Ironfang.`,
+    effect: `Unlocks farms; farm yield ${x(BALANCE.tech.agricultureFarm)} (also for innate farmers).`,
   },
   {
     id: "fishing",
@@ -27,7 +27,7 @@ export const TECHNOLOGIES: TechnologyDef[] = [
     effortTurns: 2,
     cost: { food: 20 * SCALE, timber: 20 * SCALE, stone: 0 },
     prerequisites: [],
-    effect: `Unlocks fisheries; fishery yield ${x(BALANCE.tech.fishingFishery)}. Enables food gathering for Ironfang.`,
+    effect: `Unlocks fisheries; fishery yield ${x(BALANCE.tech.fishingFishery)}.`,
   },
   {
     id: "masonry",

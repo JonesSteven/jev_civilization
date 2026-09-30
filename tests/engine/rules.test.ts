@@ -165,8 +165,9 @@ describe("economy and development", () => {
     s.tribes.ironfang.food = 50;
     const pop = s.tribes.ironfang.population;
     const r = step(s, { hearthwood: "rest", windstep: "rest", stonehaven: "rest", ironfang: "rest" });
-    // Ironfang has no production: requirement = population, 50 eaten → starvation = ceil(pop × deficit × rate).
-    const expected = Math.ceil(pop * ((pop - 50) / pop) * BALANCE.population.starvationRate);
+    // Requirement = population; stores (50) plus this turn's measured income are eaten → starvation = ceil(pop × deficit × rate).
+    const eaten = Math.min(pop, 50 + r.reports.ironfang.foodTotal);
+    const expected = Math.ceil(pop * ((pop - eaten) / pop) * BALANCE.population.starvationRate);
     expect(r.reports.ironfang.starvation).toBe(expected);
     expect(r.state.tribes.ironfang.population).toBe(pop - expected);
     expect(r.state.tribes.ironfang.food).toBe(0);
@@ -291,13 +292,14 @@ describe("candidates", () => {
     }
   });
 
-  it("does not offer Ironfang food gathering until it learns Agriculture or Fishing", () => {
+  it("lets Ironfang forage and gather from the start, but not farm or fish until it learns how", () => {
     const s = newGame("iron-food");
-    const snap = buildSnapshot(s, optionFor(s));
-    expect(generateCandidates(snap, "ironfang").some((c) => c.kind === "gather_food")).toBe(false);
+    const cands = generateCandidates(buildSnapshot(s, optionFor(s)), "ironfang");
+    expect(cands.some((c) => c.kind === "gather_food")).toBe(true);
+    expect(cands.some((c) => c.kind === "establish_farm" || c.kind === "establish_fishery")).toBe(false);
     s.tribes.ironfang.learned = ["fishing"];
-    const snap2 = buildSnapshot(s, optionFor(s));
-    expect(generateCandidates(snap2, "ironfang").some((c) => c.kind === "gather_food")).toBe(true);
+    s.tribes.ironfang.timber = 1000;
+    expect(generateCandidates(buildSnapshot(s, optionFor(s)), "ironfang").some((c) => c.kind === "establish_fishery")).toBe(true);
   });
 });
 

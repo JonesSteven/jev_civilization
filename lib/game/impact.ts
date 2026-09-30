@@ -176,6 +176,46 @@ function scoreOp(op: EffectOp, id: TribeId, p: TribeProfileNow): number {
   }
 }
 
+/** Forecast score of one option for one tribe (0 when its settlements lie outside the area or it is gone). */
+export function optionScore(state: GameState, option: EventOptionDef, footprint: number[] | null, ctx: ImpactContext, tribe: TribeId): number {
+  const t = state.tribes[tribe];
+  if (!t.alive) return 0;
+  if (footprint) {
+    const area = new Set(footprint);
+    if (![t.settlement, ...t.outposts].some((x) => area.has(x))) return 0;
+  }
+  const p = profile(state, tribe, ctx.unsheltered[tribe] ?? 0);
+  return option.effects.reduce((s, op) => s + scoreOp(op, tribe, p), 0);
+}
+
+/** How much better an option is for `tribe` than for its living rivals on average (positive = relatively good). */
+export function relativeScore(state: GameState, option: EventOptionDef, footprint: number[] | null, ctx: ImpactContext, tribe: TribeId): number {
+  const rivals = TRIBE_IDS.filter((id) => id !== tribe && state.tribes[id].alive);
+  const mine = optionScore(state, option, footprint, ctx, tribe);
+  if (rivals.length === 0) return mine;
+  const theirs = rivals.reduce((s, id) => s + optionScore(state, option, footprint, ctx, id), 0) / rivals.length;
+  return mine - theirs;
+}
+
+/**
+ * The computer's choice among an event's options for the supported tribe: the relatively best option to help it,
+ * the relatively worst to hurt it. Ties keep the earlier option in `order` (a seeded shuffle), so picks replay exactly.
+ */
+export function steeredPick(state: GameState, options: EventOptionDef[], footprint: number[] | null, stance: "help" | "hurt", tribe: TribeId): EventOptionDef {
+  const ctx = impactContext(state);
+  const sign = stance === "help" ? 1 : -1;
+  let best = options[0] as EventOptionDef;
+  let bestValue = -Infinity;
+  for (const o of options) {
+    const v = sign * relativeScore(state, o, footprint, ctx, tribe);
+    if (v > bestValue + 1e-9) {
+      best = o;
+      bestValue = v;
+    }
+  }
+  return best;
+}
+
 /** Forecast scores below this size read as "little direct effect". */
 export const IMPACT_THRESHOLD = 0.15;
 

@@ -84,11 +84,12 @@ describe("world generation", () => {
           if (d !== -1) expect(d).toBeGreaterThanOrEqual(BALANCE.placement.minSeparation);
         }
       }
-      // Starting assets: 2 sites for each producer, none for Ironfang; every asset on land and owned.
+      // Starting assets: the starting sites for every tribe (Ironfang hunts); every asset on land and owned.
       const sites = (id: string, kind: string) => g.world.assets.filter((x) => x.owner === id && x.kind === kind).length;
       expect(sites("hearthwood", "farm")).toBe(STARTING.startingSites);
       expect(sites("windstep", "hunt")).toBe(STARTING.startingSites);
       expect(sites("stonehaven", "fishery")).toBe(STARTING.startingSites);
+      expect(sites("ironfang", "hunt")).toBe(STARTING.startingSites);
       // Starting territories never touch: every owned tile is at least minTerritoryGap from any other tribe's tile.
       for (let i = 0; i < g.world.owner.length; i++) {
         const o = g.world.owner[i] as number;
@@ -98,7 +99,7 @@ describe("world generation", () => {
           if (other >= 0) expect(other).toBe(o);
         }
       }
-      expect(g.world.assets.filter((x) => x.owner === "ironfang").length).toBe(0);
+      expect(g.world.assets.filter((x) => x.owner === "ironfang" && x.kind !== "hunt").length).toBe(0);
       for (const a of g.world.assets) {
         expect(g.world.terrain[a.tile]).not.toBe(Terrain.Water);
         expect(g.world.assetAt[a.tile]).toBe(a.id);

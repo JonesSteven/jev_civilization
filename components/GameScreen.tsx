@@ -16,9 +16,17 @@ import MapCanvas, { type MapHandle, type OverlayMode } from "./MapCanvas";
 import Onboarding from "./Onboarding";
 import Results from "./Results";
 import Scoreboard from "./Scoreboard";
-import SupportedBar from "./SupportedBar";
+import SupportedCard from "./SupportedCard";
 import TileInspector from "./TileInspector";
 import TribeDetail from "./TribeDetail";
+
+/** "Computer plays · helps Hearthwood" and similar. */
+function modeLabel(s: { choiceMode: string; stance: string }, tribe: string): string {
+  const who = s.choiceMode === "player" ? "You choose every turn" : s.choiceMode === "computer" ? "Computer plays" : "You and the computer alternate";
+  if (s.choiceMode === "player") return who;
+  const how = s.stance === "help" ? `helps ${tribe}` : s.stance === "hurt" ? `hurts ${tribe}` : "chooses at random";
+  return `${who} · computer ${how}`;
+}
 
 const SEASON_LABEL: Record<string, string> = { spring: "Spring", summer: "Summer", autumn: "Autumn", winter: "Winter" };
 
@@ -94,11 +102,19 @@ export default function GameScreen({ gameId }: { gameId: string }) {
           {!finished && (
             <>
               <span>Year {cal.year} · {cal.phase === "early" ? "Early" : "Late"} {SEASON_LABEL[cal.season]}</span>
-              <span className={`chip ${cal.source === "nature" ? "badge-nature" : "badge-player"}`}>{cal.source === "nature" ? "Nature's turn" : "Your turn"}</span>
+              {game.event && (
+                <span className={`chip ${game.event.source === "nature" ? "badge-nature" : "badge-player"}`}>{game.event.source === "nature" ? "Nature's turn" : "Your turn"}</span>
+              )}
             </>
           )}
         </div>
+        <span className="chip mode-chip" title="Who shapes the environment, set when the match was created">{modeLabel(game.settings, TRIBES[game.supportedTribeId].name)}</span>
         <span className="spacer" />
+        {!finished && game.settings.choiceMode === "computer" && (
+          <button type="button" className="btn btn-sm" onClick={() => g.setPaused(!g.paused)} aria-pressed={g.paused}>
+            {g.paused ? "▶ Resume" : "⏸ Pause"}
+          </button>
+        )}
         <label className="small" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
           Speed
           <select value={g.speed} onChange={(e) => g.setSpeed(e.target.value as "normal" | "fast")} style={{ background: "#3c3223", color: "#f6ecd8", borderRadius: 6, border: "1px solid #5b4c35" }}>
@@ -115,15 +131,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
         <Link className="btn btn-sm" href="/">New game</Link>
       </header>
 
-      {supported && (
-        <SupportedBar
-          tribe={supported}
-          rank={livingRanked.findIndex((t) => t.id === supported.id) + 1}
-          living={livingRanked.length}
-          onDetails={() => setSelectedTribe(supported.id)}
-          onFocus={() => mapRef.current?.focusTile(supported.settlement)}
-        />
-      )}
       <div className="game-main">
         <div className="left-col">
           <div className="map-row">
@@ -175,6 +182,15 @@ export default function GameScreen({ gameId }: { gameId: string }) {
             </section>
             <aside className="map-side" aria-label="Tribes">
               <Scoreboard tribes={game.tribes} supported={game.supportedTribeId} selected={selectedTribe} onSelect={(id) => setSelectedTribe(selectedTribe === id ? null : id)} />
+              {supported && (
+                <SupportedCard
+                  tribe={supported}
+                  rank={livingRanked.findIndex((t) => t.id === supported.id) + 1}
+                  living={livingRanked.length}
+                  onDetails={() => setSelectedTribe(selectedTribe === supported.id ? null : supported.id)}
+                  onFocus={() => mapRef.current?.focusTile(supported.settlement)}
+                />
+              )}
               {selTribe ? (
                 <TribeDetail tribe={selTribe} supported={selTribe.id === game.supportedTribeId} onFocus={() => mapRef.current?.focusTile(selTribe.settlement)} currentTurn={cal.turn} />
               ) : (

@@ -2,7 +2,7 @@ import { BALANCE, RULES_VERSION, STARTING } from "@/content/balance";
 import { TRIBES } from "@/content/tribes";
 import { DEFAULT_TOTAL_TURNS, MAX_TOTAL_TURNS, MIN_TOTAL_TURNS } from "../calendar";
 import { makeRng } from "../rng";
-import { Terrain, TILE_COUNT, TRIBE_IDS, type GameState, type TribeId, type TribeState, type WorldState } from "../types";
+import { Terrain, TILE_COUNT, TRIBE_IDS, type GameSettings, type GameState, type TribeId, type TribeState, type WorldState } from "../types";
 import { tileId } from "./grid";
 import { claimStartTerritory, lastAssetFailure, placeStartingAssets, territoryGapOk, trySettlementPlacement, validatePlacement, type Settlements } from "./placement";
 import { createEmptyWorld, fillResources, generateTerrain } from "./terrain";
@@ -129,7 +129,7 @@ export function initialTribe(id: TribeId, settlement: number): TribeState {
   };
 }
 
-export function createInitialState(seed: string, contentVersion: string, contentHash: string, totalTurns = DEFAULT_TOTAL_TURNS): GameState {
+export function createInitialState(seed: string, contentVersion: string, contentHash: string, totalTurns = DEFAULT_TOTAL_TURNS, settings?: GameSettings): GameState {
   if (!Number.isInteger(totalTurns) || totalTurns < MIN_TOTAL_TURNS || totalTurns > MAX_TOTAL_TURNS) throw new Error("invalid match length");
   const gen = generateWorld(seed);
   const tribes = {} as Record<TribeId, TribeState>;
@@ -153,6 +153,7 @@ export function createInitialState(seed: string, contentVersion: string, content
     currentEvent: null,
     effectCounter: 0,
     unionOffers: [],
+    ...(settings ? { settings } : {}),
   };
 }
 

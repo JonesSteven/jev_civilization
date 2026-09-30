@@ -10,9 +10,10 @@ world around them.
 ## What it does
 
 - **Pick a tribe to support.** Farmers, hunters, mountain fishers, or raiders — each lives off the land differently.
-- **You never give orders.** Instead, every other turn you choose how the environment changes: a wet spring, a
-  harsh winter, a wildlife boom, a crop pest, a plague. Many events strike just one region, and each option says which
-  tribes it will likely help or hurt. On the turns in between, Nature picks at random.
+- **You never give orders.** Instead you choose how the environment changes: a wet spring, a harsh winter, a
+  wildlife boom, a crop pest, a plague. Many events strike just one region, and each option says which tribes it will
+  likely help or hurt. At setup you decide who chooses: you every turn, you and the computer in turn, or the computer
+  alone while you watch. The computer can be set to help your tribe, hurt it, or choose at random.
 - **The tribes decide for themselves.** Each turn an AI model, **Jev**, chooses one action for every tribe from the
   moves that are actually possible for it — farm, hunt, build, research, move, scout for new land, found a new
   settlement, raid a neighbour, or offer (or accept) a union.

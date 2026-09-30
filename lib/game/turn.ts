@@ -2,6 +2,7 @@
 // apply environment → economy → finalize. `resolveTurn` is pure with respect to its inputs: it clones
 // the pre-turn state and never consumes randomness outside keyed draws.
 
+import { BALANCE } from "@/content/balance";
 import { narrate } from "@/content/narration";
 import { tribeName } from "@/content/tribes";
 import { seasonOf } from "./calendar";
@@ -12,11 +13,11 @@ import { prepareEvent } from "./effects/eventSelection";
 import { ModifierIndex } from "./effects/modifiers";
 import { computeGeo, livingTribes } from "./geo";
 import { hashState } from "./serialize";
-import { ageMemories, relaxRelations } from "./memory";
+import { ageMemories, relaxRelations, remember } from "./memory";
 import { resolveActions } from "./resolve/actions";
 import { organicGrowth, pruneScoutedSites } from "./settlements";
 import { scoreTribe } from "./score";
-import { collapseIfTooSmall, expireOffers } from "./unions";
+import { collapseIfTooSmall, expireOffers, makeUnionOffers } from "./unions";
 import { summarizeTurn, type TurnSummary } from "./summary";
 import { TRIBE_IDS, type ActionCandidate, type GameOutcome, type GameState, type PreparedEvent, type ScoreBreakdown, type TribeId } from "./types";
 
@@ -118,6 +119,16 @@ export function resolveTurn(
   // Conquered and united tribes leave the game too.
   for (const id of TRIBE_IDS) if (before.has(id) && !next.tribes[id].alive && !eliminated.includes(id)) eliminated.push(id);
 
+  // Shattered tribes lose heart: a big loss in one turn sinks morale, stalling births for several turns.
+  for (const id of livingTribes(next)) {
+    const before = pre.tribes[id].population;
+    const t = next.tribes[id];
+    if (before > 0 && (before - t.population) / before >= BALANCE.morale.shockShare) {
+      t.morale = Math.max(BALANCE.morale.min, t.morale + BALANCE.morale.shock);
+      remember(next, id, turn, "shock", `Lost ${Math.round(((before - t.population) / before) * 100)}% of our people on turn ${turn}; spirits are low`);
+    }
+  }
+
   // Organic border growth: living tribes spread onto unclaimed border land as they grow.
   const grown = organicGrowth(next, computeGeo(next, mods.travelDelta(season)));
   for (const id of TRIBE_IDS) {
@@ -130,6 +141,7 @@ export function resolveTurn(
   // 9. Finalize: durations, relations, scores, history, next event.
   expireEffects(next, changed);
   expireOffers(next, turn);
+  makeUnionOffers(next, turn, outcomes);
   relaxRelations(next);
   ageMemories(next, turn);
   const finalMods = new ModifierIndex(next, next.activeEffects);

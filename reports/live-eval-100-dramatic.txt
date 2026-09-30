@@ -1,3 +1,37 @@
+Live Jev (jev-1.13.0) · third round (much faster, 50-turn default) · 2026-09-29
+Same seeds final-0 … final-4, 50 turns each (npm run live-sim -- --games 5 --turns 50 --seed-prefix final --parallel 5)
+Turn-by-turn logs: reports/live-final-<n>-50.log
+
+LIVE Jev simulation (jev-1.13.0): 5 games × up to 50 turns
+
+=== final-0: ended turn 50, 757k tokens; winners hearthwood
+  final population: hearthwood 4267, windstep 3043, stonehaven 2980, ironfang 1372
+  spread (largest ÷ smallest): t25 2.0×, t50 3.1×
+
+=== final-1: ended turn 50, 714k tokens; winners ironfang
+  final population: hearthwood 0, windstep 3456, stonehaven 2029, ironfang 4952
+  spread (largest ÷ smallest): t25 1.5×, t50 gone
+  departures: hearthwood joined ironfang on turn 37
+
+=== final-2: ended turn 50, 655k tokens; winners hearthwood
+  final population: hearthwood 9469, windstep 0, stonehaven 3910, ironfang 4293
+  spread (largest ÷ smallest): t25 gone, t50 gone
+  departures: windstep joined hearthwood on turn 13
+
+=== final-3: ended turn 50, 757k tokens; winners hearthwood
+  final population: hearthwood 5367, windstep 4512, stonehaven 0, ironfang 3076
+  spread (largest ÷ smallest): t25 4.1×, t50 gone
+  departures: stonehaven joined hearthwood on turn 42
+
+=== final-4: ended turn 50, 607k tokens; winners stonehaven
+  final population: hearthwood 2197, windstep 2421, stonehaven 3523, ironfang 0
+  spread (largest ÷ smallest): t25 gone, t50 gone
+  departures: ironfang joined stonehaven on turn 11
+
+A tribe was gone by turn 50 in 4 of 5 matches, each time a different tribe (Hearthwood, Windstep, Stonehaven, Ironfang).
+Before the third-round changes the same seeds ended 1.8–3.9× apart at turn 50 with no departures.
+
+---- Second round (100-turn matches) ----
 Live Jev (jev-1.13.0) · rules-3.0.0 · content-3.0.0 · 2026-09-29 (second round: prompt advisories, event rework, routine timber 80)
 5 matches × 100 turns, seeds final-0 … final-4, same seeds as the first round below (npm run live-sim -- --games 5 --turns 100 --seed-prefix final --parallel 5)
 About 1.4–1.6M tokens per match. Turn-by-turn logs with summaries: reports/live-final-<n>-100.log

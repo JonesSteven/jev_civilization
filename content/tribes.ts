@@ -39,7 +39,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
     description:
       "Settled cultivators who value a reliable harvest, family shelter, and maintaining the land around their homes. They prefer preparation and gradual development but will defend their settlements.",
     advantages: [
-      "Farming yield ×1.15",
+      "Farming yield ×1.4",
       "Timber gathering ×1.25",
       "Wooden housing takes half the ordinary weather damage",
       "Innate access to farms",
@@ -66,7 +66,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
     description:
       "Mobile hunting communities who prize independence, knowledge of animals, and the ability to leave an exhausted landscape. They favor movement and opportunity over permanent monuments.",
     advantages: [
-      "Hunting and gathering yield ×1.5",
+      "Hunting and gathering yield ×1.8",
       "Hunting sites draw on game from farther away",
       "Movement budget 10 instead of 6",
       "Portable camp housing moves with them",
@@ -76,7 +76,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
     vulnerabilities: [
       "Local wildlife can be depleted, and vanishing herds mean hunger",
       "Camps suffer in storms and freezing rain",
-      "No resistance to epidemics",
+      "Especially vulnerable to epidemics",
     ],
     difficulty: "Moderate",
     traits: ["mobile hunters", "long-distance movers", "portable camps", "hardy in winter camps"],
@@ -96,7 +96,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
       "Mountain communities skilled at using rock, caves, meadows, and nearby waterways. They value endurance, shelter, and carefully accumulated knowledge.",
     advantages: [
       "Stone gathering ×1.30",
-      "Fishing yield ×1.45",
+      "Fishing yield ×1.8",
       "Innate stone construction and fishing",
       "Mountain travel cost 2 instead of 3",
     ],
@@ -123,21 +123,21 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
       "Mobile raiders who gain supplies and prestige by intimidating or attacking neighboring settlements. They prefer a vulnerable target to slow accumulation, but prolonged scarcity can force them to learn new methods.",
     advantages: [
       "Starting military level 2",
-      "Raid attack ×1.5",
+      "Raid attack ×2",
       "Movement budget 8",
       "Portable camp housing",
     ],
     vulnerabilities: [
-      "No initial passive food production or subsistence forage",
+      "No farms or fisheries until it learns Agriculture or Fishing; it hunts, forages, and raids",
       "Fortified neighbors and empty stores undermine them",
-      "No resistance to epidemics",
+      "Especially vulnerable to epidemics",
     ],
     difficulty: "Challenging",
-    traits: ["mobile raiders", "trained fighters", "portable camps", "no food production until Agriculture or Fishing"],
+    traits: ["mobile raiders", "trained fighters", "portable camps", "hunts and forages but has no farms or fisheries until Agriculture or Fishing"],
     preferences: ["raiding vulnerable neighbors", "prestige", "mobility"],
-    innate: ["portableCamps"],
+    innate: ["hunting", "portableCamps"],
     startingShelter: "camp",
-    startingSites: null,
+    startingSites: "hunt",
   },
 };
 

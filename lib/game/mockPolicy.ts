@@ -77,7 +77,11 @@ function heuristic(snap: Snapshot, tribe: TribeId, c: ActionCandidate): number {
       break;
     case "raid":
       v = tribe === "ironfang" ? (hungry ? 2.4 : 0.8) : hungry ? 0.6 : 0.1;
-      if (c.target?.type === "settlement") v *= 1.6 * raidChance(attackStrength(s, tribe), defenseStrength(s, c.target.tribeId, false, c.target.tile));
+      if (c.target?.type === "settlement") {
+        // A sensible raider waits for good odds: long-shot raids cost it dearly when they fail.
+        const chance = raidChance(attackStrength(s, tribe), defenseStrength(s, c.target.tribeId, false, c.target.tile));
+        v *= chance >= 0.55 ? 1.6 * chance : 0.25;
+      }
       break;
     case "defend":
       v = Object.values(t.memory).some((m) => m.kind === "raided" && m.turn >= snap.turn - 3) ? 1.2 : 0.15;
@@ -91,9 +95,11 @@ function heuristic(snap: Snapshot, tribe: TribeId, c: ActionCandidate): number {
     case "offer_union":
       v = food.coverageTurns > 2 ? 1.8 : 0.6;
       break;
-    case "accept_union":
-      v = food.coverageTurns < 1 || t.lastFoodDeficit ? 2.6 : 0.9;
+    case "accept_union": {
+      const bigger = c.target?.type === "settlement" ? s.tribes[c.target.tribeId].population : 0;
+      v = food.coverageTurns < 1 || t.lastFoodDeficit || bigger >= t.population * 5 ? 2.6 : 0.9;
       break;
+    }
     case "found_settlement":
       v = t.population >= 100 * SCALE ? 2.3 : 0.6;
       break;

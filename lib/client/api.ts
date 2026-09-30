@@ -38,7 +38,7 @@ export const api = {
     call<{ games: { id: string; status: string; mode: string; supportedTribeId: string; seed: string; completedTurn: number; totalTurns: number; createdAt: number }[] }>("GET", "/api/games").then(
       (r) => r.data.games,
     ),
-  createGame: (body: { tribeId: string; seed?: string; mode: "live" | "mock"; totalTurns?: number }) => call<{ game: GameView }>("POST", "/api/games", body).then((r) => r.data.game),
+  createGame: (body: { tribeId: string; seed?: string; mode: "live" | "mock"; totalTurns?: number; choiceMode?: "player" | "alternate" | "computer"; stance?: "help" | "hurt" | "random" }) => call<{ game: GameView }>("POST", "/api/games", body).then((r) => r.data.game),
   getGame: (id: string) => call<{ game: GameView }>("GET", `/api/games/${id}`).then((r) => r.data.game),
   submitTurn: (id: string, body: { expectedVersion: number; expectedTurn: number; eventId: string; idempotencyKey: string; optionId?: string }) =>
     call<{ game: GameView; turn?: TurnRecord; pending?: boolean }>("POST", `/api/games/${id}/turns`, body),

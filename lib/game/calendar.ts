@@ -1,4 +1,4 @@
-import { SEASONS, type ChoiceSource, type Season } from "./types";
+import { SEASONS, type ChoiceSource, type GameState, type Season } from "./types";
 
 /** Match length is chosen per game (10–200 turns, default 50). */
 export const DEFAULT_TOTAL_TURNS = 50;
@@ -7,6 +7,14 @@ export const MAX_TOTAL_TURNS = 200;
 
 export function choiceSource(turn: number): ChoiceSource {
   return turn % 2 === 1 ? "player" : "nature";
+}
+
+/** Who chooses the environment on `turn` under the game's choice mode (alternate when unset). */
+export function choiceSourceFor(state: Pick<GameState, "settings">, turn: number): ChoiceSource {
+  const mode = state.settings?.choiceMode ?? "alternate";
+  if (mode === "player") return "player";
+  if (mode === "computer") return "nature";
+  return choiceSource(turn);
 }
 
 export function seasonIndex(turn: number): number {

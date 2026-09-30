@@ -233,6 +233,18 @@ export interface EventBag {
   refills: number;
 }
 
+/** Who shapes the environment: the player every turn, player and computer in turn, or the computer alone. */
+export type ChoiceMode = "player" | "alternate" | "computer";
+/** How the computer chooses for the supported tribe: helping it against rivals, hurting it, or at random. */
+export type ComputerStance = "help" | "hurt" | "random";
+
+export interface GameSettings {
+  choiceMode: ChoiceMode;
+  stance: ComputerStance;
+  /** Used only to steer the computer's environmental choices; never sent to Jev. */
+  supportedTribe: TribeId;
+}
+
 /** An open union offer: `from` offered on `turn` to take in `to`; `to` may accept on a later turn. */
 export interface UnionOffer {
   from: TribeId;
@@ -261,6 +273,8 @@ export interface GameState {
   effectCounter: number;
   /** Open union offers (absent on states saved before rules-3). */
   unionOffers?: UnionOffer[];
+  /** Choice mode and computer stance (absent on older states: alternate, random). */
+  settings?: GameSettings;
 }
 
 // ---- Actions ----
@@ -325,6 +339,8 @@ export interface TribeDecision {
 export interface GameOutcome {
   kind: string;
   tribeId: TribeId | null;
+  /** The other tribe an action was aimed at (raids, captures). */
+  target?: TribeId;
   text: string;
   tiles?: number[];
   path?: number[];

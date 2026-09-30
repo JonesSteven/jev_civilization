@@ -17,7 +17,8 @@ export const HELP: HelpSection[] = [
     id: "objective",
     title: "In a nutshell",
     body: [
-      "You support one tribe but never give it orders. Every other turn you choose what the weather and the land do; on the turns between, Nature chooses at random and the tribes respond at once. You then read what Nature chose and what happened, and press \"Proceed to my turn\" when you are ready.",
+      "You support one tribe but never give it orders. You shape the weather and the land instead. When you set up a match you choose how: you make every choice, you and the computer (\"Nature\") take turns, or the computer plays alone while you watch.",
+      "When the computer chooses, it can help your tribe (picking what is best for it compared with its rivals), hurt it, or choose at random. When you take turns, you read Nature's pick and the event log, then press \"Proceed to my turn\". A computer-only match plays itself; use Pause to stop it.",
       "Each turn Jev (TypeSafe's decision model) picks one action for every tribe. The game engine then works out the harvests, hunger, births, raids, and borders.",
       "After each turn a short summary says who gained or lost people and why. The match ends at its turn limit (10–200 turns) or as soon as only one tribe is left.",
     ],
@@ -27,7 +28,7 @@ export const HELP: HelpSection[] = [
     title: "Luck shapes history",
     body: [
       "Like the civilizations in Guns, Germs, and Steel, the tribes are not better or worse people: where they live and what happens to them decides their fate. Many events strike just one region, so a blizzard or a plague can cripple one tribe while its neighbour thrives.",
-      "Small edges compound. A well-fed tribe grows up to 10% a turn, and larger tribes research faster, so an early lucky harvest or a new technology can snowball. A tribe hit by famine loses people, morale, and time.",
+      `Small edges compound. A thriving, well-fed tribe grows up to ${pct(P.birthRate + P.wellFedBirthBonus)} a turn, while a tribe that has shrunk in the last ${P.momentumTurns} turns grows only ${pct(P.birthRate)}. Larger tribes also research faster, so an early lucky harvest or a new technology can snowball.`,
       "Settled farmers resist epidemics far better than hunters and raiders, who have never lived beside their animals. Sickness also spreads to neighbours whose land touches the stricken tribe.",
     ],
   },
@@ -47,7 +48,7 @@ export const HELP: HelpSection[] = [
       "Hearthwood (farmers) lives on farms. Crop pests, droughts, frosts, and floods hurt it; good rains and warm summers help. Its wooden homes shrug off weather, and it resists sickness best.",
       "Windstep (hunters) lives on wild game and moves easily. Vanishing herds and shelter-wrecking storms hurt it; herd migrations help. Its portable camps suffer in freezing rain.",
       "Stonehaven (mountain fishers) lives on fisheries and shelters in caves and stone. Ice, storms, and failed spawning hurt it; salmon runs and steady rivers help.",
-      "Ironfang (raiders) starts with food but no way to grow more until it learns Agriculture or Fishing. It takes food and land by raiding neighbours, and can conquer a shattered one.",
+      "Ironfang (raiders) hunts, forages, and raids but has no farms or fisheries until it learns Agriculture or Fishing. It takes food and land from neighbours and can conquer a shattered one.",
     ],
   },
   {
@@ -55,7 +56,7 @@ export const HELP: HelpSection[] = [
     title: "Growth, hunger, and collapse",
     body: [
       `Tribes start with ${STARTING.population.toLocaleString("en-US")} people. One food feeds one person for one turn. Farms, hunting sites, fisheries, and foraging produce every turn.`,
-      `A fed tribe with morale of at least ${P.birthMinMorale} grows ${pct(P.birthRate)} a turn, or ${pct(P.birthRate + P.wellFedBirthBonus)} while its stores cover ${P.wellFedTurns} turns. Growth can outrun housing, but people without shelter die of cold in winter and in storms.`,
+      `A fed tribe with morale of at least ${P.birthMinMorale} grows ${pct(P.birthRate)} a turn, or ${pct(P.birthRate + P.wellFedBirthBonus)} while its stores cover ${P.wellFedTurns} turns and it has not shrunk for ${P.momentumTurns} turns. Growth can outrun housing, but people without shelter die of cold in winter and in storms.`,
       `Hunger is deadly: a tribe with no food at all loses ${pct(P.starvationRate)} of its people in a turn. A tribe that falls below ${P.collapseBelow} people breaks apart and disappears.`,
     ],
   },
@@ -63,8 +64,8 @@ export const HELP: HelpSection[] = [
     id: "unions",
     title: "Unions and conquest",
     body: [
-      `A tribe at least ${U.sizeRatio} times larger than a declining neighbour of ${U.minPopulation}+ people may offer to take it in. The smaller tribe decides on one of the next ${U.offerTurns} turns; if it accepts, about ${pct(U.joinShare)} of its people join, bringing their land, stores, and technologies.`,
-      `A remnant smaller than ${U.minPopulation} people is too small to bargain with. If a tribe at least ${C.conquestRatio} times larger raids it successfully, it is conquered and about ${pct(C.conquestJoinShare)} of its survivors are taken in.`,
+      `A tribe at least ${U.sizeRatio} times larger than a declining neighbour of ${U.minPopulation}+ people (or ${U.overwhelmingRatio} times larger than a steady one) offers to take it in. The smaller tribe decides on one of the next ${U.offerTurns} turns; if it accepts, about ${pct(U.joinShare)} of its people join, bringing their land, stores, and technologies.`,
+      `A tribe left with fewer than ${C.conquestBelow} people after a successful raid by a tribe at least ${C.conquestRatio} times larger is conquered: about ${pct(C.conquestJoinShare)} of its survivors are taken in.`,
     ],
   },
   {

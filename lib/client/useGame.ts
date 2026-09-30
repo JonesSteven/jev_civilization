@@ -93,6 +93,8 @@ export function useGame(gameId: string) {
   const [error, setError] = useState<UiError | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [natureReview, setNatureReview] = useState<NatureReview | null>(null);
+  /** Computer-only games auto-play; this pauses them between turns. */
+  const [paused, setPaused] = useState(false);
   const [decidingSince, setDecidingSince] = useState<number | null>(null);
   const [speed, setSpeed] = usePref<Speed>("jc-speed", "normal");
   const systemReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -227,18 +229,24 @@ export function useGame(gameId: string) {
     return () => window.clearTimeout(t);
   }, [game, busy, gameId, applyGame, finishTurn]);
 
-  // Nature's option is frozen server-side. Its turn goes to Jev straight away; the result is then held for review
-  // until the player chooses to proceed.
+  // Nature's option is frozen server-side. When player and computer alternate, its turn goes to Jev straight away and
+  // the result is held for review until the player proceeds. When the computer plays alone, turns run one after
+  // another, spaced by the speed setting, until paused.
   useEffect(() => {
     if (!game || busy || error) return;
     if (game.status !== "nature_pending" || !game.event) return;
     const event = game.event;
+    if (game.settings.choiceMode === "computer") {
+      if (paused) return;
+      const t = window.setTimeout(() => void submit(), game.completedTurn === 0 ? 800 : speed === "fast" ? 1000 : 3000);
+      return () => window.clearTimeout(t);
+    }
     const t = window.setTimeout(() => {
       setNatureReview((r) => (r && r.event.turn === event.turn ? r : { event, record: null, previous: lastTurn && lastTurn.turn === event.turn - 1 ? lastTurn : null }));
       void submit();
     }, 300);
     return () => window.clearTimeout(t);
-  }, [game, busy, error, submit, lastTurn]);
+  }, [game, busy, error, submit, lastTurn, paused, speed]);
 
   const proceed = useCallback(() => setNatureReview(null), []);
 
@@ -278,6 +286,8 @@ export function useGame(gameId: string) {
     loadError,
     natureReview,
     proceed,
+    paused,
+    setPaused,
     decidingSince,
     speed,
     setSpeed,

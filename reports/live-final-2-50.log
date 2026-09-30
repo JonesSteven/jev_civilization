@@ -1,0 +1,137 @@
+T1 p Seeds on the Wind: Wild wheat @ the whole land [heart 1150 · winds 1150 · stone 1150 · ironf 1050] | heart:housing_wood_at_6986 ironf:research_agriculture stone:housing_stone_at_3520 winds:send_scouts
+    Hearthwood grew by 15% on plentiful food.
+      Windstep grew by 15% on plentiful food (1,000 → 1,150).
+      Stonehaven grew by 15% on plentiful food (1,000 → 1,150).
+      Ironfang grew by 5% on plentiful food (1,000 → 1,050).
+T2 n Fish Spawning: Scattered spawning @ the eastern region [heart 1322 · winds 1322 · stone 1322 · ironf 1102] | heart:send_scouts ironf:research_continue stone:fishery_at_3370 winds:found_settlement_at_1315
+    Hearthwood grew by 15% on plentiful food.
+      Windstep grew by 15% on plentiful food (1,150 → 1,322).
+      Stonehaven grew by 15% on plentiful food (1,150 → 1,322).
+T3 p Season of Rain: Gentle rains @ the north-eastern region [heart 1520 · winds 1520 · stone 1520 · ironf 1267] | heart:found_settlement_at_7706 ironf:farm_at_2805 stone:send_scouts winds:found_settlement_at_7170
+    Hearthwood grew by 15% on plentiful food.
+      Helped by the gentle rains, Windstep grew by 15% on plentiful food (1,322 → 1,520).
+      Stonehaven grew by 15% on plentiful food (1,322 → 1,520).
+      Ironfang grew by 15% on plentiful food (1,102 → 1,267).
+T4 n Sickness: Plague @ the eastern region [heart 1748 · winds 767 · stone 1596 · ironf 1457] | heart:farm_at_6988 ironf:housing_camp stone:research_agriculture winds:hunt_at_1165
+    Hit by the plague, Windstep lost half of its people to sickness, while Hearthwood grew by 15% on plentiful food.
+      Ironfang grew by 15% on plentiful food (1,267 → 1,457).
+      Stonehaven grew by 5% on plentiful food (1,520 → 1,596).
+T5 p Before Winter: Long rains @ the whole land [heart 2011 · winds 805 · stone 1676 · ironf 1676] | heart:send_scouts ironf:housing_wood_at_2649 stone:research_continue winds:rest
+    Hearthwood grew by 15% on plentiful food.
+      Ironfang grew by 15% on plentiful food (1,457 → 1,676).
+      Stonehaven grew by 5% on plentiful food (1,596 → 1,676).
+T6 n Herd Migration: Vanishing herds @ the eastern region [heart 2312 · winds 845 · stone 1760 · ironf 1760] | heart:housing_wood_at_7556 ironf:send_scouts stone:housing_stone_at_3669 winds:send_scouts
+    Hearthwood grew by 15% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (1,676 → 1,760).
+      Ironfang grew by 5% on plentiful food (1,676 → 1,760).
+T7 p Winter's Character: Wet winter @ the north-eastern region [heart 2428 · winds 888 · stone 1848 · ironf 1848] | heart:housing_wood_at_7705 ironf:found_settlement_at_985 stone:gather_food winds:found_settlement_at_6429
+    Windstep grew by 5% on plentiful food.
+      Hearthwood grew by 5% on plentiful food (2,312 → 2,428).
+      Stonehaven grew by 5% on plentiful food (1,760 → 1,848).
+      Ironfang grew by 5% on plentiful food (1,760 → 1,848).
+T8 n Strong Winds: Rain clouds @ the whole land [heart 2549 · winds 792 · stone 1940 · ironf 1882] | heart:gather_food ironf:raid_windstep stone:gather_food winds:found_settlement_at_7301
+    Windstep lost 11% of its people to fighting and hunger.
+T9 p Recovering Ground: Saplings @ the whole land [heart 2677 · winds 744 · stone 2037 · ironf 1918] | heart:gather_food ironf:raid_windstep stone:farm_at_3519 winds:gather_food
+    Windstep lost 6% of its people to fighting, while Hearthwood grew by 5% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (1,940 → 2,037).
+T10 n Landslide: Forest landslide @ the northern region [heart 2810 · winds 699 · stone 2139 · ironf 1953] | heart:gather_food ironf:raid_windstep stone:housing_stone_at_3668 winds:defend
+    Windstep lost 6% of its people to fighting, while Stonehaven grew by 5% on plentiful food.
+T11 p Recovery: Soil @ the whole land [heart 2951 · winds 657 · stone 2246 · ironf 1988] | heart:gather_food ironf:raid_windstep stone:gather_food winds:defend
+    Windstep lost 6% of its people to fighting, while Hearthwood grew by 5% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (2,139 → 2,246).
+T12 n Lightning Season: Heavy rain @ the north-eastern region [heart 3099 · winds 618 · stone 2358 · ironf 2025] | heart:gather_food ironf:raid_windstep stone:gather_food winds:defend
+    Windstep lost 6% of its people to fighting, while Hearthwood grew by 5% on plentiful food.
+T13 p Natural Shelter: Dense groves @ the whole land [heart 3826 · winds — · stone 2476 · ironf 1913] | heart:housing_wood_at_7707 ironf:raid_windstep stone:gather_food winds:accept_union_hearthwood
+    Windstep joined Hearthwood, ending its own story.
+      Hearthwood grew by a quarter by taking in another tribe (3,099 → 3,826).
+      Ironfang lost 6% of its people to fighting (2,025 → 1,913).
+      Stonehaven grew by 5% on plentiful food (2,358 → 2,476).
+T14 n Windstorm Deposits: Silt @ the whole land [heart 4017 · winds — · stone 2600 · ironf 2009] | heart:gather_food ironf:farm_at_835 stone:housing_stone_at_3821
+    Ironfang grew by 5% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (2,476 → 2,600).
+T15 p Deep Cold: Crisp and dry @ the whole land [heart 3063 · winds — · stone 2530 · ironf 2046] | heart:gather_food ironf:raid_hearthwood stone:gather_food
+    Hearthwood lost a quarter of its people to hunger and fighting as winter stores ran low.
+T16 n Snowfall: Freezing rain @ the north-eastern region [heart 2438 · winds — · stone 2303 · ironf 2084] | heart:gather_food ironf:raid_hearthwood stone:gather_food
+    Hit by the freezing rain, Hearthwood lost a fifth of its people to hunger and fighting.
+      Stonehaven lost 9% of its people to hunger as winter stores ran low (2,530 → 2,303).
+T17 p Spreading Vegetation: Wild grain @ the whole land [heart 2438 · winds — · stone 2418 · ironf 2397] | heart:gather_food ironf:farm_at_1737 stone:gather_food
+    Ironfang grew by 15% on plentiful food.
+T18 n Pollinator Bloom: Along forest edges @ the north-eastern region [heart 2438 · winds — · stone 2539 · ironf 2517] | heart:gather_food ironf:housing_camp stone:gather_food
+    Helped by the pollinator bloom, Ironfang grew by 5% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (2,418 → 2,539).
+T19 p Forest Understory: Berries @ the whole land [heart 2389 · winds — · stone 2666 · ironf 2604] | heart:gather_food ironf:raid_hearthwood stone:gather_food
+    Stonehaven grew by 5% on plentiful food.
+T20 n Erosion: Fertile soil @ the whole land [heart 2389 · winds — · stone 2799 · ironf 2735] | heart:farm_at_1314 ironf:housing_camp stone:gather_food
+    Ironfang grew by 5% on plentiful food.
+T21 p Wild Harvest: Nuts @ the north-eastern region [heart 2389 · winds — · stone 2763 · ironf 3051] | heart:gather_food ironf:raid_stonehaven stone:gather_food
+    Helped by the nuts, Ironfang grew by 12% on plentiful food.
+T22 n Crop Pest: Blight on wild fruit @ the eastern region [heart 2389 · winds — · stone 2901 · ironf 3203] | heart:gather_food ironf:housing_camp stone:gather_food
+    Blight on wild fruit: a quiet turn. No tribe gained or lost more than 5% of its people.
+T23 p Winter Ice: Thin ice @ the whole land [heart 2389 · winds — · stone 2318 · ironf 3363] | heart:gather_food ironf:gather_food stone:housing_stone_at_3220
+    Stonehaven lost a fifth of its people to hunger as winter stores ran low.
+T24 n Storm Season: Persistent storms @ the eastern region [heart 2389 · winds — · stone 2166 · ironf 3531] | heart:gather_food ironf:gather_food stone:gather_food
+    Stonehaven lost 7% of its people to hunger as winter stores ran low.
+T25 p Wildlife Recovery: All at once @ the whole land [heart 2389 · winds — · stone 2166 · ironf 3708] | heart:gather_food ironf:housing_camp stone:gather_food
+    Ironfang grew by 5% on plentiful food.
+T26 n River Flow: Great flood @ the eastern region [heart 2389 · winds — · stone 2166 · ironf 3893] | heart:build_defenses ironf:gather_food stone:gather_food
+    Great flood: a quiet turn. No tribe gained or lost more than 5% of its people.
+T27 p Changing Soil: Stony soil @ the eastern region [heart 2389 · winds — · stone 2166 · ironf 4088] | heart:build_defenses ironf:gather_food stone:gather_food
+    Ironfang grew by 5% on plentiful food.
+T28 n Storehouse Air: Cool nights @ the eastern region [heart 2389 · winds — · stone 2166 · ironf 4292] | heart:defend ironf:housing_camp stone:gather_food
+    Cool nights: a quiet turn. No tribe gained or lost more than 5% of its people.
+T29 p Length of the Harvest: Long golden autumn @ the whole land [heart 2508 · winds — · stone 2166 · ironf 4507] | heart:research_food_storage ironf:gather_food stone:gather_food
+    Ironfang grew by 5% on plentiful food.
+T30 n Shifting Edges: Meadow expands @ the whole land [heart 2885 · winds — · stone 2166 · ironf 4732] | heart:research_continue ironf:gather_food stone:gather_food
+    Hearthwood grew by 15% on plentiful food.
+T31 p Windstorm Deposits: Driftwood and shoals @ the whole land [heart 3029 · winds — · stone 2166 · ironf 4969] | heart:research_agriculture ironf:housing_camp stone:gather_food
+    Ironfang grew by 5% on plentiful food.
+T32 n Winter's Character: Mild winter @ the eastern region [heart 3180 · winds — · stone 2166 · ironf 5217] | heart:defend ironf:gather_food stone:gather_food
+    Mild winter: a quiet turn. No tribe gained or lost more than 5% of its people.
+T33 p The Thaw: Gradual thaw @ the eastern region [heart 3657 · winds — · stone 2166 · ironf 4832] | heart:defend ironf:gather_food stone:gather_food
+    Ironfang lost 7% of its people to hunger, while helped by the gradual thaw, Hearthwood grew by 15% on plentiful food.
+T34 n Herd Migration: Herds crowd the meadows @ the western region [heart 4206 · winds — · stone 2166 · ironf 4457] | heart:defend ironf:gather_food stone:gather_food
+    Ironfang lost 8% of its people to hunger, while Hearthwood grew by 15% on plentiful food.
+T35 p A Thriving Species: Fish @ the north-eastern region [heart 4837 · winds — · stone 2274 · ironf 4680] | heart:research_fishing ironf:gather_food stone:gather_food
+    Helped by the thriving fish, Hearthwood grew by 15% on plentiful food.
+      Helped by the thriving fish, Ironfang grew by 5% on plentiful food (4,457 → 4,680).
+T36 n Summer Heat: Warm summer @ the northern region [heart 5562 · winds — · stone 2388 · ironf 4914] | heart:defend ironf:gather_food stone:gather_food
+    Hearthwood grew by 15% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (2,274 → 2,388).
+      Helped by the warm summer, Ironfang grew by 5% on plentiful food (4,680 → 4,914).
+T37 p Landslide: Dammed river @ the western region [heart 6397 · winds — · stone 2508 · ironf 5160] | heart:defend ironf:gather_food stone:gather_food
+    Hearthwood grew by 15% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (2,388 → 2,508).
+      Ironfang grew by 5% on plentiful food (4,914 → 5,160).
+T38 n Before Winter: Clear skies @ the whole land [heart 7356 · winds — · stone 2633 · ironf 5418] | heart:housing_wood_at_1316 ironf:gather_food stone:farm_at_3369
+    Hearthwood grew by 15% on plentiful food.
+      Ironfang grew by 5% on plentiful food (5,160 → 5,418).
+T39 p Recovery: Soil @ the whole land [heart 7724 · winds — · stone 2765 · ironf 4579] | heart:gather_food ironf:housing_camp stone:gather_food
+    Ironfang lost 15% of its people to hunger as winter stores ran low, while Stonehaven grew by 5% on plentiful food.
+      Hearthwood grew by 5% on plentiful food (7,356 → 7,724).
+T40 n Winter Ice: Thick ice @ the whole land [heart 8110 · winds — · stone 2903 · ironf 3866] | heart:gather_food ironf:gather_food stone:gather_food
+    Ironfang lost 16% of its people to hunger as winter stores ran low.
+T41 p Pollinator Bloom: Along forest edges @ the western region [heart 8516 · winds — · stone 3048 · ironf 3834] | heart:gather_food ironf:gather_food stone:gather_food
+    Helped by the pollinator bloom, Hearthwood grew by 5% on plentiful food.
+T42 n River Flow: Low water @ the north-eastern region [heart 8942 · winds — · stone 3200 · ironf 3812] | heart:housing_wood_at_1465 ironf:gather_food stone:gather_food
+    Hearthwood grew by 5% on plentiful food.
+T43 p Storehouse Air: Cool nights @ the northern region [heart 9389 · winds — · stone 3360 · ironf 4003] | heart:gather_food ironf:gather_food stone:gather_food
+    Ironfang grew by 5% on plentiful food.
+      Stonehaven grew by 5% on plentiful food (3,200 → 3,360).
+T44 n Strong Winds: Rain clouds @ the whole land [heart 9858 · winds — · stone 3528 · ironf 4203] | heart:gather_food ironf:gather_food stone:gather_food
+    Stonehaven grew by 5% on plentiful food.
+T45 p Storm Season: Violent storms @ the eastern region [heart 10351 · winds — · stone 3705 · ironf 4413] | heart:housing_wood_at_5511 ironf:gather_food stone:housing_stone_at_3518
+    Stonehaven grew by 5% on plentiful food.
+      Hearthwood grew by 5% on plentiful food (9,858 → 10,351).
+T46 n Changing Soil: Rich soil @ the eastern region [heart 10869 · winds — · stone 3890 · ironf 4634] | heart:farm_at_5660 ironf:gather_food stone:gather_food
+    Ironfang grew by 5% on plentiful food.
+      Helped by the rich soil, Hearthwood grew by 5% on plentiful food (10,351 → 10,869).
+T47 p Shifting Edges: Forest expands @ the whole land [heart 11412 · winds — · stone 4085 · ironf 4865] | heart:gather_food ironf:gather_food stone:gather_food
+    Stonehaven grew by 5% on plentiful food.
+T48 n Deep Cold: Crisp and dry @ the whole land [heart 10444 · winds — · stone 4289 · ironf 4682] | heart:housing_wood_at_5811 ironf:gather_food stone:gather_food
+    Hearthwood lost 8% of its people to hunger as winter stores ran low.
+T49 p Recovering Ground: Shrubs @ the whole land [heart 9499 · winds — · stone 3724 · ironf 4355] | heart:gather_food ironf:gather_food stone:housing_stone_at_3667
+    Stonehaven lost 13% of its people to hunger.
+      Hearthwood lost 9% of its people to hunger (10,444 → 9,499).
+      Ironfang lost 7% of its people to hunger (4,682 → 4,355).
+T50 n Seeds on the Wind: Fruit bushes @ the whole land [heart 9469 · winds — · stone 3910 · ironf 4293] | heart:gather_food ironf:gather_food stone:gather_food
+    Fruit bushes: a quiet turn. No tribe gained or lost more than 5% of its people.

@@ -100,16 +100,18 @@ button, input, select { font: inherit; color: inherit; }
 .map-side .scoreboard .pop-delta { display: block; margin-left: 0; }
 .map-side .tribe-detail .stats { grid-template-columns: 1fr; }
 .side-hint { margin: 0 4px; }
-/* Supported tribe: screen-wide bar under the header */
-.supported-bar { display: flex; align-items: center; gap: 8px 22px; flex-wrap: wrap; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line); border-left: 6px solid; box-shadow: 0 2px 6px rgba(44, 36, 24, 0.08); }
-.supported-bar .sb-name { display: flex; align-items: center; gap: 8px; }
-.supported-bar .sb-name .emblem { width: 34px; height: 34px; }
-.supported-bar .sb-title { font-family: var(--serif); font-size: 18px; font-weight: 700; line-height: 1.1; }
-.supported-bar .sb-item { display: flex; flex-direction: column; min-width: 0; }
-.supported-bar .sb-item > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
-.supported-bar .sb-item > strong { font-size: 14px; white-space: nowrap; }
-.supported-bar .sb-gone { font-weight: 600; }
-.supported-bar .sb-actions { margin-left: auto; display: flex; gap: 6px; }
+/* Supported tribe: summary card beside the map, under the tribes table */
+.supported-card { padding: 10px 12px; border-left: 6px solid; display: flex; flex-direction: column; gap: 8px; }
+.supported-card .sb-name { display: flex; align-items: center; gap: 8px; }
+.supported-card .sb-name .emblem { width: 32px; height: 32px; }
+.supported-card .sb-title { font-family: var(--serif); font-size: 18px; font-weight: 700; line-height: 1.1; }
+.supported-card .sb-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+.supported-card .sb-item { display: flex; flex-direction: column; min-width: 0; }
+.supported-card .sb-item > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+.supported-card .sb-item > strong { font-size: 13px; }
+.supported-card .sb-wide { grid-column: 1 / -1; }
+.supported-card .sb-gone { font-weight: 600; }
+.supported-card .sb-actions { display: flex; gap: 6px; }
 .left-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .right-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .map-panel { padding: 8px; }
@@ -256,3 +258,4 @@ details > summary { cursor: pointer; font-weight: 600; }
 .review-turn { margin: 6px 0 10px; }
 .review-turn h3 { font-size: 14px; margin: 0 0 4px; }
 .tribe-choices { margin-top: 4px; }
+.topbar .mode-chip { background: #3c3223; color: #f6ecd8; border-color: #5b4c35; }

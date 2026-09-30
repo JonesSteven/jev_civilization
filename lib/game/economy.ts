@@ -151,7 +151,13 @@ export function runEconomy(
     let births = 0;
     const P = BALANCE.population;
     if (deficitRatio === 0 && t.morale >= P.birthMinMorale && t.population > 0 && t.population < shelter.effective * P.overcrowding) {
-      const wellFed = t.food >= t.population * P.wellFedTurns;
+      // Momentum: only a tribe that has not shrunk recently gets the well-fed boom; a battered tribe regrows slowly.
+      const recent = t.history.slice(-P.momentumTurns).map((h) => h.population);
+      // A shattered tribe (well below its own peak) rebuilds slowly even once it stops shrinking.
+      const peak = Math.max(t.population, ...t.history.map((h) => h.population));
+      const thriving = recent.every((v, i) => i === 0 || v >= (recent[i - 1] as number)) && t.population >= peak * P.recoveryShare;
+      // The boom also needs this turn's own harvest to cover what the tribe eats: living off savings is no boom.
+      const wellFed = thriving && t.food >= t.population * P.wellFedTurns && r.foodTotal >= requirement;
       t.birthAccumulator += t.population * (P.birthRate + (wellFed ? P.wellFedBirthBonus : 0));
       const whole = Math.floor(t.birthAccumulator);
       births = whole;

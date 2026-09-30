@@ -20,6 +20,8 @@ export default function StartScreen() {
   const [seed, setSeed] = useState("");
   const [mode, setMode] = useState<"live" | "mock">("live");
   const [totalTurns, setTotalTurns] = useState(DEFAULT_TOTAL_TURNS);
+  const [choiceMode, setChoiceMode] = useState<"player" | "alternate" | "computer">("alternate");
+  const [stance, setStance] = useState<"help" | "hurt" | "random">("random");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [help, setHelp] = useState(false);
@@ -37,7 +39,7 @@ export default function StartScreen() {
     setBusy(true);
     setError(null);
     try {
-      const g = await api.createGame({ tribeId: tribe, mode, totalTurns, ...(seed.trim() ? { seed: seed.trim() } : {}) });
+      const g = await api.createGame({ tribeId: tribe, mode, totalTurns, choiceMode, stance: choiceMode === "player" ? "random" : stance, ...(seed.trim() ? { seed: seed.trim() } : {}) });
       router.push(`/game/${g.id}`);
     } catch (e) {
       setError(e instanceof ClientApiError ? e.message : "Could not start the match.");
@@ -111,6 +113,40 @@ export default function StartScreen() {
               <div className="notice-box" style={{ marginTop: 8 }} role="status">
                 Live play needs <code>TYPESAFE_API_KEY</code> set on the server (in <code>.env.local</code>), then a server restart.
                 {config?.mockPermitted ? " You can still start a clearly labeled mock simulation." : ""}
+              </div>
+            )}
+          </fieldset>
+          <fieldset>
+            <legend>Who shapes the environment</legend>
+            <div className="radio-row">
+              <label>
+                <input type="radio" name="choiceMode" value="player" checked={choiceMode === "player"} onChange={() => setChoiceMode("player")} />
+                Player makes all choices
+              </label>
+              <label>
+                <input type="radio" name="choiceMode" value="alternate" checked={choiceMode === "alternate"} onChange={() => setChoiceMode("alternate")} />
+                Player and computer alternate
+              </label>
+              <label>
+                <input type="radio" name="choiceMode" value="computer" checked={choiceMode === "computer"} onChange={() => setChoiceMode("computer")} />
+                Computer plays alone (you watch)
+              </label>
+            </div>
+            {choiceMode !== "player" && (
+              <div className="radio-row" style={{ marginTop: 6 }}>
+                <span className="small"><strong>The computer&apos;s choices</strong></span>
+                <label>
+                  <input type="radio" name="stance" value="help" checked={stance === "help"} onChange={() => setStance("help")} />
+                  help my tribe
+                </label>
+                <label>
+                  <input type="radio" name="stance" value="hurt" checked={stance === "hurt"} onChange={() => setStance("hurt")} />
+                  hurt my tribe
+                </label>
+                <label>
+                  <input type="radio" name="stance" value="random" checked={stance === "random"} onChange={() => setStance("random")} />
+                  are random
+                </label>
               </div>
             )}
           </fieldset>

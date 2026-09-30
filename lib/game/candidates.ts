@@ -11,8 +11,8 @@ import { seasonOf } from "./calendar";
 import { ModifierIndex } from "./effects/modifiers";
 import { accessibleTiles, computeGeo, foreignSettlements, livingTribes, reach, settlementsOf, type TribeGeo } from "./geo";
 import { settlementBuffer, siteUsable } from "./settlements";
-import { acceptableOffers, hasOpenOffer, unionEligible } from "./unions";
-import { activeSiteCount, capabilities, gatherPotential, laborFactor, sitePotential, siteRadius } from "./production";
+import { acceptableOffers } from "./unions";
+import { activeSiteCount, capabilities, gatherPotential, housingCapacity, laborFactor, sitePotential, siteRadius } from "./production";
 import { attackStrength, defenseStrength, fortCap, fortLevel, foodOutlook, raidChance, researchEffort, shelterOutlook } from "./stats";
 import {
   TERRAIN_NAMES,
@@ -167,6 +167,9 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
   const sh = shelterOutlook(snap.state, tribe, geo);
   const pop = snap.state.tribes[tribe].population;
   const over = BALANCE.population.overcrowding;
+  const woodCap = housingCapacity("wood", pop);
+  const stoneCap = housingCapacity("stone", pop);
+  const campCap = housingCapacity("camp", pop);
   const shelterLine = `Current usable shelter ${sh.usableCapacity} for ${pop} people (${sh.unsheltered} unsheltered)`;
   /** What a housing option achieves: people protected from cold, and the higher birth limit. */
   const benefit = (cap: number) =>
@@ -180,8 +183,8 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
           `housing_wood_at_${spot}`,
           "build_housing",
           A.woodHousing.cost,
-          `${costText(A.woodHousing.cost)}; build wooden homes for ${A.woodHousing.capacity} people on the ${placeLabel(snap, geo, spot)}. ${benefit(A.woodHousing.capacity)} Fixed: stays if the settlement moves. ${shelterLine}.`,
-          [`+${A.woodHousing.capacity} shelter capacity at full condition`],
+          `${costText(A.woodHousing.cost)}; build wooden homes for ${woodCap} people on the ${placeLabel(snap, geo, spot)}. ${benefit(woodCap)} Fixed: stays if the settlement moves. ${shelterLine}.`,
+          [`+${woodCap} shelter capacity at full condition`],
           [tribe === "hearthwood" ? "Wooden homes take half weather damage for Hearthwood" : "Wooden homes take ordinary weather damage", ...(note ? [note] : [])],
           { type: "housing", housingType: "wood", tile: spot, label: placeLabel(snap, geo, spot) },
         ),
@@ -194,8 +197,8 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
           `housing_stone_at_${spot}`,
           "build_housing",
           A.stoneHousing.cost,
-          `${costText(A.stoneHousing.cost)}; build stone houses for ${A.stoneHousing.capacity} people on the ${placeLabel(snap, geo, spot)}. ${benefit(A.stoneHousing.capacity)} Durable against weather; stays if the settlement moves. ${shelterLine}.`,
-          [`+${A.stoneHousing.capacity} shelter capacity`],
+          `${costText(A.stoneHousing.cost)}; build stone houses for ${stoneCap} people on the ${placeLabel(snap, geo, spot)}. ${benefit(stoneCap)} Durable against weather; stays if the settlement moves. ${shelterLine}.`,
+          [`+${stoneCap} shelter capacity`],
           ["Stone housing takes 40% of ordinary weather damage"],
           { type: "housing", housingType: "stone", tile: spot, label: placeLabel(snap, geo, spot) },
         ),
@@ -209,8 +212,8 @@ function housingCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: A
         "housing_camp",
         "build_housing",
         A.campHousing.cost,
-        `${costText(A.campHousing.cost)}; add portable camp shelter for ${A.campHousing.capacity} people that moves with the settlement. ${benefit(A.campHousing.capacity)} ${shelterLine}.`,
-        [`+${A.campHousing.capacity} portable shelter capacity`],
+        `${costText(A.campHousing.cost)}; add portable camp shelter for ${campCap} people that moves with the settlement. ${benefit(campCap)} ${shelterLine}.`,
+        [`+${campCap} portable shelter capacity`],
         ["Camps take 130% of ordinary weather damage"],
         { type: "housing", housingType: "camp", tile: null, label: "portable camp" },
       ),
@@ -587,39 +590,19 @@ function raidCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: Acti
 
 function conquestNote(s: GameState, tribe: TribeId, target: TribeId): string {
   const C = BALANCE.combat;
-  const U = BALANCE.union;
   const pop = s.tribes[target].population;
   if (s.tribes[tribe].population < pop * C.conquestRatio) return "";
   const after = Math.floor(pop * (1 - C.successLoss.defender));
-  if (after >= U.minPopulation) return "";
-  return ` Because we are more than ${C.conquestRatio} times larger and ${tribeName(target)} would fall below ${U.minPopulation} people, a successful raid conquers it: its land, stores, and knowledge become ours and about ${Math.round(C.conquestJoinShare * 100)}% of its survivors join us.`;
+  if (after >= C.conquestBelow) return "";
+  return ` Because we are more than ${C.conquestRatio} times larger and ${tribeName(target)} would be left below ${C.conquestBelow} people, a successful raid conquers it: its land, stores, and knowledge become ours and about ${Math.round(C.conquestJoinShare * 100)}% of its survivors join us.`;
 }
 
-/** Offer a union to much smaller, declining neighbours; accept an open offer from a larger tribe. */
-function unionCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: ActionCandidate[]) {
+/** Accept an open union offer from a larger tribe. */
+function unionCandidates(snap: Snapshot, tribe: TribeId, out: ActionCandidate[]) {
   const s = snap.state;
   const U = BALANCE.union;
   const t = s.tribes[tribe];
-  for (const o of livingTribes(s)) {
-    if (!unionEligible(s, tribe, o)) continue;
-    const tile = nearestSettlementOf(snap, geo, o, U.range);
-    if (tile === null) continue;
-    const ot = s.tribes[o];
-    const joining = Math.floor(ot.population * U.joinShare);
-    const renew = hasOpenOffer(s, tribe, o, snap.turn) ? " (renews our earlier offer)" : "";
-    out.push(
-      candidate(
-        tribe,
-        `offer_union_${o}`,
-        "offer_union",
-        ZERO,
-        `No stock cost; offer to take in ${tribeName(o)}${renew}, which is declining (${ot.population} people, ${ot.food} food) while we have ${t.population}. If ${tribeName(o)} accepts on one of the next ${U.offerTurns} turns, about ${joining} of its people join us with all its land, settlements, buildings, stores, and technologies, and it ceases to be a separate tribe. We must feed them (we hold ${t.food} food).`,
-        [`If accepted: +about ${joining} people, ${tribeName(o)}'s land and knowledge`],
-        ["The other tribe may refuse; this turn's effort is spent either way"],
-        { type: "settlement", tribeId: o, tile, label: `${tribeName(o)} settlement` },
-      ),
-    );
-  }
+  // Offers are made automatically each turn (see makeUnionOffers in unions.ts); the smaller tribe decides here.
   for (const offer of acceptableOffers(s, tribe, snap.turn)) {
     const big = s.tribes[offer.from];
     const joining = Math.floor(t.population * U.joinShare);
@@ -797,7 +780,7 @@ export function generateCandidates(snap: Snapshot, tribe: TribeId): ActionCandid
   out.push(candidate(tribe, "defend", "defend", ZERO, `No stock cost; stand ready so settlement defense is ×${BALANCE.actions.defendMultiplier} against any raid this turn. No lasting military gain.`, [`Defense ×${BALANCE.actions.defendMultiplier} this turn`]));
   recruitCandidates(snap, tribe, geo, out);
   scoutingCandidates(snap, tribe, geo, out);
-  unionCandidates(snap, tribe, geo, out);
+  unionCandidates(snap, tribe, out);
 
   const ordered = out
     .map((c, i) => ({ c, i }))

@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { BALANCE, SCALE } from "@/content/balance";
 import { buildSnapshot, generateCandidates } from "@/lib/game/candidates";
-import { impactContext, optionImpact } from "@/lib/game/impact";
+import { impactContext, optionImpact, relativeScore } from "@/lib/game/impact";
+import { CONTENT_VERSION, contentHash } from "@/content/index";
+import { createInitialState } from "@/lib/game/world/generate";
+import { buildJevRequest } from "@/lib/server/jev/request";
 import { EVENT_BY_ID } from "@/content/events";
 import { researchEffort } from "@/lib/game/stats";
 import { growthPhrase, shareOfPeople } from "@/lib/game/summary";
-import { isMatchOver } from "@/lib/game/turn";
+import { unionEligible } from "@/lib/game/unions";
+import { buildDecisionContext, isMatchOver, startGame } from "@/lib/game/turn";
 import { TILE_COUNT, TRIBE_IDS, type GameState, type TribeId } from "@/lib/game/types";
 import { newGame, optionFor, step } from "../support/fixtures";
 
@@ -42,35 +46,43 @@ describe("collapse", () => {
 });
 
 describe("unions", () => {
+  /** Past the earliest offer turn, with Windstep down to half its size of a few turns ago beside a far larger Hearthwood. */
+  let cached: GameState | null = null;
   function unionFixture(): GameState {
-    for (let n = 0; n < 30; n++) {
-      const s = newGame(`union-${n}`);
-      s.tribes.hearthwood.population = 6000;
-      s.tribes.hearthwood.food = 60_000;
-      s.tribes.windstep.population = 1000;
-      s.tribes.windstep.food = 100; // under one turn of food: declining
-      const cands = generateCandidates(buildSnapshot(s, optionFor(s)), "hearthwood");
-      if (cands.some((c) => c.id === "offer_union_windstep")) return s;
+    if (!cached) {
+      let s = newGame("union-0");
+      while (s.completedTurn + 1 < BALANCE.union.earliestTurn) s = step(s, REST).state;
+      cached = s;
     }
-    throw new Error("no union fixture found");
+    const s = structuredClone(cached);
+    s.tribes.hearthwood.population = 6000;
+    s.tribes.hearthwood.food = 60_000;
+    s.tribes.windstep.population = 1000;
+    s.tribes.windstep.food = 3000;
+    s.tribes.windstep.history = s.tribes.windstep.history.map((h) => ({ ...h, population: 2000 }));
+    return s;
   }
 
-  it("is only offered to a declining tribe at least the minimum size and a quarter of ours", () => {
+  it("needs a target at least the minimum size and far enough below the offering tribe", () => {
     const s = unionFixture();
+    expect(unionEligible(s, "hearthwood", "windstep")).toBe(true);
     s.tribes.windstep.population = BALANCE.union.minPopulation - 1;
-    expect(generateCandidates(buildSnapshot(s, optionFor(s)), "hearthwood").some((c) => c.kind === "offer_union")).toBe(false);
+    expect(unionEligible(s, "hearthwood", "windstep")).toBe(false);
     s.tribes.windstep.population = Math.floor(6000 / BALANCE.union.sizeRatio) + 1;
-    expect(generateCandidates(buildSnapshot(s, optionFor(s)), "hearthwood").some((c) => c.kind === "offer_union")).toBe(false);
+    expect(unionEligible(s, "hearthwood", "windstep")).toBe(false);
   });
 
-  it("an offer accepted on a later turn merges the smaller tribe into the larger one", () => {
+  it("offers are made automatically, and accepting one merges the smaller tribe into the larger", () => {
     let s = unionFixture();
-    const tilesBefore = ownsTiles(s, "hearthwood") + ownsTiles(s, "windstep");
-    let r = step(s, { ...REST, hearthwood: "offer_union_windstep" });
+    let r = step(s, REST);
     s = r.state;
-    expect(s.unionOffers).toEqual([{ from: "hearthwood", to: "windstep", turn: 1 }]);
+    expect(s.unionOffers).toContainEqual({ from: "hearthwood", to: "windstep", turn: s.completedTurn });
+    expect(r.outcomes.some((o) => o.kind === "offer_union" && o.tribeId === "hearthwood" && o.target === "windstep")).toBe(true);
+    // The larger tribe never has to spend its action on an offer.
+    expect(generateCandidates(buildSnapshot(s, optionFor(s)), "hearthwood").some((c) => c.kind === "offer_union")).toBe(false);
     const smallCands = generateCandidates(buildSnapshot(s, optionFor(s)), "windstep");
     expect(smallCands.some((c) => c.id === "accept_union_hearthwood")).toBe(true);
+    const tilesBefore = ownsTiles(s, "hearthwood") + ownsTiles(s, "windstep");
     const joining = Math.floor(s.tribes.windstep.population * BALANCE.union.joinShare);
     const bigBefore = s.tribes.hearthwood.population;
     const windstepSettlement = s.tribes.windstep.settlement;
@@ -82,20 +94,17 @@ describe("unions", () => {
     expect(ownsTiles(r.state, "windstep")).toBe(0);
     expect(ownsTiles(r.state, "hearthwood")).toBeGreaterThanOrEqual(tilesBefore);
     expect(r.state.tribes.hearthwood.outposts).toContain(windstepSettlement);
-    // The joining people arrive before the economy; births and hunger then move the total a little.
     expect(r.state.tribes.hearthwood.population).toBeGreaterThan(bigBefore + joining * 0.8);
     expect(r.summary.headline).toMatch(/Windstep joined Hearthwood/);
-    expect(r.state.unionOffers).toEqual([]);
+    expect((r.state.unionOffers ?? []).some((o) => o.to === "windstep" || o.from === "windstep")).toBe(false);
   });
 
-  it("offers expire after the stated number of turns", () => {
-    let s = unionFixture();
-    s = step(s, { ...REST, hearthwood: "offer_union_windstep" }).state;
-    for (let i = 0; i < BALANCE.union.offerTurns; i++) {
-      s.tribes.windstep.food = 10 * SCALE;
-      s = step(s, REST).state;
-    }
-    if (!s.tribes.windstep.alive) return;
+  it("an offer lapses once the smaller tribe no longer qualifies", () => {
+    let s = step(unionFixture(), REST).state;
+    expect(s.unionOffers?.some((o) => o.to === "windstep")).toBe(true);
+    s.tribes.windstep.population = 5000;
+    s.tribes.windstep.food = 50_000;
+    for (let i = 0; i <= BALANCE.union.offerTurns; i++) s = step(s, REST).state;
     expect(generateCandidates(buildSnapshot(s, optionFor(s)), "windstep").some((c) => c.kind === "accept_union")).toBe(false);
   });
 });
@@ -208,6 +217,7 @@ describe("ending and summaries", () => {
 
   it("names big losses and their causes in plain words", () => {
     const s = newGame("summary");
+    s.tribes.ironfang.population = 5000; // far more mouths than its land feeds
     s.tribes.ironfang.food = 0;
     const r = step(s, REST);
     const line = r.summary.lines.find((l) => l.tribeId === "ironfang");
@@ -221,5 +231,44 @@ describe("ending and summaries", () => {
     expect(shareOfPeople(0.08)).toBe("8% of its people");
     expect(growthPhrase(1)).toBe("doubled in size");
     expect(growthPhrase(0.1)).toBe("grew by 10%");
+  });
+});
+
+describe("choice modes and the computer's stance", () => {
+  const game = (choiceMode: "player" | "alternate" | "computer", stance: "help" | "hurt" | "random", seed = "modes") =>
+    startGame(createInitialState(seed, CONTENT_VERSION, contentHash(), 50, { choiceMode, stance, supportedTribe: "windstep" }));
+
+  it("player mode never hands a turn to Nature, computer mode always does", () => {
+    let p = game("player", "random");
+    let c = game("computer", "random");
+    for (let t = 1; t <= 6; t++) {
+      expect(p.currentEvent?.source).toBe("player");
+      expect(c.currentEvent?.source).toBe("nature");
+      expect(c.currentEvent?.natureOptionId).toBeTruthy();
+      p = step(p, {}, 0).state;
+      c = step(c, {}).state;
+    }
+  });
+
+  it("help picks the option best for the supported tribe relative to its rivals, hurt the worst, deterministically", () => {
+    for (let n = 0; n < 8; n++) {
+      const help = game("computer", "help", `steer-${n}`);
+      const hurt = game("computer", "hurt", `steer-${n}`);
+      const p = help.currentEvent!;
+      const options = EVENT_BY_ID[p.eventId]!.options;
+      const ctx = impactContext(help);
+      const value = (id: string) => relativeScore(help, options.find((o) => o.id === id)!, p.footprint, ctx, "windstep");
+      const values = options.map((o) => value(o.id));
+      expect(value(p.natureOptionId!)).toBeCloseTo(Math.max(...values), 9);
+      expect(value(hurt.currentEvent!.natureOptionId!)).toBeCloseTo(Math.min(...values), 9);
+      expect(game("computer", "help", `steer-${n}`).currentEvent!.natureOptionId).toBe(p.natureOptionId);
+    }
+  });
+
+  it("never sends the supported tribe, mode, or stance to Jev", () => {
+    const s = game("computer", "hurt");
+    const ctx = buildDecisionContext(s, s.currentEvent!.natureOptionId!);
+    const text = JSON.stringify(buildJevRequest(ctx, "jev-test").request);
+    for (const key of ['"stance"', '"supportedTribe"', '"choiceMode"', '"settings"', '"help"', '"hurt"']) expect(text).not.toContain(key);
   });
 });

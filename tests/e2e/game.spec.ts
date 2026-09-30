@@ -2,13 +2,14 @@ import { expect, test, type Page } from "@playwright/test";
 
 const ORIGIN = "http://localhost:3210";
 
-async function startGame(page: Page, tribe: string, mode: "mock" | "live", seed = "e2e-seed") {
+async function startGame(page: Page, tribe: string, mode: "mock" | "live", seed = "e2e-seed", choiceMode: "player" | "alternate" | "computer" = "alternate") {
   await page.goto("/");
   await expect(page.locator(".tribe-card")).toHaveCount(4);
   // The map is not revealed before committing to a tribe.
   await expect(page.locator("canvas")).toHaveCount(0);
   await page.getByRole("button", { name: new RegExp(`^${tribe}`, "i") }).first().click();
   await page.locator(`input[value="${mode}"]`).check();
+  await page.locator(`input[name="choiceMode"][value="${choiceMode}"]`).check();
   await page.locator("summary", { hasText: "Advanced" }).click();
   await page.getByPlaceholder("random").fill(seed);
   await page.getByRole("button", { name: new RegExp(`Support ${tribe}`, "i") }).click();
@@ -51,6 +52,8 @@ test("setup, odd/even turns, Nature review, inspector, and same-origin-only traf
   await expect(page.getByRole("button", { name: "Confirm choice" })).toBeVisible();
   await expect(page.locator(".log-turn")).toHaveCount(2);
   await expect(page.locator(".log-turn").nth(0)).toContainText("Nature");
+  // Each turn lists what every tribe did, in plain words.
+  await expect(page.locator(".log-turn").nth(0).locator(".tribe-activity li")).toHaveCount(4);
   await page.getByRole("tab", { name: /inspector/i }).click();
   await expect(page.getByText("Mock simulation — not Jev")).toBeVisible();
   await expect(page.getByText(/model's preference among the listed legal actions/)).toBeVisible();
@@ -65,9 +68,10 @@ test("Nature's result waits for the player, and reload shows the player's turn",
   const review = page.locator(".nature-review");
   await expect(review.getByRole("button", { name: "Proceed to my turn" })).toBeVisible({ timeout: 30_000 });
   await expect(review.locator(".option.nature-picked")).toHaveCount(1);
-  await expect(review.getByText("What happened")).toBeVisible();
-  await expect(review.getByText(/Turn 1 · your choice/)).toBeVisible();
-  await expect(review.getByText(/Turn 2 · Nature's choice/)).toBeVisible();
+  // Results live in the event log, not the review panel.
+  await expect(review.getByText(/is in the event log/)).toBeVisible();
+  await expect(page.locator(".log-turn")).toHaveCount(2);
+  await expect(page.locator(".log-turn").nth(0).locator(".turn-headline")).toBeVisible();
   // The review stays until the player proceeds.
   await page.waitForTimeout(2000);
   await expect(review.getByRole("button", { name: "Proceed to my turn" })).toBeVisible();
@@ -75,6 +79,29 @@ test("Nature's result waits for the player, and reload shows the player's turn",
   await expect(page.getByText("Turn 3 of 50")).toBeVisible();
   await expect(page.getByRole("button", { name: "Confirm choice" })).toBeVisible();
   await expect(page.locator(".last-turn")).toContainText("Last turn (2)");
+});
+
+test("player-only mode never hands a turn to the computer", async ({ page }) => {
+  await startGame(page, "Hearthwood", "mock", "player-only-seed", "player");
+  await expect(page.getByText("You choose every turn")).toBeVisible();
+  await playerTurn(page, 0);
+  await expect(page.getByText("Turn 2 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Confirm choice" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Proceed to my turn" })).toHaveCount(0);
+});
+
+test("computer-only mode plays itself and can be paused", async ({ page }) => {
+  await startGame(page, "Windstep", "mock", "computer-seed", "computer");
+  await expect(page.getByText(/Computer plays · computer chooses at random/)).toBeVisible();
+  await expect(page.getByText("Turn 3 of 50")).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /Pause/ }).click();
+  const id = page.url().split("/game/")[1]!;
+  await page.waitForTimeout(1000);
+  const held = (await apiGame(page, id)).completedTurn;
+  await page.waitForTimeout(4000);
+  expect((await apiGame(page, id)).completedTurn).toBe(held);
+  await page.getByRole("button", { name: /Resume/ }).click();
+  await expect.poll(async () => (await apiGame(page, id)).completedTurn, { timeout: 30_000 }).toBeGreaterThan(held);
 });
 
 test("keyboard users can choose an event option and confirm it", async ({ page }) => {

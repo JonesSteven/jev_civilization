@@ -229,6 +229,7 @@ export function presentGame(meta: GameMeta, state: GameState, pending: PendingVi
     usedFallbackMap: state.usedFallbackMap,
     completedTurn: state.completedTurn,
     totalTurns: state.totalTurns,
+    settings: { choiceMode: state.settings?.choiceMode ?? "alternate", stance: state.settings?.stance ?? "random" },
     calendar: calendarOf(turn),
     world: worldView(state.world) as WorldView,
     tribes,

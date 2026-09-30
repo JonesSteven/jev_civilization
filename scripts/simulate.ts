@@ -148,8 +148,9 @@ console.log(`\nDrama`);
 for (const c of checkpoints) {
   const a = spreadAt[c]!;
   const atLeast4 = a.filter((v) => v >= 4).length;
+  const atLeast8 = a.filter((v) => v >= 8).length;
   const l = livingSpreadAt[c]!;
-  console.log(`  turn ${String(c).padStart(3)}: largest ÷ smallest  p25 ${fmt(quantile(a, 0.25))}  median ${fmt(quantile(a, 0.5))}  p75 ${fmt(quantile(a, 0.75))}   ≥4× or a tribe gone: ${pct(atLeast4)}   (living only: median ${fmt(quantile(l, 0.5))}, p75 ${fmt(quantile(l, 0.75))})`);
+  console.log(`  turn ${String(c).padStart(3)}: largest ÷ smallest  p25 ${fmt(quantile(a, 0.25))}  median ${fmt(quantile(a, 0.5))}  p75 ${fmt(quantile(a, 0.75))}   ≥4× or gone: ${pct(atLeast4)}, ≥8× or gone: ${pct(atLeast8)}   (living only: median ${fmt(quantile(l, 0.5))}, p75 ${fmt(quantile(l, 0.75))})`);
 }
 console.log(`  games losing a tribe: ${pct(gamesWithLoss)} (first loss: median turn ${quantile(firstLossTurn, 0.5)}, before turn 15 in ${pct(firstLossTurn.filter((t) => t < 15).length)})`);
 console.log(`  games with a collapse ${pct(gamesWithCollapse)}, a conquest ${pct(gamesWithConquest)}, a union ${pct(gamesWithUnion)}; two or more tribes gone ${pct(gamesWithTwoGone)}`);

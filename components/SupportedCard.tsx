@@ -11,8 +11,8 @@ function statusClass(s: string | undefined) {
   return "status-good";
 }
 
-/** Screen-wide summary of the tribe the player supports, shown under the header. */
-export default function SupportedBar({ tribe, rank, living, onDetails, onFocus }: { tribe: TribePanel; rank: number; living: number; onDetails: () => void; onFocus: () => void }) {
+/** Summary card of the tribe the player supports, shown beside the map under the tribes table. */
+export default function SupportedCard({ tribe, rank, living, onDetails, onFocus }: { tribe: TribePanel; rank: number; living: number; onDetails: () => void; onFocus: () => void }) {
   const p = TRIBES[tribe.id];
   const f = tribe.foodOutlook;
   const s = tribe.shelter;
@@ -20,19 +20,19 @@ export default function SupportedBar({ tribe, rank, living, onDetails, onFocus }
   const prev = tribe.history.length >= 2 ? (tribe.history[tribe.history.length - 2] as TribePanel["history"][number]).population : STARTING.population;
   const trend = tribe.history.length >= 1 && prev > 0 ? (tribe.population - prev) / prev : null;
   return (
-    <section className="supported-bar" aria-label={`Your tribe: ${p.name}`} style={{ borderLeftColor: p.color }}>
+    <section className="panel supported-card" aria-label={`Your tribe: ${p.name}`} style={{ borderLeftColor: p.color }}>
       <div className="sb-name">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="emblem" src={p.symbol} alt="" />
         <div>
           <div className="sb-title">{p.name} <span className="supported-star" aria-hidden="true">★</span></div>
-          <div className="small muted">Your tribe{tribe.alive ? ` · rank ${rank} of ${living}` : ""}</div>
+          <div className="small muted">Your tribe{tribe.alive ? ` · rank ${rank} of ${living} · score ${tribe.score.total.toFixed(1)}` : ""}</div>
         </div>
       </div>
       {!tribe.alive ? (
-        <div className="sb-item sb-gone">{p.name} {fateText(tribe)}.</div>
+        <div className="sb-gone">{p.name} {fateText(tribe)}.</div>
       ) : (
-        <>
+        <div className="sb-grid">
           <div className="sb-item">
             <span>People</span>
             <strong>
@@ -52,23 +52,23 @@ export default function SupportedBar({ tribe, rank, living, onDetails, onFocus }
             <span>Morale</span>
             <strong>{tribe.moraleLevel}{tribe.morale < BALANCE.population.birthMinMorale ? " · no births" : ""}</strong>
           </div>
-          <div className="sb-item">
+          <div className="sb-item sb-wide">
             <span>Now doing</span>
             <strong>{last ? `${plainAction(last.kind).group}: ${plainAction(last.kind).name}` : "—"}</strong>
           </div>
-          <div className="sb-item">
+          <div className="sb-item sb-wide">
             <span>Knowledge</span>
-            <strong>{tribe.technologies.length ? `${tribe.technologies.length} tech${tribe.technologies.length > 1 ? "s" : ""}` : "none yet"}{tribe.project ? ` · researching ${tribe.project.name}` : ""}</strong>
+            <strong>{tribe.technologies.length ? tribe.technologies.join(", ") : "none yet"}{tribe.project ? ` · researching ${tribe.project.name}` : ""}</strong>
           </div>
           <div className="sb-item">
             <span>Settlements</span>
             <strong>{1 + tribe.outposts.length}</strong>
           </div>
           <div className="sb-item">
-            <span>Score</span>
-            <strong>{tribe.score.total.toFixed(1)}</strong>
+            <span>Military</span>
+            <strong>level {tribe.militaryLevel} · forts {tribe.fortification}</strong>
           </div>
-        </>
+        </div>
       )}
       <div className="sb-actions">
         <button type="button" className="btn btn-sm" onClick={onDetails}>Details</button>

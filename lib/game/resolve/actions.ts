@@ -8,7 +8,7 @@ import { tribeName } from "@/content/tribes";
 import type { Snapshot } from "../candidates";
 import { accessibleTiles, type TribeGeo } from "../geo";
 import { adjustRelation, remember } from "../memory";
-import { gatherPotential } from "../production";
+import { gatherPotential, housingCapacity } from "../production";
 import { draw } from "../rng";
 import { shelterSummary } from "../shelter";
 import { attackStrength, defenseStrength, raidChance, researchEffort } from "../stats";
@@ -231,9 +231,8 @@ export function resolveActions(
       }
       case "build_housing": {
         if (c.target?.type !== "housing") break;
-        const A = BALANCE.actions;
         if (c.target.housingType === "camp") {
-          const add = A.campHousing.capacity;
+          const add = housingCapacity("camp", pre.tribes[id].population);
           if (t.camp) {
             const total = t.camp.capacity + add;
             t.camp.condition = Math.round((t.camp.capacity * t.camp.condition + add * 100) / total);
@@ -249,7 +248,7 @@ export function resolveActions(
           log({ kind: "cost_refund", tribeId: id, text: narrate("cost_refund", { tribe: name(id), refund: amountsText(c.costs) }) });
           break;
         }
-        const cap = c.target.housingType === "stone" ? A.stoneHousing.capacity : A.woodHousing.capacity;
+        const cap = housingCapacity(c.target.housingType === "stone" ? "stone" : "wood", pre.tribes[id].population);
         addAsset(next.world, { kind: "housing", housingType: c.target.housingType, capacity: cap, condition: 100, tile, owner: id, builtTurn: turn });
         changedTiles.add(tile);
         moraleDelta(next, id, M.construction);
@@ -459,7 +458,7 @@ function resolveRaids(
       dLoss = losses.get(r.target) ?? 0;
     const path = snap.geo[r.attacker] ? pathFromMove(snap.geo[r.attacker] as TribeGeo, r.tile) : [];
     if (res.escaped) {
-      outcomes.push({ kind: "raid", tribeId: r.attacker, success: false, text: narrate("raid_escaped", { tribe: an, target: tn }), path, from: pre.tribes[r.attacker].settlement, to: r.tile });
+      outcomes.push({ kind: "raid", tribeId: r.attacker, target: r.target, success: false, text: narrate("raid_escaped", { tribe: an, target: tn }), path, from: pre.tribes[r.attacker].settlement, to: r.tile });
       remember(next, r.attacker, turn, "raid", `Raid on ${tn} on turn ${turn} found an empty settlement`);
       continue;
     }
@@ -470,10 +469,11 @@ function resolveRaids(
       // Border pressure: a successful raid takes up to N defender border tiles touching the attacker's territory.
       const captured = capturableBorderTiles(next, r.attacker, r.target, BALANCE.territory.raidCaptureTiles);
       for (const tile of captured) next.world.owner[tile] = TRIBE_IDS.indexOf(r.attacker);
-      if (captured.length) outcomes.push({ kind: "capture", tribeId: r.attacker, text: narrate("capture", { tribe: an, target: tn, count: captured.length }), tiles: captured });
+      if (captured.length) outcomes.push({ kind: "capture", tribeId: r.attacker, target: r.target, text: narrate("capture", { tribe: an, target: tn, count: captured.length }), tiles: captured });
       outcomes.push({
         kind: "raid",
         tribeId: r.attacker,
+        target: r.target,
         success: true,
         text: narrate("raid_success", { tribe: an, target: tn, loot: amountsText(got), attackerLoss: aLoss, defenderLoss: dLoss }),
         path,
@@ -486,7 +486,7 @@ function resolveRaids(
       remember(next, r.target, turn, "raided", `Raided by ${an} on turn ${turn}; lost ${amountsText(got)}`);
       remember(next, r.attacker, turn, "raid", `Raided ${tn} successfully on turn ${turn}; took ${amountsText(got)}`);
     } else {
-      outcomes.push({ kind: "raid", tribeId: r.attacker, success: false, text: narrate("raid_failure", { tribe: an, target: tn, attackerLoss: aLoss, defenderLoss: dLoss }), path, from: pre.tribes[r.attacker].settlement, to: r.tile });
+      outcomes.push({ kind: "raid", tribeId: r.attacker, target: r.target, success: false, text: narrate("raid_failure", { tribe: an, target: tn, attackerLoss: aLoss, defenderLoss: dLoss }), path, from: pre.tribes[r.attacker].settlement, to: r.tile });
       moraleDelta(next, r.attacker, M.raidDefeat);
       moraleDelta(next, r.target, M.repelledRaid);
       remember(next, r.target, turn, "raided", `Repelled a raid by ${an} on turn ${turn}`);
@@ -508,7 +508,7 @@ function resolveConquests(next: GameState, pre: GameState, successes: { attacker
   const C = BALANCE.combat;
   for (const target of [...new Set(successes.map((s) => s.target))].sort()) {
     const d = next.tribes[target];
-    if (!d.alive || d.population >= BALANCE.union.minPopulation) continue;
+    if (!d.alive || d.population >= C.conquestBelow) continue;
     const conquerors = successes
       .filter((s) => s.target === target && next.tribes[s.attacker].alive && pre.tribes[s.attacker].population >= pre.tribes[target].population * C.conquestRatio)
       .map((s) => s.attacker)

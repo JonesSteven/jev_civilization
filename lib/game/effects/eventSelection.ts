@@ -1,6 +1,7 @@
 import { BALANCE } from "@/content/balance";
 import { EVENTS, EVENT_BY_ID, type EventDef } from "@/content/events";
-import { choiceSource, seasonOf } from "../calendar";
+import { choiceSourceFor, seasonOf } from "../calendar";
+import { steeredPick } from "../impact";
 import { makeRng } from "../rng";
 import { TERRAIN_NAMES, TILE_COUNT, type GameState, type PreparedEvent } from "../types";
 import { livingTribes } from "../geo";
@@ -32,7 +33,7 @@ function shuffledIds(seed: string, refill: number): string[] {
  * turns) the seeded option. Mutates the bag and recent-event list on `state`.
  */
 export function prepareEvent(state: GameState, turn: number): PreparedEvent {
-  const source = choiceSource(turn);
+  const source = choiceSourceFor(state, turn);
   const recent = new Set(
     state.recentEventIds.filter((r) => r.turn > turn - 1 - BALANCE.events.noRepeatWindow).map((r) => r.eventId),
   );
@@ -72,8 +73,16 @@ export function prepareEvent(state: GameState, turn: number): PreparedEvent {
   let natureOptionId: string | null = null;
   if (source === "nature") {
     const ev = EVENT_BY_ID[eventId] as EventDef;
-    const idx = Math.floor(makeRng(state.seed, "nature", turn, eventId).next() * 3);
-    natureOptionId = (ev.options[idx] ?? ev.options[0]).id;
+    const stance = state.settings?.stance ?? "random";
+    const supported = state.settings?.supportedTribe;
+    if (stance !== "random" && supported && state.tribes[supported].alive) {
+      // Steered pick; a seeded shuffle decides between equally good options.
+      const order = makeRng(state.seed, "nature", turn, eventId).shuffle([...ev.options]);
+      natureOptionId = steeredPick(state, order, footprint.tiles, stance, supported).id;
+    } else {
+      const idx = Math.floor(makeRng(state.seed, "nature", turn, eventId).next() * 3);
+      natureOptionId = (ev.options[idx] ?? ev.options[0]).id;
+    }
   }
 
   state.recentEventIds = [...state.recentEventIds, { turn, eventId }].slice(-BALANCE.events.noRepeatWindow - 1);

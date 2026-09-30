@@ -7,7 +7,8 @@ import { TRIBES } from "@/content/tribes";
 import type { TribeId } from "@/lib/game/types";
 import { api, ClientApiError } from "@/lib/client/api";
 import type { ReplayData } from "@/lib/client/types";
-import { animationsFor } from "@/lib/client/useGame";
+import { animationsFor, logFromReplay } from "@/lib/client/useGame";
+import { TribeActivityList } from "./EventLog";
 import { applyDelta, decodeWorld, type DecodedWorld } from "@/lib/client/world";
 import MapCanvas, { type MapAnimation, type MapHandle } from "./MapCanvas";
 
@@ -109,6 +110,8 @@ export default function ReplayScreen({ gameId }: { gameId: string }) {
                     </ul>
                   </>
                 )}
+                <div className="section-title">What the tribes did</div>
+                <TribeActivityList entry={logFromReplay(turn)} />
                 <div className="section-title">Recorded decisions</div>
                 <ul className="plain-list small">
                   {turn.decisions.map((d) => (
