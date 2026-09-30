@@ -14,24 +14,34 @@ describe("content catalog (AC17)", () => {
     expect(validateCatalog()).toEqual([]);
   });
 
-  it("ships 32 event families with exactly three options (≥96 options)", () => {
-    expect(EVENTS.length).toBe(32);
+  it("ships 33 event families with exactly three options (≥99 options)", () => {
+    expect(EVENTS.length).toBe(33);
     const ids = EVENTS.map((e) => e.id);
-    for (let i = 1; i <= 32; i++) expect(ids).toContain(`E${String(i).padStart(2, "0")}`);
+    for (let i = 1; i <= 33; i++) expect(ids).toContain(`E${String(i).padStart(2, "0")}`);
     const options = EVENTS.flatMap((e) => e.options);
-    expect(options.length).toBeGreaterThanOrEqual(96);
+    expect(options.length).toBeGreaterThanOrEqual(99);
     expect(new Set(options.map((o) => o.id)).size).toBe(options.length);
     for (const e of EVENTS) expect(e.options.length).toBe(3);
   });
 
-  it("applies every environmental choice to the whole map", () => {
+  it("scopes regional families to their area and world families to the whole map", () => {
+    const regional = EVENTS.filter((e) => e.footprint.kind !== "world");
+    expect(regional.length).toBeGreaterThanOrEqual(12);
+    expect(EVENTS.length - regional.length).toBeGreaterThanOrEqual(12);
     for (const e of EVENTS) {
-      expect(e.footprint.kind).toBe("world");
+      const wanted = e.footprint.kind === "world" ? "world" : "footprint";
       for (const o of e.options) {
         const ops = o.effects.flatMap((x) => (x.op === "delayed" ? x.effects : [x]));
-        for (const op of ops) if ("scope" in op) expect(op.scope).toBe("world");
+        for (const op of ops) if ("scope" in op) expect(op.scope).toBe(wanted);
       }
     }
+  });
+
+  it("includes a sickness family and at least one severe option in most regional families", () => {
+    expect(EVENTS.some((e) => e.options.some((o) => o.effects.some((x) => x.op === "epidemic")))).toBe(true);
+    const regional = EVENTS.filter((e) => e.footprint.kind !== "world");
+    const withHarsh = regional.filter((e) => e.options.some((o) => o.tone === "harsh"));
+    expect(withHarsh.length / regional.length).toBeGreaterThan(0.6);
   });
 
   it("has every option wired to typed effects within bounds, with mechanically distinct options", () => {
@@ -51,7 +61,7 @@ describe("content catalog (AC17)", () => {
     expect(Object.keys(TRIBES).sort()).toEqual([...TRIBE_IDS].sort());
     expect(TECHNOLOGIES.length).toBe(8);
     for (const t of TECHNOLOGIES) for (const p of t.prerequisites) expect(TECH_BY_ID[p]).toBeDefined();
-    expect(Object.keys(ACTIONS).length).toBe(21);
+    expect(Object.keys(ACTIONS).length).toBe(23);
     expect(Object.keys(NARRATION).length).toBeGreaterThan(20);
     expect(HELP.length).toBeGreaterThanOrEqual(5);
   });

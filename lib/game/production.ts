@@ -31,11 +31,17 @@ export function capabilities(state: GameState, tribe: TribeId): Capabilities {
   };
 }
 
-/** Tiles a hunting site or fishery draws from: within radius 3, not claimed by another tribe. */
+/** Draw radius of a tribe's hunting sites or fisheries (Windstep's trackers range farther). */
+export function siteRadius(tribe: TribeId, kind: "hunt" | "fishery"): number {
+  const r = BALANCE.territory.siteRadius;
+  return tribe === "windstep" && kind === "hunt" ? r + BALANCE.tribeMods.windstep.huntRadiusBonus : r;
+}
+
+/** Tiles a hunting site or fishery draws from: within its radius, not claimed by another tribe. */
 export function siteDrawTiles(state: GameState, tribe: TribeId, asset: Asset): number[] {
   const idx = TRIBE_IDS.indexOf(tribe);
   const kind = asset.kind === "fishery" ? "fishery" : "hunt";
-  return siteTiles(state.world, asset.tile, kind).filter((t) => {
+  return siteTiles(state.world, asset.tile, kind, siteRadius(tribe, kind)).filter((t) => {
     const o = state.world.owner[t] as number;
     return o === -1 || o === idx;
   });

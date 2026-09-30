@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TRIBES } from "@/content/tribes";
 import type { GameOutcome, TribeId } from "@/lib/game/types";
+import type { TurnSummary } from "@/lib/game/summary";
 import type { MapAnimation } from "@/components/MapCanvas";
 import { api, ClientApiError, idempotencyKeyFor } from "./api";
 import type { GameView, ReplayData, TurnRecord } from "./types";
@@ -17,6 +18,8 @@ export interface LogEntry {
   footprintLabel: string;
   decisions: { tribeId: TribeId; kind: string; selected: string; probability: number | null }[];
   outcomes: GameOutcome[];
+  /** Plain-language summary; null for turns recorded before summaries existed. */
+  summary: TurnSummary | null;
 }
 
 export interface UiError {
@@ -40,6 +43,7 @@ export function logFromRecord(r: TurnRecord): LogEntry {
       probability: d.probabilities[d.selected] ?? null,
     })),
     outcomes: r.outcomes,
+    summary: r.summary ?? null,
   };
 }
 
@@ -52,6 +56,7 @@ export function logFromReplay(r: ReplayData["turns"][number]): LogEntry {
     footprintLabel: r.footprintLabel,
     decisions: r.decisions.map((d) => ({ tribeId: d.tribeId as TribeId, kind: d.kind, selected: d.selected, probability: d.selectedProbability })),
     outcomes: r.outcomes,
+    summary: r.summary,
   };
 }
 

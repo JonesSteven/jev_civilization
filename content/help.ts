@@ -1,4 +1,4 @@
-import { BALANCE } from "./balance";
+import { BALANCE, STARTING } from "./balance";
 
 export interface HelpSection {
   id: string;
@@ -7,115 +7,92 @@ export interface HelpSection {
 }
 
 const S = BALANCE.score;
+const P = BALANCE.population;
+const U = BALANCE.union;
+const C = BALANCE.combat;
+const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 export const HELP: HelpSection[] = [
   {
     id: "objective",
-    title: "Your role",
+    title: "In a nutshell",
     body: [
-      "You support one tribe, but you cannot give orders to anyone. On odd turns you choose how the environment changes; on even turns Nature chooses at random.",
-      "Every turn, Jev (TypeSafe's decision model) chooses one major action for each surviving tribe from the legal actions the game engine lists. The game engine then calculates all results.",
-      "The match length (10–200 turns, default 50) is chosen at the start. When it ends, the tribe with the highest civilization score wins. Exact ties are shared victories.",
+      "You support one tribe but never give it orders. Every other turn you choose what the weather and the land do; on the turns between, Nature chooses at random.",
+      "Each turn Jev (TypeSafe's decision model) picks one action for every tribe. The game engine then works out the harvests, hunger, births, raids, and borders.",
+      "After each turn a short summary says who gained or lost people and why. The match ends at its turn limit (10–200 turns) or as soon as only one tribe is left.",
+    ],
+  },
+  {
+    id: "luck",
+    title: "Luck shapes history",
+    body: [
+      "Like the civilizations in Guns, Germs, and Steel, the tribes are not better or worse people: where they live and what happens to them decides their fate. Many events strike just one region, so a blizzard or a plague can cripple one tribe while its neighbour thrives.",
+      "Small edges compound. A well-fed tribe grows up to 10% a turn, and larger tribes research faster, so an early lucky harvest or a new technology can snowball. A tribe hit by famine loses people, morale, and time.",
+      "Settled farmers resist epidemics far better than hunters and raiders, who have never lived beside their animals. Sickness also spreads to neighbours whose land touches the stricken tribe.",
     ],
   },
   {
     id: "choosing",
-    title: "Choosing changes for your tribe",
+    title: "Choosing the environment",
     body: [
-      "Every environmental choice affects the whole land, so the same change helps some tribes and hurts others depending on what they live on. The tribes below differ in how they get food, what they shelter in, and how they interact with neighbours.",
-      "Think in relative terms: the score is a ranking, so a choice that hurts rivals more than your tribe can be as useful as one that helps your tribe directly. Check the tribe panel for each tribe's food sources, food turns left, and shelter before you choose.",
-      "The event card lists the exact effects of each option. Effects with a duration last that many turns; fertility, capacity, and terrain changes are permanent.",
+      "The event card shows where the event strikes (a highlighted region, or the whole land) and which tribes live there. Each option says which tribes it is likely to help or hurt.",
+      "The score is a ranking, so hurting a rival can matter as much as helping your own tribe. Open \"Details\" on an option to see its exact effects.",
+      "Effects with a duration last that many turns. Fertility, capacity, and terrain changes are permanent.",
     ],
   },
   {
-    id: "tribe-hearthwood",
-    title: "Supporting Hearthwood (farmers)",
+    id: "tribes",
+    title: "How each tribe lives",
     body: [
-      "Hearthwood's food comes mainly from farms (+15% farm yield), so crop conditions and meadow fertility matter most. Farms and wooden homes also cost timber, so healthy forests nearby matter too.",
-      "Usually helpful: Season of Rain: Steady rain; Summer Heat: Warm summer; Pollinator Bloom: In the meadows; Length of the Harvest: Extended season; Before Winter: Clear skies; A Thriving Species: Pollinators. Permanent soil gains (Seeds on the Wind: Wild wheat, Erosion: Fertile soil, Changing Soil: Rich soil, Windstorm Deposits: Silt) keep paying off every turn.",
-      "Usually harmful: Crop Pest: Through wheat fields; Summer Heat: Scorching summer (halves farm output unless the tribe has learned Irrigation); Before Winter: Early frost; Length of the Harvest: Brief season; Landslide: At the meadow edge and Changing Soil: Stony soil (permanent fertility loss). Fires and canopy pests cut the timber Hearthwood builds with.",
-      "Weather damage to shelter matters less: Hearthwood's wooden homes take half the ordinary damage, so freezing rain and storms usually hurt rivals in camps more.",
+      "Hearthwood (farmers) lives on farms. Crop pests, droughts, frosts, and floods hurt it; good rains and warm summers help. Its wooden homes shrug off weather, and it resists sickness best.",
+      "Windstep (hunters) lives on wild game and moves easily. Vanishing herds and shelter-wrecking storms hurt it; herd migrations help. Its portable camps suffer in freezing rain.",
+      "Stonehaven (mountain fishers) lives on fisheries and shelters in caves and stone. Ice, storms, and failed spawning hurt it; salmon runs and steady rivers help.",
+      "Ironfang (raiders) starts with food but no way to grow more until it learns Agriculture or Fishing. It takes food and land by raiding neighbours, and can conquer a shattered one.",
     ],
   },
   {
-    id: "tribe-windstep",
-    title: "Supporting Windstep (hunters)",
+    id: "growth",
+    title: "Growth, hunger, and collapse",
     body: [
-      "Windstep's hunting sites draw on wildlife in the surrounding land, and its gathering yields 30% more. Wildlife stocks and how fast they regrow are its lifeline; heavy hunting depletes an area, which is why Windstep moves, scouts, and founds new settlements readily.",
-      "Usually helpful: Herd Migration (whichever terrain surrounds its sites); Forest Understory: Thick brush; Wildlife Recovery: Rapidly; A Thriving Species: Grazers; Recovery: Wildlife; Shifting Edges: Mixed edge grows. Changes that restore forage, such as Wild Harvest or Recovering Ground: Shrubs, also help its gathering.",
-      "Usually harmful: Length of the Harvest: Brief season (hunting −15%); Crop Pest: Through wild fruit. Windstep lives in portable camps, which take extra weather damage, so Freezing rain, Wet winter, Fallen branches, and violent storms wear its shelter down. Its camps are hardy against cold, though, so harsh winters hurt it less than their shelter damage suggests.",
-      "Easy travel (clear skies, dry ground, thick ice, winter route choices) makes Windstep's moves and scouting reach farther.",
+      `Tribes start with ${STARTING.population.toLocaleString("en-US")} people. One food feeds one person for one turn. Farms, hunting sites, fisheries, and foraging produce every turn.`,
+      `A fed tribe with morale of at least ${P.birthMinMorale} grows ${pct(P.birthRate)} a turn, or ${pct(P.birthRate + P.wellFedBirthBonus)} while its stores cover ${P.wellFedTurns} turns. Growth can outrun housing, but people without shelter die of cold in winter and in storms.`,
+      `Hunger is deadly: a tribe with no food at all loses ${pct(P.starvationRate)} of its people in a turn. A tribe that falls below ${P.collapseBelow} people breaks apart and disappears.`,
     ],
   },
   {
-    id: "tribe-stonehaven",
-    title: "Supporting Stonehaven (mountain fishers)",
+    id: "unions",
+    title: "Unions and conquest",
     body: [
-      "Stonehaven's food comes mainly from fisheries (+45% fishing yield), so fish stocks and fishing conditions matter most. It builds in stone (+30% quarrying), and its cave and stone shelters shrug off most weather damage. Farming is only available after it learns Agriculture.",
-      "Usually helpful: Fish Spawning: Abundant or Scattered spawning; A Thriving Species: Fish; River Flow: High flow (replenishes fish, though it floods fields near water) or Stable flow; Erosion: Stone or Caves; Natural Shelter: Caves.",
-      "Usually harmful: Winter's Character: Bitter winter (fishing −40%); Winter Ice: Thick ice (fishing −60%) or Uneven ice; Storm Season: Persistent storms; Fish Spawning: Poor spawning; River Flow: Low flow; Spreading Vegetation: Reeds. Because its homes are durable, shelter-damaging events usually hurt rivals more than Stonehaven.",
-      "If its shores run low, scouting for a new settlement beside fresh water is often Stonehaven's best way to grow.",
+      `A tribe at least ${U.sizeRatio} times larger than a declining neighbour of ${U.minPopulation}+ people may offer to take it in. The smaller tribe decides on one of the next ${U.offerTurns} turns; if it accepts, about ${pct(U.joinShare)} of its people join, bringing their land, stores, and technologies.`,
+      `A remnant smaller than ${U.minPopulation} people is too small to bargain with. If a tribe at least ${C.conquestRatio} times larger raids it successfully, it is conquered and about ${pct(C.conquestJoinShare)} of its survivors are taken in.`,
     ],
   },
   {
-    id: "tribe-ironfang",
-    title: "Supporting Ironfang (raiders)",
+    id: "combat",
+    title: "Raids",
     body: [
-      "Ironfang starts with no farms, fisheries, or foraging. It lives on its starting stores and on raids (+50% attack), which take food and border land from neighbours. It can grow its own food only after learning Agriculture or Fishing.",
-      "Raiding reach depends on travel conditions at Ironfang's capital: each step of travel penalty shortens its reach by 25%, and each step of easier travel lengthens it. Winter adds a penalty. Choices that ease travel everywhere (Before Winter: Clear skies, Changing Soil: Dry soil, Winter Ice: Thick ice, and the matching Winter Routes choice) extend its reach. Choices that slow travel everywhere (Torrential rain, Sudden thaw, Rain clouds, Heavy rain, Persistent storms, Uneven ice, Heavy snow, Long rains) can leave it with no one in range.",
-      "Ironfang benefits indirectly when its neighbours are well stocked, since raids take from their stores, and when their defences are weak. Its portable camps take extra weather damage, so Freezing rain and Wet winter hurt it.",
-      "Once Ironfang learns Agriculture, the farming advice for Hearthwood starts to apply to it as well.",
-    ],
-  },
-  {
-    id: "turns",
-    title: "Turns and seasons",
-    body: [
-      "Two turns make a season and eight turns make a year, starting in spring. You choose the early turn of every season; Nature chooses the late turn.",
-      "An environmental choice is announced before tribes decide, so they can prepare for it. Every choice applies to the whole land; tribes feel it differently depending on their terrain, food sources, and shelter.",
-      "Effects with a duration apply on the turn they start and following turns. Permanent changes such as new forest or fertile soil stay on the map.",
-    ],
-  },
-  {
-    id: "economy",
-    title: "Food, shelter, and growth",
-    body: [
-      "One food feeds one person for one turn. Farms, hunting sites, fisheries, and foraging keep producing every turn without being chosen again.",
-      "Hunger kills 10% of the unfed share of the population. In winter, people without shelter suffer exposure.",
-      "Births happen only with no food shortage, spare shelter, and morale of at least 50: 4% per turn, 7% while stores cover four turns. Stored food spoils each turn (less with Food Storage).",
-      "Borders grow on their own: each turn a tribe claims about one unclaimed border tile per 40 people (up to six). Bigger tribes also work land farther from their settlements.",
-      "Tribes can send scouts to find open land and then found a new settlement there (up to three). People, food, and technologies are shared across all of a tribe's settlements.",
+      `Attack = population × (1 + ${C.militaryStep} × military level) × raid trait. Defense = population × (1 + ${C.militaryStep} × military) × (1 + ${C.fortStep} × fortification) × terrain (mountain ${C.mountainDefense}) × Defend (${BALANCE.actions.defendMultiplier}), and ×${C.alertDefense} for a tribe raided in the last two turns.`,
+      `Success chance = attack ÷ (attack + defense), limited to ${pct(C.minChance)}–${pct(C.maxChance)}. A successful raid takes stores and up to ${BALANCE.territory.raidCaptureTiles} border tiles and kills about ${pct(C.successLoss.defender)} of the defenders; a failed raid costs the attacker about ${pct(C.failureLoss.attacker)}.`,
+      "If the target moves its capital on the same turn, the raid finds nothing.",
     ],
   },
   {
     id: "score",
-    title: "Civilization score (0–100)",
+    title: "Winning (civilization score 0–100)",
     body: [
-      `Population: ${S.population.weight} × min(population ÷ ${S.population.target}, 1).`,
+      `Population: ${S.population.weight} × min(population ÷ ${S.population.target.toLocaleString("en-US")}, 1).`,
       `Resilience: ${S.resilience.weight} × (${S.resilience.foodShare} × min(food ÷ (${S.resilience.foodTurns} × population), 1) + ${S.resilience.shelterShare} × shelter coverage).`,
-      `Development: ${S.development.weight} × technologies learned ÷ ${S.development.techs}.`,
-      `Influence: ${S.influence.weight} × min(productive tiles in working range ÷ ${S.influence.tiles}, 1).`,
-      "Military strength is not scored directly; it helps a tribe take resources and survive. Eliminated tribes score zero.",
+      `Development: ${S.development.weight} × technologies learned ÷ ${S.development.techs}. Influence: ${S.influence.weight} × min(productive tiles in working range ÷ ${S.influence.tiles}, 1).`,
+      "Tribes that are gone score zero. The last tribe standing wins outright.",
     ],
   },
   {
     id: "jev",
     title: "What Jev sees and decides",
     body: [
-      "Each turn the server sends Jev one batch: a shared world summary, a detailed view for each tribe, and one Choice question per tribe listing only that tribe's legal actions.",
-      "Jev returns a probability for every listed action. The game executes the highest-probability action; it never samples or overrides.",
-      "Jev's probabilities are action preferences, not chances of success. Raid success is a separate game-engine calculation shown in candidate descriptions.",
+      "Each turn the server sends Jev one batch: a shared world summary, a detailed view for each tribe, and one question per tribe listing only that tribe's legal actions.",
+      "Jev returns a preference for every listed action and the game executes the favourite. The decision inspector shows exactly what Jev was told and what it preferred.",
       "The prompt never includes which tribe you support, the seed, or future Nature choices.",
-    ],
-  },
-  {
-    id: "combat",
-    title: "Raids and defense",
-    body: [
-      "Attack = population × (1 + 0.25 × military level) × raid trait. Defense = population × (1 + 0.25 × military) × (1 + 0.2 × fortification) × terrain (mountain 1.25) × Defend (1.5).",
-      "Raids reach up to 36 travel units, recruiting 24, and scouting 40, measured over base terrain. Harsh travel conditions (winter or a travel penalty) shorten that reach by 25% per step; easy conditions lengthen it. Weather also changes how far a capital can relocate.",
-      "Success chance = attack ÷ (attack + defense), limited to 10–90%. A successful raid takes up to 200 food, 50 timber, and 25 stone, and captures up to four border tiles that touch the raider's territory.",
-      "If the target relocates on the same turn, its stores travel with it and the raid finds nothing.",
     ],
   },
   {

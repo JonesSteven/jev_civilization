@@ -11,16 +11,21 @@ world around them.
 
 - **Pick a tribe to support.** Farmers, hunters, mountain fishers, or raiders — each lives off the land differently.
 - **You never give orders.** Instead, every other turn you choose how the environment changes: a wet spring, a
-  harsh winter, a wildlife boom, a crop pest. On the turns in between, Nature picks at random.
+  harsh winter, a wildlife boom, a crop pest, a plague. Many events strike just one region, and each option says which
+  tribes it will likely help or hurt. On the turns in between, Nature picks at random.
 - **The tribes decide for themselves.** Each turn an AI model, **Jev**, chooses one action for every tribe from the
   moves that are actually possible for it — farm, hunt, build, research, move, scout for new land, found a new
-  settlement, or raid a neighbour.
+  settlement, raid a neighbour, or offer (or accept) a union.
+- **Luck shapes history.** In the spirit of *Guns, Germs, and Steel*, small strokes of fortune compound: a well-fed
+  tribe grows fast and researches faster, while a blizzard or a plague in the wrong place can halve a tribe. Tribes can
+  starve and break apart, be conquered, or join a much larger neighbour.
 - **A game engine works out what happens.** Harvests, hunger, births, raids, and growing or shrinking borders are all
   calculated by ordinary game rules, and the map changes to show it.
-- **See why things happened.** A decision inspector shows exactly what Jev was told and how strongly it preferred each
-  option, and an event log explains every result.
-- **The best civilization wins.** After the match (10–200 turns, 50 by default), tribes are ranked by population,
-  resilience, technology, and territory.
+- **See why things happened.** After every turn a plain-language summary says who gained or lost people and why
+  ("Hit by the bitter winter, Windstep lost a third of its people to cold, while Stonehaven grew by 10%"). A decision
+  inspector shows exactly what Jev was told, and the event log keeps every measured result.
+- **The best civilization wins.** The match lasts 10–200 turns (100 by default) or ends early when one tribe is left.
+  Tribes are ranked by population first, then resilience, technology, and territory.
 
 No API key? The app also has a clearly labelled **mock mode** that uses a simple built-in policy instead of Jev, so
 you can play and develop offline.
@@ -108,10 +113,12 @@ npm run lint
 npm test                      # Vitest: engine, content catalog, Jev adapter (local HTTP stub), orchestration, routes
 npx playwright install chromium   # once
 npm run build && npm run test:e2e # Playwright browser tests against `next start` with an in-process Jev fake
-npm run simulate -- --games 100 --turns 50   # balance smoke run with the MOCK policy (not Jev)
+npm run simulate -- --games 100 --turns 100  # balance run with the MOCK policy (not Jev), with drama metrics
+npm run simulate -- --games 1 --turns 40 --story   # one mock game, turn by turn, with its summaries
 npm run validate:catalog
 npm run check:secrets             # after a build: scans bundles, committable files, and the DB for the key
 npm run probe:jev                 # optional: ONE real Jev request (uses your key; small cost)
+npm run live-sim -- --games 2 --turns 100 --parallel 2   # optional: full games decided by real Jev (≈13k tokens per turn)
 ```
 
 No test in `npm test` or `npm run test:e2e` contacts the real API. Adapter tests route the fixed endpoint to a local
@@ -145,11 +152,11 @@ A complete 50-turn game uses about 4 MB of storage (turn records, map changes, a
 ```
 app/                 pages (/, /game/[id], /game/[id]/replay) and same-origin API route handlers
 components/          start screen, Canvas map, event card, scoreboard, inspector, results, replay
-content/             authored catalog: tribes, events (32×3), actions, technologies, balance, narration, help
+content/             authored catalog: tribes, events (33×3), actions, technologies, balance, narration, help
 lib/game/            pure engine: world generation, candidates, resolution, effects, economy, scoring, views
 lib/server/          config, SQLite, sessions, limits, Jev adapter, turn orchestration, replay/export
 lib/client/          browser API client, world decoding, game controller hook
-scripts/             catalog validation, balance simulation, live probe, secret scan
+scripts/             catalog validation, balance simulation (mock and live), live probe, secret scan
 tests/               engine, content, server (stub Jev), e2e (Playwright)
 public/art/          local SVG emblems and illustrations
 ```

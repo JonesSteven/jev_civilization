@@ -22,8 +22,8 @@ function tilesOf(world: WorldState, terrain: number): number[] {
 }
 
 /**
- * Select an event's spatial footprint from seeded randomness only. Tribe identities, positions,
- * and the supported tribe are never consulted.
+ * Select an event's spatial footprint from seeded randomness only. Tribe identities and the supported tribe are
+ * never consulted; a settled region is centred on a random claimed tile, so larger territories are hit more often.
  */
 export function selectFootprint(world: WorldState, spec: FootprintSpec, seed: string, turn: number, eventId: string): Footprint | null {
   const rng = makeRng(seed, "events", "footprint", turn, eventId);
@@ -34,6 +34,13 @@ export function selectFootprint(world: WorldState, spec: FootprintSpec, seed: st
       const land: number[] = [];
       for (let i = 0; i < TILE_COUNT; i++) if (world.terrain[i] !== Terrain.Water) land.push(i);
       const center = rng.pick(land);
+      return { tiles: tilesWithin(center, spec.radius), label: areaLabel(center, "region") };
+    }
+    case "settledRegion": {
+      const claimed: number[] = [];
+      for (let i = 0; i < TILE_COUNT; i++) if (world.owner[i] !== -1 && world.terrain[i] !== Terrain.Water) claimed.push(i);
+      if (claimed.length === 0) return null;
+      const center = rng.pick(claimed);
       return { tiles: tilesWithin(center, spec.radius), label: areaLabel(center, "region") };
     }
     case "mountainArea": {

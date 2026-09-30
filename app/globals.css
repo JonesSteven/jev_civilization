@@ -119,6 +119,22 @@ button, input, select { font: inherit; color: inherit; }
 .option .desc { color: var(--ink-2); margin: 3px 0 4px; }
 .option ul { margin: 4px 0 0; padding-left: 16px; font-size: 12px; color: var(--ink-2); }
 .option.nature-picked { border-color: #6f9f64; background: #eef7eb; }
+.option-wrap { display: flex; flex-direction: column; gap: 2px; }
+.option .impact { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px; }
+.impact-helps { color: #2f6b2a; font-weight: 600; }
+.impact-hurts { color: #9a2f1f; font-weight: 600; }
+.effect-details { padding: 0 11px; }
+.effect-details summary { cursor: pointer; }
+.effect-details ul { margin: 4px 0 2px; padding-left: 16px; color: var(--ink-2); }
+.area-note { margin: -4px 0 8px; color: var(--ink-2); }
+/* Turn summaries */
+.turn-story { margin: 4px 0 2px; }
+.turn-headline { margin: 0 0 3px; font-weight: 600; }
+.log-details summary { cursor: pointer; margin-top: 2px; }
+.last-turn .turn-headline { font-size: 15px; }
+.pop-delta { font-size: 11px; margin-left: 4px; font-weight: 600; }
+.pop-delta.up { color: #2f6b2a; }
+.pop-delta.down { color: #9a2f1f; }
 .confirm-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
 .deciding { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; background: var(--panel-2); margin-top: 10px; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 3px solid #d8c9a6; border-top-color: var(--accent); animation: spin 0.9s linear infinite; }

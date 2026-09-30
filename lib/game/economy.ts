@@ -146,20 +146,22 @@ export function runEconomy(
     r.exposure = exposure;
     t.lastExposureLoss = exposure;
 
+    // Births follow food, not housing: a fed tribe grows even past its shelter, and the unsheltered then face
+    // winter exposure. Crowding beyond `overcrowding` × shelter halts births.
     let births = 0;
-    if (deficitRatio === 0 && shelter.effective > t.population && t.morale >= BALANCE.population.birthMinMorale && t.population > 0) {
-      const P = BALANCE.population;
+    const P = BALANCE.population;
+    if (deficitRatio === 0 && t.morale >= P.birthMinMorale && t.population > 0 && t.population < shelter.effective * P.overcrowding) {
       const wellFed = t.food >= t.population * P.wellFedTurns;
       t.birthAccumulator += t.population * (P.birthRate + (wellFed ? P.wellFedBirthBonus : 0));
       const whole = Math.floor(t.birthAccumulator);
-      births = Math.min(whole, shelter.effective - t.population);
+      births = whole;
       t.birthAccumulator -= whole;
       t.population += births;
     }
     r.births = births;
 
     const baseSpoil = hasTech(state, id, "food_storage") ? BALANCE.population.storageSpoilage : BALANCE.population.spoilage;
-    const spoilRate = Math.min(0.15, Math.max(0, baseSpoil + mods.spoilageAdd(t.settlement)));
+    const spoilRate = Math.min(BALANCE.population.maxSpoilage, Math.max(0, baseSpoil + mods.spoilageAdd(t.settlement)));
     const spoiled = Math.floor(t.food * spoilRate);
     t.food -= spoiled;
     r.spoiled = spoiled;
@@ -169,6 +171,8 @@ export function runEconomy(
     if (deficitRatio > 0) dm += M.foodDeficit;
     if (exposure > 0) dm += M.exposureLoss;
     if (deficitRatio === 0 && t.population > 0 && t.food >= t.population * 2) dm += M.wellFed;
+    // Without hunger or cold, spirits drift back toward normal.
+    if (deficitRatio === 0 && exposure === 0 && t.morale + dm < M.driftTarget) dm += Math.min(M.driftStep, M.driftTarget - (t.morale + dm));
     t.morale = Math.max(M.min, Math.min(M.max, t.morale + dm));
 
     const name = tribeName(id);

@@ -1,6 +1,6 @@
 // Multiple settlements, scouting, and territory growth. All rules are deterministic and order-independent.
 
-import { BALANCE } from "@/content/balance";
+import { BALANCE, SCALE } from "@/content/balance";
 import { foreignSettlements, livingTribes, reach, settlementsOf, type TribeGeo } from "./geo";
 import { TERRAIN_NAMES, Terrain, TRIBE_IDS, type GameState, type ScoutedSite, type TribeId } from "./types";
 import { manhattan, tilesWithin } from "./world/grid";
@@ -24,7 +24,7 @@ export function siteSummary(state: GameState, tile: number) {
   for (const t of area) if (w.terrain[t] === Terrain.Meadow && w.owner[t] === -1) fert += (w.fertility[t] as number) / 100;
   const free = area.filter((t) => w.owner[t] === -1);
   return {
-    food: Math.round(sumCap(w, free, "forage") + sumCap(w, free, "wildlife") + fert * 6),
+    food: Math.round(sumCap(w, free, "forage") + sumCap(w, free, "wildlife") + fert * 6 * SCALE),
     fish: Math.round(sumCap(w, free, "fish")),
     timber: Math.round(sumCap(w, free, "timber")),
     stone: Math.round(sumCap(w, free, "stone")),
@@ -129,7 +129,7 @@ export function organicGrowth(state: GameState, geo: Record<TribeId, TribeGeo>):
       if (nb.some((k) => k >= 0 && w.owner[k] === idx)) frontier.push(t);
     }
     const score = (t: number) =>
-      (w.cap.forage[t] as number) + (w.cap.wildlife[t] as number) + (w.terrain[t] === Terrain.Meadow ? (w.fertility[t] as number) / 25 : 0) + (isShore(w, t) ? 3 : 0) + ((w.cap.timber[t] as number) + (w.cap.stone[t] as number)) * 0.2;
+      (w.cap.forage[t] as number) + (w.cap.wildlife[t] as number) + (w.terrain[t] === Terrain.Meadow ? ((w.fertility[t] as number) / 25) * SCALE : 0) + (isShore(w, t) ? 3 * SCALE : 0) + ((w.cap.timber[t] as number) + (w.cap.stone[t] as number)) * 0.2;
     frontier.sort((a, b) => score(b) - score(a) || (g.work.dist[a] as number) - (g.work.dist[b] as number) || a - b);
     for (const t of frontier.slice(0, n)) wants.set(t, [...(wants.get(t) ?? []), id]);
   }

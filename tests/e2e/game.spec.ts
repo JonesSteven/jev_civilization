@@ -34,12 +34,12 @@ test("setup, odd/even turns, inspector, and same-origin-only traffic", async ({ 
   });
   await startGame(page, "Windstep", "mock");
   await expect(page.getByText("MOCK SIMULATION")).toBeVisible();
-  await expect(page.getByText("Applies to: the whole land")).toBeVisible();
-  await expect(page.getByText("Turn 1 of 50")).toBeVisible();
+  await expect(page.locator(".event-meta")).toContainText(/Applies to: the whole land|Strikes the/);
+  await expect(page.getByText("Turn 1 of 100")).toBeVisible();
   await expect(page.getByText("Your turn")).toBeVisible();
   await playerTurn(page, 1);
   // Turn 2 is Nature's and runs automatically; turn 3 returns to the player.
-  await expect(page.getByText("Turn 3 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Turn 3 of 100")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator(".log-turn")).toHaveCount(2);
   await expect(page.locator(".log-turn").nth(0)).toContainText("Nature");
   await page.getByRole("tab", { name: /inspector/i }).click();
@@ -54,17 +54,17 @@ test("pause holds a Nature turn and reload resumes the same pending turn", async
   await startGame(page, "Hearthwood", "mock", "pause-seed");
   await page.getByRole("button", { name: /Pause Nature/ }).click();
   await playerTurn(page, 0);
-  await expect(page.getByText("Turn 2 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Turn 2 of 100")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("Nature chooses")).toBeVisible();
   await page.waitForTimeout(2500);
-  await expect(page.getByText("Turn 2 of 50")).toBeVisible();
+  await expect(page.getByText("Turn 2 of 100")).toBeVisible();
   const picked = await page.locator(".option.nature-picked .label span").first().textContent();
   await page.reload();
-  await expect(page.getByText("Turn 2 of 50")).toBeVisible();
+  await expect(page.getByText("Turn 2 of 100")).toBeVisible();
   // The frozen Nature option survives reload; pausing never rerolls it.
   await expect(page.locator(".option.nature-picked .label span").first()).toHaveText(picked ?? "");
   await page.getByRole("button", { name: /Resume Nature/ }).first().click();
-  await expect(page.getByText("Turn 3 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Turn 3 of 100")).toBeVisible({ timeout: 30_000 });
 });
 
 test("keyboard users can choose an event option and confirm it", async ({ page }) => {
@@ -76,7 +76,7 @@ test("keyboard users can choose an event option and confirm it", async ({ page }
   await expect(option).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Confirm choice" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByText("Turn 2 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Turn 2 of 100")).toBeVisible({ timeout: 30_000 });
 });
 
 test("two tabs cannot commit two turns for one intent", async ({ page, context }) => {
@@ -85,7 +85,7 @@ test("two tabs cannot commit two turns for one intent", async ({ page, context }
   const id = page.url().split("/game/")[1]!;
   const other = await context.newPage();
   await other.goto(`/game/${id}`);
-  await expect(other.getByText("Turn 1 of 50")).toBeVisible();
+  await expect(other.getByText("Turn 1 of 100")).toBeVisible();
   await page.locator(".option").nth(0).click();
   await other.locator(".option").nth(1).click();
   await Promise.all([page.getByRole("button", { name: "Confirm choice" }).click(), other.getByRole("button", { name: "Confirm choice" }).click()]);
@@ -102,9 +102,9 @@ test("a failed live turn pauses with Retry and resumes the same frozen intent", 
   await expect(page.getByText(/LIVE · jev-1.13.0/)).toBeVisible();
   await page.getByRole("button", { name: /Pause Nature/ }).click();
   await playerTurn(page, 0);
-  await expect(page.getByText("Turn 2 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Turn 2 of 100")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: /Resume Nature/ }).first().click();
-  await expect(page.getByText("Turn 3 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Turn 3 of 100")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: /Pause Nature/ }).click();
   await playerTurn(page, 2);
   // The stub fails every attempt on turn 3 → explicit paused state, nothing advanced.
@@ -113,7 +113,7 @@ test("a failed live turn pauses with Retry and resumes the same frozen intent", 
   const id = page.url().split("/game/")[1]!;
   expect((await apiGame(page, id)).completedTurn).toBe(2);
   await page.getByRole("button", { name: "Retry" }).click();
-  await expect(page.getByText("Turn 4 of 50")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Turn 4 of 100")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("tab", { name: /inspector/i }).click();
   await expect(page.getByText("Live Jev output")).toBeVisible();
 });

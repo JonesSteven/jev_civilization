@@ -11,11 +11,12 @@ import { adjustRelation, remember } from "../memory";
 import { gatherPotential } from "../production";
 import { draw } from "../rng";
 import { shelterSummary } from "../shelter";
-import { attackStrength, defenseStrength, raidChance } from "../stats";
+import { attackStrength, defenseStrength, raidChance, researchEffort } from "../stats";
 import { TRIBE_IDS, type ActionCandidate, type GameOutcome, type GameState, type ResourceAmounts, type TribeId } from "../types";
 import { tilesWithin } from "../world/grid";
 import { addAsset, assetAtTile, assetById, isLand } from "../world/territory";
 import { capturableBorderTiles, claimAround, surveySites } from "../settlements";
+import { absorbTribe } from "../unions";
 import { allocate, apportion, type Demand } from "./allocation";
 
 export interface ActionResolution {
@@ -305,7 +306,7 @@ export function resolveActions(
           t.project = { techId: tech.id, progress: 0, required: tech.effortTurns };
         }
         if (!t.project) break;
-        t.project.progress += 1;
+        t.project.progress = Math.min(t.project.required, t.project.progress + researchEffort(pre, id));
         const tech = TECH_BY_ID[t.project.techId];
         const techName = tech?.name ?? t.project.techId;
         if (t.project.progress >= t.project.required) {
@@ -357,10 +358,13 @@ export function resolveActions(
   }
 
   // ---- 4. Raids, calculated as one batch from snapshot strengths ----
-  resolveRaids(next, snap, chosen, actors, relocated, defending, turn, outcomes);
+  resolveRaids(next, snap, chosen, actors, relocated, defending, turn, outcomes, changedTiles);
 
   // ---- 5. Recruitment, capped against post-combat populations ----
   resolveRecruitment(next, snap, chosen, actors, turn, outcomes);
+
+  // ---- 6. Union offers and acceptances ----
+  resolveUnions(next, chosen, actors, turn, outcomes, changedTiles);
 
   return { relocated, defending };
 }
@@ -374,6 +378,7 @@ function resolveRaids(
   defending: Set<TribeId>,
   turn: number,
   outcomes: GameOutcome[],
+  changedTiles: Set<number>,
 ) {
   const pre = snap.state;
   const C = BALANCE.combat;
@@ -488,6 +493,65 @@ function resolveRaids(
       remember(next, r.attacker, turn, "raid", `Raid on ${tn} failed on turn ${turn}`);
     }
   }
+  // One casualty line per tribe, summing every raid it fought this turn.
+  for (const [id, n] of [...losses.entries()].sort()) {
+    if (n > 0) outcomes.push({ kind: "raid_losses", tribeId: id, text: narrate("raid_losses", { tribe: tribeName(id), count: n }), amounts: { population: -n } });
+  }
+  resolveConquests(next, pre, successes, turn, outcomes, changedTiles);
+}
+
+/**
+ * A successful raid by a far larger tribe ends a remnant that is too small to negotiate a union: its survivors are
+ * taken in. With several successful conquerors, the largest (then the first by name) takes it.
+ */
+function resolveConquests(next: GameState, pre: GameState, successes: { attacker: TribeId; target: TribeId }[], turn: number, outcomes: GameOutcome[], changedTiles: Set<number>) {
+  const C = BALANCE.combat;
+  for (const target of [...new Set(successes.map((s) => s.target))].sort()) {
+    const d = next.tribes[target];
+    if (!d.alive || d.population >= BALANCE.union.minPopulation) continue;
+    const conquerors = successes
+      .filter((s) => s.target === target && next.tribes[s.attacker].alive && pre.tribes[s.attacker].population >= pre.tribes[target].population * C.conquestRatio)
+      .map((s) => s.attacker)
+      .sort((a, b) => pre.tribes[b].population - pre.tribes[a].population || (a < b ? -1 : 1));
+    const winner = conquerors[0];
+    if (winner) absorbTribe(next, target, winner, C.conquestJoinShare, turn, "conquered", outcomes, changedTiles);
+  }
+}
+
+/**
+ * Offers are recorded for a later turn. Acceptances are settled after raids: the larger tribe takes in the smaller.
+ * If two tribes accept offers from each other in one turn, only the smaller joins the larger.
+ */
+function resolveUnions(
+  next: GameState,
+  chosen: Partial<Record<TribeId, ActionCandidate>>,
+  actors: TribeId[],
+  turn: number,
+  outcomes: GameOutcome[],
+  changedTiles: Set<number>,
+) {
+  for (const id of actors) {
+    const c = chosen[id] as ActionCandidate;
+    if (c.kind !== "offer_union" || c.target?.type !== "settlement") continue;
+    const to = c.target.tribeId;
+    if (!next.tribes[id].alive || !next.tribes[to].alive) continue;
+    const repeat = (next.unionOffers ?? []).some((o) => o.from === id && o.to === to);
+    next.unionOffers = [...(next.unionOffers ?? []).filter((o) => !(o.from === id && o.to === to)), { from: id, to, turn }];
+    remember(next, to, turn, "union_offer", `${tribeName(id)} offered on turn ${turn} to take in our people; we can accept for the next ${BALANCE.union.offerTurns} turns`);
+    outcomes.push({ kind: "offer_union", tribeId: id, text: narrate(repeat ? "offer_union_repeat" : "offer_union", { tribe: tribeName(id), target: tribeName(to) }) });
+  }
+  const accepts = actors
+    .filter((id) => chosen[id]?.kind === "accept_union" && chosen[id]?.target?.type === "settlement")
+    .map((id) => ({ from: id, into: (chosen[id]!.target as { tribeId: TribeId }).tribeId }))
+    .sort((a, b) => next.tribes[a.from].population - next.tribes[b.from].population || (a.from < b.from ? -1 : 1));
+  for (const { from, into } of accepts) {
+    if (!next.tribes[from].alive) continue;
+    if (!next.tribes[into].alive) {
+      outcomes.push({ kind: "accept_union", tribeId: from, success: false, text: narrate("accept_union_failed", { tribe: tribeName(from), target: tribeName(into) }) });
+      continue;
+    }
+    absorbTribe(next, from, into, BALANCE.union.joinShare, turn, "joined", outcomes, changedTiles);
+  }
 }
 
 function pathFromMove(geo: TribeGeo, target: number): number[] {
@@ -544,6 +608,7 @@ function resolveRecruitment(
       moraleDelta(next, rec, BALANCE.morale.recruitGain);
       moraleDelta(next, source, BALANCE.morale.recruitedFrom);
       remember(next, source, turn, "recruited", `${n} people left to join ${tribeName(rec)} on turn ${turn}`);
+      outcomes.push({ kind: "recruited_away", tribeId: source, text: narrate("recruited_away", { tribe: tribeName(source), count: n, target: tribeName(rec) }), amounts: { population: -n } });
       outcomes.push({ kind: "recruit", tribeId: rec, success: true, text: narrate("recruit_success", { tribe: tribeName(rec), count: n, source: tribeName(source) }), amounts: { population: n }, from: pre.tribes[source].settlement, to: pre.tribes[rec].settlement });
     }
   }

@@ -1,0 +1,17 @@
+Live Jev (jev-1.13.0) · rules-3.0.0 · content-3.0.0 · 2026-09-29
+5 matches × 100 turns, seeds final-0 … final-4, player choices seeded random (npm run live-sim -- --games 5 --turns 100 --seed-prefix final --parallel 5)
+About 1.2–1.4M tokens per match (≈13k per turn). Turn-by-turn logs with summaries: reports/live-final-<n>-100.log
+
+final-0  winner Hearthwood   final pop: Hearthwood 9388, Windstep 1949, Stonehaven 4194, Ironfang 3211   spread t25 4.6× · t50 3.2× · t100 4.8×
+final-1  winner Windstep     final pop: Hearthwood 2506, Windstep 4257, Stonehaven 2241, Ironfang 771    spread t25 3.9× · t50 5.6× · t100 5.5×
+final-2  winner Stonehaven   final pop: Hearthwood 5864, Windstep —,    Stonehaven 7246, Ironfang 3860   spread t25 3.0× · t50 13.6× · Windstep conquered by Ironfang on turn 61
+final-3  winner Hearthwood   final pop: Hearthwood 3134, Windstep —,    Stonehaven 1822, Ironfang 413    spread t25 1.3× · t50 6.7× · Windstep conquered by Ironfang on turn 53
+final-4  winner Stonehaven   final pop: Hearthwood 1795, Windstep 776,  Stonehaven 2547, Ironfang 1573   spread t25 2.1× · t50 2.5× · t100 3.3×
+
+Largest ≥ 4× smallest (or a tribe gone) at turn 100: 4 of 5. Four different winners in five matches.
+
+Earlier live batches during tuning (same engine, before the last balance changes), 12 matches × 100 turns:
+largest ≥ 4× smallest (or a tribe gone) at turn 100 in 9 of 12; a union or conquest in 6 of 12
+(unions: Windstep joined Hearthwood on turns 55 and 86, joined Stonehaven on turns 44 and 80;
+conquests: Ironfang took Hearthwood on turn 69 and Windstep on turns 36, 50, 53, 56, 57, 95).
+Windstep left in most of those, which led to the final Windstep and raid changes in BALANCE_CHANGELOG.

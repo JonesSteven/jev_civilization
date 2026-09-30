@@ -1,8 +1,56 @@
 # Jev Civilizations — Handoff Note
 
-Date: 29 September 2026 · current: rules-2.0.0 · content-2.0.0 · model `jev-1.13.0`
+Date: 29 September 2026 · current: rules-3.0.0 · content-3.0.0 · model `jev-1.13.0`
 
-The sections after the update below describe the original rules-1.0.0 delivery. The product requirements document (PRD) that the requirement IDs refer to is private and not part of this repository.
+The sections after the two updates below describe the original rules-1.0.0 delivery. The product requirements document (PRD) that the requirement IDs refer to is private and not part of this repository.
+
+## Update: `dramatic` branch (rules-3.0.0, content-3.0.0)
+
+Playtest feedback: outcomes were mundane (tribes almost never died, none took over), and the dynamics were hard to
+follow. Goal: small strokes of luck compound into very different fates, in the spirit of *Guns, Germs, and Steel*.
+Every number is in `content/balance.ts`, and the tuning steps are logged in `BALANCE_CHANGELOG`.
+
+| Area | What changed |
+| --- | --- |
+| Scale | Populations ×10 (`SCALE`): tribes start at 1,000 people. Food, materials, costs, housing, and tile stocks scale with them. |
+| Luck by place | 18 of the 33 event families now strike one **settled region** (a radius-22/28 area centred on a random claimed tile), announced and highlighted before the choice. |
+| Magnitudes | Modifier limits 0.1–3.0 (were 0.25–2.0), destruction cap 60% (was 20%), durations up to 6 turns. Harsh options are 3–5× harsher (e.g. Bitter winter exposure +0.25, Violent storms −45 shelter, Locusts farms ×0.2); good ones are stronger (×1.5–1.8). |
+| Germs | New E33 Sickness: an `epidemic` op kills up to 5/20/40% in the region and spreads at half strength to neighbours whose land touches. `diseaseResistance`: Hearthwood 0.35, Stonehaven 0.8, others 1.0. |
+| Growth and collapse | Hunger kills up to 40% a turn (was 10%). Births follow food (5%, or 10% with 3 turns of stores) up to 1.5× shelter, and the unsheltered die in winter. Morale drifts back toward 60. A tribe **below 60 people breaks apart**. |
+| Compounding | Technologies are much stronger (Agriculture farms ×1.6, Fishing ×1.5, Tools ×1.6, Irrigation drought floor 90%). Research effort grows with population (+1 per 3,000 people, max 4). Up to 5 settlements. |
+| Raids | On success the defender loses 6% and the attacker 3%; on failure the attacker loses 10%. Forts give +35% per level. A tribe raided in the last two turns defends at ×1.6. **Conquest**: a successful raid by a tribe ≥5× larger ends a remnant under 300; half its survivors, plus its land, stores, and technologies, pass to the raider. |
+| Unions | New actions `offer_union` and `accept_union` (23 kinds). The offer requires ≥4× the target's size; a target of ≥300 people that is declining (or is ≤1/8 our size); and food for the joiners. It stays open for 2 turns. The smaller tribe's Jev decides whether to accept; if it does, 90% of its people, land, settlements, buildings, stores, and technologies join. `GameState.unionOffers` holds open offers. |
+| Ending | `isMatchOver`: the match finishes when one tribe (or none) is left. Results then say who "took over the land". Default length is 100 turns. |
+| Score | Population weighs more: population 55 (target 10,000), resilience 15, development 15, influence 15 (target 600 tiles). |
+| Fates | `TribeState.fate` is `collapsed`, `conquered`, or `joined`, and `absorbedBy` names the other tribe. Both are optional, so older states still load. |
+
+**Messaging and simplification (player-facing only; Jev still sees every action):**
+- `lib/game/summary.ts` builds a plain-language headline and per-tribe lines from measured population changes and their causes. It is stored on `TurnRecord.summary`, passed through replay, and shown in the log, a "Last turn" card, and replays.
+- The event card shows the struck region and which settlements lie inside it. Each option shows "Likely helps / Likely hurts" (`lib/game/impact.ts`); exact effects sit behind a Details toggle.
+- The scoreboard shows ▲/▼ change since the last turn and each tribe's fate. The tribe panel opens with an "At a glance" block.
+- Actions are grouped into 8 plain labels (`ACTION_GROUPS`). Help and onboarding were rewritten more briefly.
+
+**Compatibility:** games saved under older rules refuse new turns with `rules_outdated`; their replays still work.
+
+### Verification for this update
+- `npm test`: 82 tests pass. New `tests/engine/dramatic.test.ts` covers collapse, union eligibility, offer → accept → merge, offer expiry, conquest, epidemic resistance and the plague forecast, overcrowding, research scaling, ending early, and summary wording. Catalog tests now check regional versus world scope and the sickness family.
+- `npm run test:e2e`: 6 pass. Lint, typecheck, build, catalog validation, and the secret scan are clean.
+- Mock simulation (`reports/simulation-100x100-dramatic-mock.txt`, 100 × 100 turns, 0 crashes):
+  - At turn 100, the largest tribe is ≥4× the smallest (or a tribe is gone) in 67% of games.
+  - 45% of games lose a tribe (median turn 64; 2% before turn 15). Unions happen in 35% of games and conquests in 10%.
+  - Wins: Hearthwood 37, Ironfang 29, Stonehaven 25, Windstep 9.
+  - The 200-turn run is in `reports/simulation-30x200-dramatic-mock.txt`.
+  - The mock policy raids much more than Jev, so Ironfang is stronger in mock than in live play.
+- Live Jev (`reports/live-eval-100-dramatic.txt`, 5 × 100 turns, with turn-by-turn logs):
+  - The 4× spread is reached in 4 of 5 matches, and two matches ended in a conquest.
+  - Four different tribes won, Windstep included.
+  - Across the 12 earlier live tuning matches: 4× spread in 9, and a union or conquest in 6.
+  - Cost is about 13k tokens per turn.
+- Tuning tools: `npm run simulate` now prints drama metrics (`--story` shows the summaries turn by turn). The new `npm run live-sim` plays full games against real Jev.
+
+### Known behaviour
+- Jev chooses Gather food most turns and rarely Defends or Trains, so a tribe next to Ironfang can be raided many turns in a row.
+- A last-tribe-standing finish is rare within 100 turns (3% of 200-turn mock games).
 
 ## Update: `dynamic` branch (rules-2.0.0, content-2.0.0)
 

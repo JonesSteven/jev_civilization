@@ -43,10 +43,11 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
       "Timber gathering ×1.25",
       "Wooden housing takes half the ordinary weather damage",
       "Innate access to farms",
+      "Resists epidemics best: dense farming villages carry old immunities",
     ],
     vulnerabilities: [
       "Fixed farms and houses make relocation expensive",
-      "Crop shocks and forest fires threaten their way of life",
+      "Crop pests, droughts, and floods can wipe out a harvest",
     ],
     difficulty: "Approachable",
     traits: ["settled farmers", "skilled woodcutters", "durable wooden homes", "fixed farms and houses"],
@@ -65,15 +66,17 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
     description:
       "Mobile hunting communities who prize independence, knowledge of animals, and the ability to leave an exhausted landscape. They favor movement and opportunity over permanent monuments.",
     advantages: [
-      "Hunting yield ×1.30",
+      "Hunting and gathering yield ×1.5",
+      "Hunting sites draw on game from farther away",
       "Movement budget 10 instead of 6",
       "Portable camp housing moves with them",
       "Lower winter camp exposure",
       "Innate access to hunting sites",
     ],
     vulnerabilities: [
-      "Local wildlife can be depleted",
-      "Camps have weaker defenses and fire resistance than developed settlements",
+      "Local wildlife can be depleted, and vanishing herds mean hunger",
+      "Camps suffer in storms and freezing rain",
+      "No resistance to epidemics",
     ],
     difficulty: "Moderate",
     traits: ["mobile hunters", "long-distance movers", "portable camps", "hardy in winter camps"],
@@ -98,7 +101,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
       "Mountain travel cost 2 instead of 3",
     ],
     vulnerabilities: [
-      "Shoreline dependence for much of their food",
+      "Shoreline dependence for much of their food: ice and failed spawning bite hard",
       "Slower farming development",
       "Limited mobility compared with Windstep",
     ],
@@ -127,6 +130,7 @@ export const TRIBES: Record<TribeId, TribeProfile> = {
     vulnerabilities: [
       "No initial passive food production or subsistence forage",
       "Fortified neighbors and empty stores undermine them",
+      "No resistance to epidemics",
     ],
     difficulty: "Challenging",
     traits: ["mobile raiders", "trained fighters", "portable camps", "no food production until Agriculture or Fishing"],

@@ -100,6 +100,15 @@ export default function ReplayScreen({ gameId }: { gameId: string }) {
               <>
                 <h2>Turn {turn.turn}: {turn.eventTitle}</h2>
                 <p><span className={`chip ${turn.source === "nature" ? "badge-nature" : "badge-player"}`}>{turn.source === "nature" ? "Nature" : "Player"}</span> {turn.optionLabel} · {turn.footprintLabel}</p>
+                {turn.summary && (
+                  <>
+                    <div className="section-title">What happened</div>
+                    <p className="turn-headline">{turn.summary.headline}</p>
+                    <ul className="plain-list small">
+                      {turn.summary.lines.filter((l) => !l.inHeadline).map((l) => <li key={l.tribeId}>{l.text}</li>)}
+                    </ul>
+                  </>
+                )}
                 <div className="section-title">Recorded decisions</div>
                 <ul className="plain-list small">
                   {turn.decisions.map((d) => (
@@ -109,8 +118,10 @@ export default function ReplayScreen({ gameId }: { gameId: string }) {
                     </li>
                   ))}
                 </ul>
-                <div className="section-title">Outcomes</div>
-                <ul className="plain-list small">{turn.outcomes.map((o, i) => <li key={i}>{o.text}</li>)}</ul>
+                <details>
+                  <summary className="section-title">Every measured outcome</summary>
+                  <ul className="plain-list small">{turn.outcomes.map((o, i) => <li key={i}>{o.text}</li>)}</ul>
+                </details>
               </>
             ) : (
               <p>The starting world. Press Play or Next to step through recorded turns.</p>

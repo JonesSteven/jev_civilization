@@ -69,9 +69,8 @@ export function assetsOf(world: WorldState, tribe: TribeId, kind?: AssetKind): A
 }
 
 /** Fish stock available to a fishery at `tile`: water tiles within the site radius. */
-export function siteTiles(world: WorldState, tile: number, kind: "hunt" | "fishery"): number[] {
-  const r = BALANCE.territory.siteRadius;
-  return tilesWithin(tile, r).filter((t) =>
+export function siteTiles(world: WorldState, tile: number, kind: "hunt" | "fishery", radius: number = BALANCE.territory.siteRadius): number[] {
+  return tilesWithin(tile, radius).filter((t) =>
     kind === "fishery" ? world.terrain[t] === Terrain.Water : world.terrain[t] !== Terrain.Water,
   );
 }

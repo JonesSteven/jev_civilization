@@ -1,6 +1,7 @@
 // Browser-facing projections of canonical state. The browser renders these; it never sends state back.
 // (No secrets exist in game state; this module also omits session identifiers and database details.)
 
+import { BALANCE } from "@/content/balance";
 import { EVENT_BY_ID } from "@/content/events";
 import { TECH_BY_ID } from "@/content/technologies";
 import { calendarOf, seasonOf } from "@/lib/game/calendar";
@@ -10,13 +11,17 @@ import { relationLabel } from "@/lib/game/memory";
 import { activeSiteCount, laborFactor } from "@/lib/game/production";
 import { productiveOwnedTiles, scoreTribe, winners } from "@/lib/game/score";
 import { worldView, type WorldView } from "@/lib/game/serialize";
+import { isMatchOver } from "@/lib/game/turn";
 import { foodOutlook, fortCap, fortLevel, moraleLabel, shelterOutlook } from "@/lib/game/stats";
-import { TRIBE_IDS, type EffectOp, type GameState, type ScoreBreakdown, type TribeId } from "@/lib/game/types";
+import { optionImpact, tribesInArea } from "@/lib/game/impact";
+import { TRIBE_IDS, type EffectOp, type GameState, type ScoreBreakdown, type TribeFate, type TribeId } from "@/lib/game/types";
 
 export interface TribePanel {
   id: TribeId;
   alive: boolean;
   eliminatedTurn: number | null;
+  fate: TribeFate | null;
+  absorbedBy: TribeId | null;
   settlement: number;
   outposts: number[];
   scoutedSites: { tile: number; terrain: string; distance: number; food: number; foundTurn: number }[];
@@ -58,7 +63,7 @@ export function describeEffect(op: EffectOp): string {
     case "yieldMult":
       return `${op.channel === "timber" || op.channel === "stone" ? `${op.channel} gathering` : `${op.channel} output`} ${pct(op.factor)} ${where(op)} ${dur(op.duration)}`;
     case "dryFarm":
-      return `Drought: farm output ${pct(op.factor)} ${where(op)} ${dur(op.duration)} (Irrigation floors this at −40%)`;
+      return `Drought: farm output ${pct(op.factor)} ${where(op)} ${dur(op.duration)} (Irrigation floors this at ${pct(BALANCE.production.irrigationDryFloor)})`;
     case "travelMod":
       return `Travel cost ${op.delta > 0 ? "+" : ""}${op.delta} ${where(op)} ${dur(op.duration)}`;
     case "regen":
@@ -66,7 +71,7 @@ export function describeEffect(op: EffectOp): string {
     case "stockAdjust":
       return op.fraction >= 0
         ? `${op.resource} stocks +${Math.round(op.fraction * 100)}% of capacity ${where(op)} (once)`
-        : `${op.resource} stocks −${Math.round(Math.min(-op.fraction, 0.2) * 100)}% ${where(op)} (once)`;
+        : `${op.resource} stocks −${Math.round(Math.min(-op.fraction, BALANCE.effects.maxDestructionFraction) * 100)}% ${where(op)} (once)`;
     case "capacityAdjust":
       return `${op.resource} capacity ${op.fraction >= 0 ? "+" : ""}${Math.round(op.fraction * 100)}% ${where(op)} (permanent)`;
     case "shelterDamage":
@@ -74,17 +79,19 @@ export function describeEffect(op: EffectOp): string {
     case "recurringShelterDamage":
       return `Shelter condition −${op.amount} each turn (${op.types ? op.types.join("/") : "all housing"}) ${where(op)} ${dur(op.duration)}`;
     case "exposure":
-      return `Cold exposure ${op.add > 0 ? "+" : ""}${(op.add * 100).toFixed(1)} points for unsheltered people ${dur(op.duration)}`;
+      return `Cold exposure ${op.add > 0 ? "+" : ""}${(op.add * 100).toFixed(1)}% of unsheltered people per turn ${where(op)} ${dur(op.duration)}`;
     case "spoilage":
-      return `Food spoilage ${op.add > 0 ? "+" : ""}${Math.round(op.add * 100)}% per turn ${dur(op.duration)}`;
+      return `Food spoilage ${op.add > 0 ? "+" : ""}${Math.round(op.add * 100)}% per turn ${where(op)} ${dur(op.duration)}`;
     case "fertility":
       return `Soil fertility ${op.delta > 0 ? "+" : ""}${op.delta} ${where(op)} (permanent)`;
     case "convertTile":
       return `${Math.round(op.fraction * 100)}% of ${op.from} becomes ${op.to} in the highlighted area (permanent; built tiles excluded)`;
     case "overlay":
-      return `${op.flag} ${op.flag === "Cave" || op.flag === "Sheltered" ? "natural shelter (8 or 4 people each, max 24 per tribe) " : ""}on ${Math.round(op.fraction * 100)}% of eligible tiles ${where(op)}${op.duration ? ` ${dur(op.duration)}` : ""}`;
+      return `${op.flag} ${op.flag === "Cave" || op.flag === "Sheltered" ? `natural shelter (${BALANCE.housing.natural.cave} or ${BALANCE.housing.natural.sheltered} people each, max ${BALANCE.housing.natural.max} per tribe) ` : ""}on ${Math.round(op.fraction * 100)}% of eligible tiles ${where(op)}${op.duration ? ` ${dur(op.duration)}` : ""}`;
     case "settlementStock":
       return `Settlements ${where(op)} gain ${op.amount} ${op.resource} (once)`;
+    case "epidemic":
+      return `Sickness kills up to ${Math.round(op.fraction * 100)}% of each tribe ${where(op)} (farmers resist; spreads at half strength to neighbours whose land touches)`;
     case "delayed":
       return `In ${op.afterTurns} turns: ${op.label} — ${op.effects.map(describeEffect).join("; ")}`;
   }
@@ -95,6 +102,14 @@ export function eventCard(state: GameState) {
   if (!p) return null;
   const ev = EVENT_BY_ID[p.eventId];
   if (!ev) return null;
+  const geo = presentGeo(state);
+  const unsheltered: Partial<Record<TribeId, number>> = {};
+  for (const id of TRIBE_IDS) {
+    const g = geo[id];
+    if (!g || !state.tribes[id].alive) continue;
+    const sh = shelterOutlook(state, id, g);
+    unsheltered[id] = state.tribes[id].population > 0 ? sh.unsheltered / state.tribes[id].population : 0;
+  }
   return {
     turn: p.turn,
     eventId: ev.id,
@@ -105,7 +120,17 @@ export function eventCard(state: GameState) {
     footprintLabel: p.footprintLabel,
     fallback: p.fallback,
     natureOptionId: p.natureOptionId,
-    options: ev.options.map((o) => ({ id: o.id, label: o.label, description: o.description, duration: o.duration, tone: o.tone, effects: o.effects.map(describeEffect) })),
+    regional: ev.footprint.kind !== "world",
+    tribesInArea: tribesInArea(state, p.footprint),
+    options: ev.options.map((o) => ({
+      id: o.id,
+      label: o.label,
+      description: o.description,
+      duration: o.duration,
+      tone: o.tone,
+      effects: o.effects.map(describeEffect),
+      impact: optionImpact(state, o, p.footprint, unsheltered),
+    })),
   };
 }
 
@@ -132,6 +157,8 @@ export function tribePanels(state: GameState): TribePanel[] {
       id,
       alive: t.alive,
       eliminatedTurn: t.eliminatedTurn,
+      fate: t.fate ?? (t.alive ? null : "collapsed"),
+      absorbedBy: t.absorbedBy ?? null,
       settlement: t.settlement,
       outposts: t.outposts,
       scoutedSites: t.scoutedSites.map((x) => ({ tile: x.tile, terrain: x.terrain, distance: x.distance, food: x.food, foundTurn: x.foundTurn })),
@@ -198,7 +225,7 @@ export function presentGame(meta: GameMeta, state: GameState, pending: PendingVi
   const turn = Math.min(state.completedTurn + 1, state.totalTurns);
   const tribes = tribePanels(state);
   const scores = Object.fromEntries(tribes.map((t) => [t.id, t.score])) as Record<TribeId, ScoreBreakdown>;
-  const finished = state.completedTurn >= state.totalTurns;
+  const finished = isMatchOver(state);
   return {
     ...meta,
     seed: state.seed,

@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { CONTENT_VERSION, contentHash } from "@/content/index";
 import { DEFAULT_TOTAL_TURNS, MAX_TOTAL_TURNS, MIN_TOTAL_TURNS } from "@/lib/game/calendar";
 import { deserializeState, hashState, serializeState, type SerializedGameState } from "@/lib/game/serialize";
-import { startGame } from "@/lib/game/turn";
+import { isMatchOver, startGame } from "@/lib/game/turn";
 import { TRIBE_IDS, type DecisionMode, type GameState, type GameStatus, type TribeId } from "@/lib/game/types";
 import { createInitialState } from "@/lib/game/world/generate";
 import { getConfig } from "./config";
@@ -43,7 +43,7 @@ export interface GameRow {
 }
 
 export function statusForNextTurn(state: GameState): GameStatus {
-  if (state.completedTurn >= state.totalTurns) return "finished";
+  if (isMatchOver(state)) return "finished";
   return state.currentEvent?.source === "nature" ? "nature_pending" : "awaiting_player";
 }
 

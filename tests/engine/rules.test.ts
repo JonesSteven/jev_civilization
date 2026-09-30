@@ -1,15 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { BALANCE } from "@/content/balance";
+import { BALANCE, SCALE, STARTING } from "@/content/balance";
+import { TECH_BY_ID } from "@/content/technologies";
 import { EVENT_BY_ID } from "@/content/events";
 import { affordable, buildSnapshot, generateAllCandidates, generateCandidates } from "@/lib/game/candidates";
 import { ModifierIndex } from "@/lib/game/effects/modifiers";
 import { computeGeo } from "@/lib/game/geo";
 import { sitePotential } from "@/lib/game/production";
+import { researchEffort } from "@/lib/game/stats";
 import { allocate, apportion } from "@/lib/game/resolve/allocation";
 import { resolveActions } from "@/lib/game/resolve/actions";
 import { scoreTribe, winners } from "@/lib/game/score";
 import { hashState } from "@/lib/game/serialize";
-import { cloneState, resolveTurn } from "@/lib/game/turn";
+import { cloneState, isMatchOver, resolveTurn } from "@/lib/game/turn";
 import { TILE_COUNT, TRIBE_IDS, Terrain, type ActionCandidate, type ActiveEffect, type GameState, type TribeId } from "@/lib/game/types";
 import { newGame, optionFor, step } from "../support/fixtures";
 
@@ -55,7 +57,7 @@ describe.each([50, 200])("full %i-turn match with the mock policy", (length) => 
     let s = newGame("full-match", length);
     const history: { option: string; choices: Partial<Record<TribeId, string>>; hash: string }[] = [];
     const start = cloneState(s);
-    for (let turn = 1; turn <= length; turn++) {
+    for (let turn = 1; turn <= length && !isMatchOver(s); turn++) {
       expect(s.currentEvent?.turn).toBe(turn);
       const option = optionFor(s, turn);
       const r = step(s, {}, turn);
@@ -68,7 +70,8 @@ describe.each([50, 200])("full %i-turn match with the mock policy", (length) => 
       assertInvariants(s);
       history.push({ option, choices, hash: hashState(s) });
     }
-    expect(s.completedTurn).toBe(length);
+    // The match runs to its limit unless only one tribe is left.
+    expect(s.completedTurn === length || TRIBE_IDS.filter((id) => s.tribes[id].alive).length <= 1).toBe(true);
     expect(s.currentEvent).toBeNull();
     // Exact recorded replay: same inputs reproduce every state hash.
     let replay = start;
@@ -132,22 +135,24 @@ describe("economy and development", () => {
   it("pauses and resumes research, charges once, and unlocks mechanics (AC09)", () => {
     let s = newGame("research");
     const before = cloneState(s).tribes.hearthwood;
+    const masonry = TECH_BY_ID.masonry!;
+    const effort = researchEffort(s, "hearthwood");
+    expect(effort).toBe(1);
     let r = step(s, { hearthwood: "research_masonry" });
     s = r.state;
-    expect(s.tribes.hearthwood.project).toMatchObject({ techId: "masonry", progress: 1, required: 2 });
-    expect(r.state.tribes.hearthwood.stone).toBeLessThanOrEqual(before.stone - 20 + BALANCE.production.routineStone);
+    expect(s.tribes.hearthwood.project).toMatchObject({ techId: "masonry", progress: 1, required: masonry.effortTurns });
+    expect(r.state.tribes.hearthwood.stone).toBeLessThanOrEqual(before.stone - masonry.cost.stone + BALANCE.production.routineStone);
     r = step(s, { hearthwood: "rest" });
     s = r.state;
     expect(s.tribes.hearthwood.project?.progress).toBe(1);
     expect(s.tribes.hearthwood.memory.some((m) => m.kind === "research")).toBe(true);
     const stoneBefore = s.tribes.hearthwood.stone;
-    r = step(s, { hearthwood: "research_continue" });
-    s = r.state;
+    for (let i = 0; i < masonry.effortTurns && !s.tribes.hearthwood.learned.includes("masonry"); i++) s = step(s, { hearthwood: "research_continue" }).state;
     expect(s.tribes.hearthwood.learned).toContain("masonry");
     expect(s.tribes.hearthwood.project).toBeNull();
     expect(s.tribes.hearthwood.stone).toBeGreaterThanOrEqual(stoneBefore);
-    s.tribes.hearthwood.stone = 100;
-    s.tribes.hearthwood.timber = 100;
+    s.tribes.hearthwood.stone = 100 * SCALE;
+    s.tribes.hearthwood.timber = 100 * SCALE;
     const snap = buildSnapshot(s, optionFor(s));
     const cands = generateCandidates(snap, "hearthwood");
     // Masonry unlocks stone housing (not innate for Hearthwood).
@@ -160,7 +165,7 @@ describe("economy and development", () => {
     s.tribes.ironfang.food = 50;
     const pop = s.tribes.ironfang.population;
     const r = step(s, { hearthwood: "rest", windstep: "rest", stonehaven: "rest", ironfang: "rest" });
-    // Ironfang has no production: requirement = population, 50 eaten → starvation = ceil(pop × deficit × 0.1).
+    // Ironfang has no production: requirement = population, 50 eaten → starvation = ceil(pop × deficit × rate).
     const expected = Math.ceil(pop * ((pop - 50) / pop) * BALANCE.population.starvationRate);
     expect(r.reports.ironfang.starvation).toBe(expected);
     expect(r.state.tribes.ironfang.population).toBe(pop - expected);
@@ -172,10 +177,11 @@ describe("economy and development", () => {
     const rest = { hearthwood: "rest", windstep: "rest", stonehaven: "rest", ironfang: "rest" } as const;
     for (let i = 0; i < 6; i++) s = step(s, rest).state;
     expect(s.currentEvent?.turn).toBe(7);
-    s.tribes.hearthwood.population = 400;
-    s.tribes.hearthwood.food = 5000;
+    s.tribes.hearthwood.population = 4000;
+    s.tribes.hearthwood.food = 50_000;
     const r = step(s, rest);
-    expect(r.reports.hearthwood.exposure).toBeGreaterThanOrEqual(Math.floor((400 - 60) * 0.02) - 1);
+    const unsheltered = 4000 - STARTING.housingCapacity - BALANCE.housing.natural.max;
+    expect(r.reports.hearthwood.exposure).toBeGreaterThanOrEqual(Math.floor(unsheltered * BALANCE.population.winterExposure) - 1);
     expect(r.outcomes.some((o) => o.kind === "exposure" && o.tribeId === "hearthwood")).toBe(true);
   });
 
@@ -242,8 +248,8 @@ describe("raids and recruitment (AC25)", () => {
     for (let n = 0; n < 40; n++) {
       const s = newGame(`recruit-${n}`);
       for (const id of TRIBE_IDS) {
-        s.tribes[id].food = 400;
-        s.tribes[id].camp = { capacity: 80, condition: 100 };
+        s.tribes[id].food = 400 * SCALE;
+        s.tribes[id].camp = { capacity: 80 * SCALE, condition: 100 };
       }
       const source: TribeId = "ironfang";
       s.tribes[source].food = 10;
@@ -300,12 +306,13 @@ describe("environment effects", () => {
     return { id: `t${Math.random()}`, sourceEventId: "E02", sourceOptionId: "E02_bitter", label: "test", op, footprint: null, activatedTurn: 1, remaining };
   }
 
-  it("bounds stacked modifiers to 0.25–2.0", () => {
+  it("bounds stacked modifiers to the balance limits", () => {
     const s = newGame("stack");
+    const P = BALANCE.production;
     const low = new ModifierIndex(s, Array.from({ length: 5 }, () => fakeEffect({ op: "yieldMult", channel: "farm", factor: 0.5, scope: "world", duration: 2 })));
-    expect(low.yieldMultiplier("farm", 0, false)).toBe(0.25);
+    expect(low.yieldMultiplier("farm", 0, false)).toBe(P.modifierMin);
     const high = new ModifierIndex(s, Array.from({ length: 3 }, () => fakeEffect({ op: "yieldMult", channel: "farm", factor: 2, scope: "world", duration: 2 })));
-    expect(high.yieldMultiplier("farm", 0, false)).toBe(2);
+    expect(high.yieldMultiplier("farm", 0, false)).toBe(P.modifierMax);
     const dry = new ModifierIndex(s, [fakeEffect({ op: "dryFarm", factor: 0.5, scope: "world", duration: 2 })]);
     expect(dry.yieldMultiplier("farm", 0, true)).toBe(BALANCE.production.irrigationDryFloor);
   });
@@ -348,7 +355,7 @@ describe("scoring (AC11)", () => {
     const sc = scoreTribe(s, "hearthwood", geo.hearthwood);
     const S = BALANCE.score;
     expect(sc.population).toBeCloseTo(S.population.weight * Math.min(s.tribes.hearthwood.population / S.population.target, 1), 6);
-    expect(sc.resilience).toBeCloseTo(25 * (0.6 * 1 + 0.4 * 1), 6);
+    expect(sc.resilience).toBeCloseTo(S.resilience.weight * (S.resilience.foodShare * 1 + S.resilience.shelterShare * 1), 6);
     expect(sc.development).toBe(0);
     expect(sc.influence).toBeGreaterThan(0);
     expect(sc.influence).toBeLessThanOrEqual(S.influence.weight * (BALANCE.placement.startTerritoryTiles / S.influence.tiles) + 1e-9);

@@ -1,6 +1,7 @@
 // Jev request DTO. Built only from canonical server records; the client can never supply prompt text.
 // The DTO is separate from GameState so secrets, the supported tribe, and future events cannot leak.
 
+import { BALANCE } from "@/content/balance";
 import { TRIBES } from "@/content/tribes";
 import type { TurnDecisionContext } from "@/lib/game/turn";
 import type { ActionCandidate, TribeId } from "@/lib/game/types";
@@ -40,7 +41,8 @@ export function instructionFor(tribeId: TribeId): string {
     `Favor survival and long-term prosperity while reflecting its preferences. ` +
     `Read its detailed situation at views.${tribeId} and the public world summary. ` +
     `Choose only from the provided actions. Other tribes decide simultaneously; their actions for this turn are unknown. ` +
-    `Consider the stated costs and consequences rather than recalculating them.`
+    `Consider the stated costs and consequences rather than recalculating them. ` +
+    `A tribe that falls below ${BALANCE.population.collapseBelow} people breaks apart, so a small or starving community may be wiser to accept a union offer from a much larger neighbour than to disappear.`
   );
 }
 

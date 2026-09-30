@@ -5,12 +5,14 @@ import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
+import { RULES_VERSION } from "@/content/balance";
 import { EVENT_BY_ID } from "@/content/events";
 import { canonicalJson } from "@/lib/game/hash";
 import { diffWorldView, hashState, serializeState } from "@/lib/game/serialize";
 import { buildDecisionContext, effectiveOption, resolveTurn, type TurnResult } from "@/lib/game/turn";
 import { TRIBE_IDS, type ActionCandidate, type GameOutcome, type TribeId } from "@/lib/game/types";
 import { buildSnapshot } from "@/lib/game/candidates";
+import type { TurnSummary } from "@/lib/game/summary";
 import { getConfig } from "./config";
 import { getDb, packJson, tx, unpackJson } from "./db";
 import { attemptBudget, gameView, loadOwnedGame, stateOf, statusForNextTurn, type GameRow } from "./games";
@@ -112,6 +114,8 @@ export interface TurnRecord {
   reports: TurnResult["reports"];
   scores: TurnResult["scores"];
   eliminated: TribeId[];
+  /** Plain-language summary of the turn (absent on turns recorded before rules-3). */
+  summary?: TurnSummary;
   tribes: { id: TribeId; alive: boolean; population: number; food: number; timber: number; stone: number; morale: number; militaryLevel: number; settlement: number; outposts: number[] }[];
   preStateHash: string;
   postStateHash: string;
@@ -200,6 +204,9 @@ export async function submitTurn(sessionId: string, gameId: string, body: TurnBo
   if (row.version !== body.expectedVersion || row.completed_turn + 1 !== body.expectedTurn) {
     throw new ApiError(409, "stale_version", "The game has changed since this page loaded. Reload to continue.");
   }
+  if (row.rules_version !== RULES_VERSION) {
+    throw new ApiError(409, "rules_outdated", `This match was created under older rules (${row.rules_version}) and cannot continue under ${RULES_VERSION}. Its replay still works; start a new match to keep playing.`);
+  }
   const state = stateOf(row);
   const prepared = state.currentEvent;
   if (!prepared || prepared.eventId !== body.eventId || prepared.turn !== body.expectedTurn) {
@@ -260,6 +267,9 @@ export async function retryTurn(sessionId: string, gameId: string, turn: number,
   if (intent.status === "completed") return completedResponse(row.id, turn);
   if (row.version !== body.expectedVersion || intent.pre_version !== row.version) {
     throw new ApiError(409, "stale_version", "The game has changed since this page loaded. Reload to continue.");
+  }
+  if (row.rules_version !== RULES_VERSION) {
+    throw new ApiError(409, "rules_outdated", `This match was created under older rules (${row.rules_version}) and cannot continue under ${RULES_VERSION}. Its replay still works; start a new match to keep playing.`);
   }
   const leaseActive = row.lease_holder !== null && (row.lease_expires_at ?? 0) > Date.now();
   if (leaseActive) return pendingResponse(row);
@@ -445,6 +455,7 @@ async function runIntent(intentId: string, token: number): Promise<TurnResponse>
     reports: result.reports,
     scores: result.scores,
     eliminated: result.eliminated,
+    summary: result.summary,
     tribes: TRIBE_IDS.map((id) => {
       const t = result.state.tribes[id];
       return { id, alive: t.alive, population: t.population, food: t.food, timber: t.timber, stone: t.stone, morale: t.morale, militaryLevel: t.militaryLevel, settlement: t.settlement, outposts: t.outposts };

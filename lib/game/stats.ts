@@ -26,6 +26,11 @@ export function attackStrength(state: GameState, tribe: TribeId): number {
   return t.population * (1 + BALANCE.combat.militaryStep * t.militaryLevel) * raidMod;
 }
 
+/** A tribe raided in the last two turns is on alert: raiders find it harder to surprise. */
+export function onAlert(state: GameState, tribe: TribeId): boolean {
+  return state.tribes[tribe].memory.some((m) => m.kind === "raided" && m.turn >= state.completedTurn - 1);
+}
+
 export function defenseStrength(state: GameState, tribe: TribeId, defending: boolean, tile: number = state.tribes[tribe].settlement): number {
   const t = state.tribes[tribe];
   return (
@@ -33,8 +38,15 @@ export function defenseStrength(state: GameState, tribe: TribeId, defending: boo
     (1 + BALANCE.combat.militaryStep * t.militaryLevel) *
     (1 + BALANCE.combat.fortStep * fortLevel(state, tribe, tile)) *
     terrainDefense(state, tribe, tile) *
-    (defending ? BALANCE.actions.defendMultiplier : 1)
+    (defending ? BALANCE.actions.defendMultiplier : 1) *
+    (onAlert(state, tribe) ? BALANCE.combat.alertDefense : 1)
   );
+}
+
+/** Effort turns one research action completes: larger populations invent faster. */
+export function researchEffort(state: GameState, tribe: TribeId): number {
+  const R = BALANCE.research;
+  return Math.min(R.maxEffortPerTurn, 1 + Math.floor(state.tribes[tribe].population / R.peoplePerExtraEffort));
 }
 
 export function raidChance(attack: number, defense: number): number {

@@ -115,10 +115,17 @@ export interface ScoutedSite {
   distance: number;
 }
 
+/** How a tribe left the game: broke apart, was conquered by a raid, or joined a larger tribe by union. */
+export type TribeFate = "collapsed" | "conquered" | "joined";
+
 export interface TribeState {
   id: TribeId;
   alive: boolean;
   eliminatedTurn: number | null;
+  /** Set when the tribe leaves the game (absent on states saved before rules-3). */
+  fate?: TribeFate | null;
+  /** The tribe that conquered or absorbed this one. */
+  absorbedBy?: TribeId | null;
   /** Capital settlement tile. Relocation, defenses, and settlement-level modifiers use the capital. */
   settlement: number;
   /** Additional settlements founded after scouting (at most BALANCE.actions.found.maxSettlements - 1). */
@@ -183,6 +190,7 @@ export type EffectOp =
   | { op: "convertTile"; from: TerrainName; to: Exclude<TerrainName, "water">; fraction: number; scope: Scope }
   | ({ op: "overlay"; flag: "Flooded" | "Burned" | "Cave" | "Fruit" | "Wheat" | "Sheltered"; fraction: number; scope: Scope; duration?: number } & TileFilter)
   | ({ op: "settlementStock"; resource: ResourceKind; amount: number; scope: Scope } & TileFilter)
+  | { op: "epidemic"; fraction: number; scope: Scope }
   | { op: "delayed"; afterTurns: number; label: string; effects: EffectOp[] };
 
 export interface ActiveEffect {
@@ -225,6 +233,13 @@ export interface EventBag {
   refills: number;
 }
 
+/** An open union offer: `from` offered on `turn` to take in `to`; `to` may accept on a later turn. */
+export interface UnionOffer {
+  from: TribeId;
+  to: TribeId;
+  turn: number;
+}
+
 export interface GameState {
   schemaVersion: number;
   rulesVersion: string;
@@ -244,6 +259,8 @@ export interface GameState {
   recentEventIds: { turn: number; eventId: string }[];
   currentEvent: PreparedEvent | null;
   effectCounter: number;
+  /** Open union offers (absent on states saved before rules-3). */
+  unionOffers?: UnionOffer[];
 }
 
 // ---- Actions ----
@@ -269,7 +286,9 @@ export type ActionKind =
   | "defend"
   | "recruit"
   | "send_scouts"
-  | "found_settlement";
+  | "found_settlement"
+  | "offer_union"
+  | "accept_union";
 
 export type ValidatedTarget =
   | { type: "tile"; tile: number; label: string }

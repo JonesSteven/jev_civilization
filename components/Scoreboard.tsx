@@ -1,18 +1,30 @@
 "use client";
 
+import { BALANCE, STARTING } from "@/content/balance";
 import { TRIBES } from "@/content/tribes";
+import { fateChip } from "@/lib/client/labels";
 import type { TribePanel } from "@/lib/client/types";
 import type { TribeId } from "@/lib/game/types";
 
+const S = BALANCE.score;
 const COMPONENTS = [
-  { key: "population", label: "Population", max: 40, color: "#8a5a1c" },
-  { key: "resilience", label: "Resilience", max: 25, color: "#b98a4a" },
-  { key: "development", label: "Development", max: 20, color: "#6d7f3a" },
-  { key: "influence", label: "Influence", max: 15, color: "#a3a07a" },
+  { key: "population", label: "Population", max: S.population.weight, color: "#8a5a1c" },
+  { key: "resilience", label: "Resilience", max: S.resilience.weight, color: "#b98a4a" },
+  { key: "development", label: "Development", max: S.development.weight, color: "#6d7f3a" },
+  { key: "influence", label: "Influence", max: S.influence.weight, color: "#a3a07a" },
 ] as const;
 
+/** Population change since the previous turn, as a signed percentage. */
+function popChange(t: TribePanel): number | null {
+  const h = t.history;
+  if (h.length < 1 || !t.alive) return null;
+  const prev = h.length >= 2 ? (h[h.length - 2] as TribePanel["history"][number]).population : STARTING.population;
+  if (prev <= 0) return null;
+  return (t.population - prev) / prev;
+}
+
 export default function Scoreboard({ tribes, supported, selected, onSelect }: { tribes: TribePanel[]; supported: TribeId; selected: TribeId | null; onSelect: (id: TribeId) => void }) {
-  const sorted = [...tribes].sort((a, b) => b.score.total - a.score.total);
+  const sorted = [...tribes].sort((a, b) => Number(b.alive) - Number(a.alive) || b.score.total - a.score.total);
   return (
     <section className="panel panel-pad scoreboard" aria-labelledby="score-title">
       <h2 id="score-title">Tribes</h2>
@@ -41,7 +53,7 @@ export default function Scoreboard({ tribes, supported, selected, onSelect }: { 
                   <img className="emblem" src={TRIBES[t.id].symbol} alt="" />
                   {TRIBES[t.id].name}
                   {t.id === supported && <span className="supported-star" title="You support this tribe" aria-label="supported">★</span>}
-                  {!t.alive && <span className="chip">gone</span>}
+                  {!t.alive && <span className="chip">{fateChip(t)}</span>}
                 </div>
                 {t.alive && (
                   <div className="score-bar" aria-hidden="true">
@@ -51,7 +63,18 @@ export default function Scoreboard({ tribes, supported, selected, onSelect }: { 
                   </div>
                 )}
               </td>
-              <td className="num">{t.population}</td>
+              <td className="num">
+                {t.alive ? t.population.toLocaleString("en-US") : "—"}
+                {(() => {
+                  const c = popChange(t);
+                  if (c === null || Math.abs(c) < 0.005) return null;
+                  return (
+                    <span className={`pop-delta ${c > 0 ? "up" : "down"}`} title="Change since last turn">
+                      {c > 0 ? "▲" : "▼"}{Math.abs(Math.round(c * 100))}%
+                    </span>
+                  );
+                })()}
+              </td>
               <td className="num">{t.foodOutlook ? t.foodOutlook.coverageTurns.toFixed(1) : "—"}</td>
               <td className="num"><strong>{t.score.total.toFixed(1)}</strong></td>
             </tr>

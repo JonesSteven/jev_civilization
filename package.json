@@ -26,7 +26,8 @@
     "simulate": "tsx scripts/simulate.ts",
     "probe:jev": "tsx scripts/probe-jev.ts",
     "check:secrets": "tsx scripts/check-secrets.ts",
-    "notices": "tsx scripts/third-party-notices.ts"
+    "notices": "tsx scripts/third-party-notices.ts",
+    "live-sim": "tsx scripts/live-sim.ts"
   },
   "dependencies": {
     "next": "16.3.6",

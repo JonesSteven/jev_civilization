@@ -6,7 +6,8 @@ import { usePref } from "@/lib/client/prefs";
 import { TRIBES } from "@/content/tribes";
 import type { TribeId } from "@/lib/game/types";
 import { useGame } from "@/lib/client/useGame";
-import EventLog from "./EventLog";
+import { fateText } from "@/lib/client/labels";
+import EventLog, { TurnStory } from "./EventLog";
 import EventPanel from "./EventPanel";
 import HelpDialog from "./HelpDialog";
 import JevInspector from "./JevInspector";
@@ -61,7 +62,9 @@ export default function GameScreen({ gameId }: { gameId: string }) {
   const selTribe = game.tribes.find((t) => t.id === selectedTribeId) ?? game.tribes[0];
   const isMock = game.mode === "mock";
   const settlementAt = selectedTile !== null ? (game.tribes.find((t) => t.alive && (t.settlement === selectedTile || t.outposts.includes(selectedTile)))?.id ?? null) : null;
-  const inFootprint = false;
+  const regionalFootprint = !finished && game.event?.regional ? game.event.footprint : undefined;
+  const inFootprint = selectedTile !== null && !!regionalFootprint && regionalFootprint.includes(selectedTile);
+  const lastEntry = g.log.length ? g.log.reduce((a, b) => (b.turn > a.turn ? b : a)) : null;
 
   const closeOnboarding = () => setOnboarded(true);
 
@@ -141,7 +144,7 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               settlements={g.settlements}
               overlay={overlay}
               showOwnership={showOwnership}
-              footprint={undefined}
+              footprint={regionalFootprint ?? undefined}
               selectedTile={selectedTile}
               supportedTribe={game.supportedTribeId}
               onSelectTile={setSelectedTile}
@@ -197,6 +200,12 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               </div>
             </div>
           )}
+          {lastEntry?.summary && (
+            <section className="panel panel-pad last-turn" aria-label="What happened last turn">
+              <h3>Last turn ({lastEntry.turn}): {lastEntry.eventTitle}: {lastEntry.optionLabel}</h3>
+              <TurnStory entry={lastEntry} />
+            </section>
+          )}
           {!finished && game.event && (
             <EventPanel
               key={game.event.turn}
@@ -251,8 +260,15 @@ export default function GameScreen({ gameId }: { gameId: string }) {
       {showElimination && (
         <div className="overlay">
           <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="elim-title">
-            <h2 id="elim-title">{TRIBES[game.supportedTribeId].name} has disappeared</h2>
-            <p>You can keep watching the other tribes through turn 100, or end viewing now. Ending marks the match abandoned; the remaining turns are not simulated.</p>
+            <h2 id="elim-title">{TRIBES[game.supportedTribeId].name} {supported ? fateText(supported) : "has disappeared"}</h2>
+            <p>
+              {supported?.fate === "joined"
+                ? "Its people now live on as part of another tribe. "
+                : supported?.fate === "conquered"
+                  ? "Its survivors were taken in by the conquerors. "
+                  : "Its settlements are now ruins. "}
+              You can keep watching the other tribes through turn {game.totalTurns}, or end viewing now. Ending marks the match abandoned; the remaining turns are not simulated.
+            </p>
             <div className="dialog-actions">
               <button type="button" className="btn btn-primary" onClick={() => setDismissedElimination(true)} autoFocus>Continue watching</button>
               <button type="button" className="btn" onClick={() => { setDismissedElimination(true); void g.abandon(); }}>End viewing</button>

@@ -1,4 +1,4 @@
-import { BALANCE, STARTING } from "@/content/balance";
+import { BALANCE, SCALE, STARTING } from "@/content/balance";
 import { TRIBES } from "@/content/tribes";
 import { makeRng } from "../rng";
 import { Overlay, Terrain, TILE_COUNT, TRIBE_IDS, type TribeId, type WorldState } from "../types";
@@ -37,7 +37,7 @@ function candidateTiles(world: WorldState, tribe: TribeId, comp: Int32Array, mai
       }
       case "windstep": {
         if (t !== Terrain.Meadow && t !== Terrain.Forest) continue;
-        if (sumStock(world, r3, "wildlife") < 45) continue;
+        if (sumStock(world, r3, "wildlife") < 45 * SCALE) continue;
         break;
       }
       case "stonehaven": {
@@ -122,7 +122,7 @@ export function placeStartingAssets(world: WorldState, settlements: Settlements,
       }
       if (chosen.length < STARTING.startingSites) return false;
       for (const t of chosen) {
-        if (sumStock(world, siteTiles(world, t, "hunt"), "wildlife") < 25) return false;
+        if (sumStock(world, siteTiles(world, t, "hunt"), "wildlife") < 25 * SCALE) return false;
         addAsset(world, { kind: "hunt", tile: t, owner: tribe, builtTurn: 0 });
       }
     } else if (sites === "fishery") {
@@ -142,7 +142,7 @@ export function placeStartingAssets(world: WorldState, settlements: Settlements,
         return false;
       }
       for (const t of chosen) {
-        if (sumStock(world, siteTiles(world, t, "fishery"), "fish") < 80) {
+        if (sumStock(world, siteTiles(world, t, "fishery"), "fish") < 80 * SCALE) {
           lastAssetFailure = `${tribe}: fishery pool ${Math.floor(sumStock(world, siteTiles(world, t, "fishery"), "fish"))}`;
           return false;
         }

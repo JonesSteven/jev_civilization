@@ -37,6 +37,7 @@ export function replayData(row: GameRow) {
       kind: d.offered.find((o) => o.id === d.selected)?.kind ?? "",
     })),
     outcomes: record.outcomes,
+    summary: record.summary ?? null,
     tribes: record.tribes,
     scores: record.scores,
     postStateHash: record.postStateHash,

@@ -15,7 +15,9 @@ import {
   type GameState,
   type HousingTarget,
   type TileFilter,
+  type TribeId,
 } from "../types";
+import { remember } from "../memory";
 import { resetTileCapacities } from "../world/terrain";
 import { nearWaterMask, passesFilter } from "./modifiers";
 
@@ -78,6 +80,45 @@ function damageShelters(
   }
 }
 
+/** Living tribes whose claimed land touches `id`'s claimed land. */
+function touchingTribes(state: GameState, id: TribeId): TribeId[] {
+  const w = state.world;
+  const me = TRIBE_IDS.indexOf(id);
+  const found = new Set<number>();
+  for (let t = 0; t < TILE_COUNT; t++) {
+    if (w.owner[t] !== me) continue;
+    const x = t % w.width;
+    const around = [t - w.width, t + w.width, x > 0 ? t - 1 : -1, x < w.width - 1 ? t + 1 : -1];
+    for (const n of around) {
+      if (n < 0 || n >= TILE_COUNT) continue;
+      const o = w.owner[n] as number;
+      if (o >= 0 && o !== me) found.add(o);
+    }
+  }
+  return TRIBE_IDS.filter((o, i) => found.has(i) && state.tribes[o].alive);
+}
+
+/**
+ * Sickness strikes tribes with a settlement in the area, scaled by each tribe's resistance, then spreads at
+ * reduced strength to living neighbours whose land touches a stricken tribe.
+ */
+function spreadEpidemic(state: GameState, fraction: number, struck: (id: TribeId) => boolean, turn: number, outcomes: GameOutcome[]) {
+  const P = BALANCE.population;
+  const direct = TRIBE_IDS.filter((id) => state.tribes[id].alive && struck(id));
+  const indirect = new Set<TribeId>();
+  for (const id of direct) for (const n of touchingTribes(state, id)) if (!direct.includes(n)) indirect.add(n);
+  const hit = (id: TribeId, share: number, key: "epidemic" | "epidemic_spread") => {
+    const t = state.tribes[id];
+    const deaths = Math.min(t.population, Math.round(t.population * share * BALANCE.diseaseResistance[id]));
+    if (deaths <= 0) return;
+    t.population -= deaths;
+    remember(state, id, turn, "sickness", `Sickness killed ${deaths} people on turn ${turn}`);
+    outcomes.push({ kind: "epidemic", tribeId: id, text: narrate(key, { tribe: tribeName(id), count: deaths }), amounts: { population: -deaths } });
+  };
+  for (const id of direct) hit(id, fraction, "epidemic");
+  for (const id of TRIBE_IDS) if (indirect.has(id)) hit(id, fraction * P.epidemicSpreadShare, "epidemic_spread");
+}
+
 function applyOneTime(state: GameState, op: EffectOp, meta: EffectMeta, outcomes: GameOutcome[], nearWater: Uint8Array, changedTiles: Set<number>) {
   const world = state.world;
   const eventTitle = EVENT_BY_ID[meta.eventId]?.title ?? meta.eventId;
@@ -137,7 +178,7 @@ function applyOneTime(state: GameState, op: EffectOp, meta: EffectMeta, outcomes
     case "overlay": {
       const flag = Overlay[op.flag];
       const eligible = filtered(state, op, meta.footprint, nearWater).filter((t) => !((world.overlay[t] as number) & flag));
-      const n = Math.max(eligible.length > 0 ? 1 : 0, Math.floor(eligible.length * Math.min(op.fraction, 0.25)));
+      const n = Math.max(eligible.length > 0 ? 1 : 0, Math.floor(eligible.length * Math.min(op.fraction, BALANCE.effects.maxOverlayFraction)));
       const picked = makeRng(state.seed, "effects", meta.key, "overlay").shuffle([...eligible]).slice(0, n).sort((a, b) => a - b);
       for (const t of picked) {
         world.overlay[t] = (world.overlay[t] as number) | flag;
@@ -161,6 +202,9 @@ function applyOneTime(state: GameState, op: EffectOp, meta: EffectMeta, outcomes
     }
     case "shelterDamage":
       damageShelters(state, op, meta.footprint, nearWater, outcomes, eventTitle);
+      break;
+    case "epidemic":
+      spreadEpidemic(state, op.fraction, (id) => [state.tribes[id].settlement, ...state.tribes[id].outposts].some((x) => inScope(op, meta.footprint, x)), meta.turn, outcomes);
       break;
     default:
       break;

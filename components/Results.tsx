@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { BALANCE } from "@/content/balance";
 import { TRIBES } from "@/content/tribes";
+import { fateChip, fateText, plainAction } from "@/lib/client/labels";
 import type { GameView } from "@/lib/client/types";
 import type { LogEntry } from "@/lib/client/useGame";
 import PopulationChart from "./PopulationChart";
+
+const SC = BALANCE.score;
 
 export default function Results({ game, log, onInspect }: { game: GameView; log: LogEntry[]; onInspect: (turn: number) => void }) {
   const ranked = [...game.tribes].sort((a, b) => b.score.total - a.score.total);
@@ -15,8 +19,14 @@ export default function Results({ game, log, onInspect }: { game: GameView; log:
   const abandoned = game.status === "abandoned";
   const isMock = game.mode === "mock";
 
+  const survivors = game.tribes.filter((t) => t.alive);
+  const endedEarly = !abandoned && game.completedTurn < game.totalTurns;
+  const gone = game.tribes.filter((t) => !t.alive).sort((a, b) => (a.eliminatedTurn ?? 0) - (b.eliminatedTurn ?? 0));
   let headline: string;
-  if (abandoned) headline = `Viewing ended on turn ${game.completedTurn}. The remaining turns were not simulated, so there is no final ranking.`;
+  if (endedEarly && survivors.length === 1) {
+    const last = survivors[0] as (typeof survivors)[number];
+    headline = `${TRIBES[last.id].name} took over the land on turn ${game.completedTurn}, the last tribe standing with ${last.population.toLocaleString("en-US")} people.${last.id === game.supportedTribeId ? " Your tribe prevails." : ""}`;
+  } else if (abandoned) headline = `Viewing ended on turn ${game.completedTurn}. The remaining turns were not simulated, so there is no final ranking.`;
   else if (winners.length === 0) headline = `No tribe survived to turn ${game.totalTurns}. There is no surviving winner.`;
   else if (winners.includes(game.supportedTribeId)) headline = shared ? `${TRIBES[game.supportedTribeId].name} shares the victory with an exactly equal top score.` : `${TRIBES[game.supportedTribeId].name} wins with the highest civilization score.`;
   else headline = `${winners.map((w) => TRIBES[w].name).join(" and ")} ${shared ? "share the victory" : "wins"}. ${TRIBES[game.supportedTribeId].name} ${supported?.alive ? `finished in place ${place}` : "did not survive"}.`;
@@ -24,10 +34,15 @@ export default function Results({ game, log, onInspect }: { game: GameView; log:
   return (
     <section className="panel panel-pad" aria-labelledby="results-title">
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <h2 id="results-title" style={{ margin: 0 }}>{abandoned ? "Match ended early" : `Final results after ${game.totalTurns} turns`}</h2>
+        <h2 id="results-title" style={{ margin: 0 }}>{abandoned ? "Match ended early" : endedEarly ? `Final results: one tribe left after ${game.completedTurn} turns` : `Final results after ${game.totalTurns} turns`}</h2>
         <span className={`chip ${isMock ? "badge-mock" : "badge-live"}`}>{isMock ? "Mock simulation — not Jev" : "Live Jev decisions"}</span>
       </div>
       <p style={{ fontSize: 16, marginTop: 8 }}>{headline}</p>
+      {gone.length > 0 && (
+        <p className="small">
+          {gone.map((t) => `${TRIBES[t.id].name} ${fateText(t)}`).join(" · ")}
+        </p>
+      )}
       {!abandoned && (
         <div className="results-grid">
           <div>
@@ -40,7 +55,7 @@ export default function Results({ game, log, onInspect }: { game: GameView; log:
                     <td>{t.score.total > 0 ? i + 1 : "—"}</td>
                     <td>
                       <span className="swatch" style={{ background: TRIBES[t.id].color, marginRight: 6 }} />
-                      {TRIBES[t.id].name}{winners.includes(t.id) ? " 🏆" : ""}{!t.alive ? " (gone)" : ""}
+                      {TRIBES[t.id].name}{winners.includes(t.id) ? " 🏆" : ""}{!t.alive ? ` (${fateChip(t)})` : ""}
                     </td>
                     <td>{t.score.population.toFixed(1)}</td>
                     <td>{t.score.resilience.toFixed(1)}</td>
@@ -51,8 +66,8 @@ export default function Results({ game, log, onInspect }: { game: GameView; log:
                 ))}
               </tbody>
             </table>
-            <p className="small muted">Maximums: population 40, resilience 25, development 20, influence 15. Ranking uses full precision; exact ties share the win.</p>
-            <h3 style={{ marginTop: 12 }}>Technology milestones</h3>
+            <p className="small muted">Maximums: population {SC.population.weight}, resilience {SC.resilience.weight}, development {SC.development.weight}, influence {SC.influence.weight}. Ranking uses full precision; exact ties share the win.</p>
+            <h3 style={{ marginTop: 12 }}>Milestones</h3>
             <ul className="plain-list small">
               {game.tribes.flatMap((t) => t.milestones.map((m) => ({ ...m, id: t.id }))).sort((a, b) => a.turn - b.turn).map((m) => (
                 <li key={`${m.id}-${m.turn}-${m.text}`}>Turn {m.turn}: {TRIBES[m.id].name} — {m.text}</li>
@@ -76,7 +91,7 @@ export default function Results({ game, log, onInspect }: { game: GameView; log:
                 <td>{e.eventTitle}: {e.optionLabel}</td>
                 {game.tribes.map((t) => {
                   const d = e.decisions.find((x) => x.tribeId === t.id);
-                  return <td key={t.id}>{d ? d.kind.replace(/_/g, " ") : "—"}</td>;
+                  return <td key={t.id} title={d ? plainAction(d.kind).name : undefined}>{d ? plainAction(d.kind).group : "—"}</td>;
                 })}
                 <td><button type="button" className="btn btn-sm" onClick={() => onInspect(e.turn)}>Inspect</button></td>
               </tr>

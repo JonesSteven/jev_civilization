@@ -1,7 +1,7 @@
 import { SEASONS, type ChoiceSource, type Season } from "./types";
 
-/** Match length is chosen per game (PRD default was 100; the dynamic ruleset defaults to 50). */
-export const DEFAULT_TOTAL_TURNS = 50;
+/** Match length is chosen per game; the dramatic ruleset defaults to 100 so fortunes have time to diverge. */
+export const DEFAULT_TOTAL_TURNS = 100;
 export const MIN_TOTAL_TURNS = 10;
 export const MAX_TOTAL_TURNS = 200;
 

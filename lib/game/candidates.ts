@@ -3,7 +3,7 @@
 // content/actions.ts (targetRule). Jev only ever picks one of these IDs; it never invents targets.
 
 import { ACTIONS } from "@/content/actions";
-import { BALANCE } from "@/content/balance";
+import { BALANCE, SCALE } from "@/content/balance";
 import { EVENT_BY_ID } from "@/content/events";
 import { TECHNOLOGIES, TECH_BY_ID } from "@/content/technologies";
 import { TRIBES, tribeName } from "@/content/tribes";
@@ -11,8 +11,9 @@ import { seasonOf } from "./calendar";
 import { ModifierIndex } from "./effects/modifiers";
 import { accessibleTiles, computeGeo, foreignSettlements, livingTribes, reach, settlementsOf, type TribeGeo } from "./geo";
 import { settlementBuffer, siteUsable } from "./settlements";
-import { activeSiteCount, capabilities, gatherPotential, laborFactor, sitePotential } from "./production";
-import { attackStrength, defenseStrength, fortCap, fortLevel, foodOutlook, raidChance, shelterOutlook } from "./stats";
+import { acceptableOffers, hasOpenOffer, unionEligible } from "./unions";
+import { activeSiteCount, capabilities, gatherPotential, laborFactor, sitePotential, siteRadius } from "./production";
+import { attackStrength, defenseStrength, fortCap, fortLevel, foodOutlook, raidChance, researchEffort, shelterOutlook } from "./stats";
 import {
   TERRAIN_NAMES,
   Terrain,
@@ -284,7 +285,7 @@ function siteCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: Acti
   }
   if (caps.hunting && affordable(snap.state, tribe, A.huntCost)) {
     const land = free.filter((t) => w.terrain[t] === Terrain.Meadow || w.terrain[t] === Terrain.Forest);
-    const score = (t: number) => sumStock(w, siteTiles(w, t, "hunt"), "wildlife");
+    const score = (t: number) => sumStock(w, siteTiles(w, t, "hunt", siteRadius(tribe, "hunt")), "wildlife");
     make("hunt", bestAndNearest(land, score, geo), A.huntCost, "hunting site", "establish_hunt", (t) => `${Math.floor(score(t))} wildlife nearby`);
   }
   if (caps.fishing && affordable(snap.state, tribe, A.fisheryCost)) {
@@ -337,15 +338,16 @@ function researchCandidates(snap: Snapshot, tribe: TribeId, out: ActionCandidate
   if (t.project) {
     const tech = TECH_BY_ID[t.project.techId];
     const name = tech?.name ?? t.project.techId;
-    const willComplete = t.project.progress + 1 >= t.project.required;
+    const effort = researchEffort(snap.state, tribe);
+    const willComplete = t.project.progress + effort >= t.project.required;
     out.push(
       candidate(
         tribe,
         "research_continue",
         "research_continue",
         ZERO,
-        `No stock cost; uses this turn's effort to advance ${name} (${t.project.progress}/${t.project.required} effort turns done).${willComplete ? ` Completes ${name} this turn: ${tech?.effect ?? ""}` : ""}`,
-        [willComplete ? `Learn ${name}` : `${name} progress ${t.project.progress + 1}/${t.project.required}`],
+        `No stock cost; uses this turn's effort to advance ${name} by ${effort} (${t.project.progress}/${t.project.required} effort turns done; larger tribes research faster).${willComplete ? ` Completes ${name} this turn: ${tech?.effect ?? ""}` : ""}`,
+        [willComplete ? `Learn ${name}` : `${name} progress ${t.project.progress + effort}/${t.project.required}`],
       ),
     );
     out.push(
@@ -353,19 +355,20 @@ function researchCandidates(snap: Snapshot, tribe: TribeId, out: ActionCandidate
     );
     return;
   }
+  const effort = researchEffort(snap.state, tribe);
   for (const tech of TECHNOLOGIES) {
     if (t.learned.includes(tech.id)) continue;
     if (!tech.prerequisites.every((p) => t.learned.includes(p))) continue;
     if (!affordable(snap.state, tribe, tech.cost)) continue;
-    const completes = tech.effortTurns <= 1;
+    const completes = tech.effortTurns <= effort;
     out.push(
       candidate(
         tribe,
         `research_${tech.id}`,
         "research_start",
         tech.cost,
-        `${costText(tech.cost)} once; start ${tech.name}, completing effort turn 1 of ${tech.effortTurns}. Later progress requires choosing Continue research. ${tech.name}: ${tech.effect} Each learned technology adds ${(BALANCE.score.development.weight / BALANCE.score.development.techs).toFixed(1)} civilization-score points.`,
-        [completes ? `Learn ${tech.name}` : `${tech.name} progress 1/${tech.effortTurns}`],
+        `${costText(tech.cost)} once; start ${tech.name}, completing ${Math.min(effort, tech.effortTurns)} of ${tech.effortTurns} effort turns now (our ${t.population} people complete ${effort} per research turn; larger tribes research faster).${completes ? "" : " Later progress requires choosing Continue research."} ${tech.name}: ${tech.effect} Each learned technology adds ${(BALANCE.score.development.weight / BALANCE.score.development.techs).toFixed(1)} civilization-score points.`,
+        [completes ? `Learn ${tech.name}` : `${tech.name} progress ${effort}/${tech.effortTurns}`],
         ["Other actions pause the project without losing progress"],
         { type: "tech", techId: tech.id, label: tech.name },
       ),
@@ -396,7 +399,7 @@ function relocationCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out
     const area = tilesWithin(tile, 4);
     let fert = 0;
     for (const t of area) if (w.terrain[t] === Terrain.Meadow) fert += (w.fertility[t] as number) / 100;
-    return sumStock(w, area, "forage") + sumStock(w, area, "wildlife") + sumStock(w, area, "fish") * 0.5 + fert * 2;
+    return sumStock(w, area, "forage") + sumStock(w, area, "wildlife") + sumStock(w, area, "fish") * 0.5 + fert * 2 * SCALE;
   };
   const safety = (tile: number) => (others.length ? Math.min(...others.map((o) => manhattan(o, tile))) : 0);
   const byFood = rankTop(dests, (a, b) => foodScore(b) - foodScore(a) || (geo.capitalMove.dist[a] as number) - (geo.capitalMove.dist[b] as number) || a - b, 1)[0];
@@ -470,7 +473,7 @@ function expansionCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out:
   const cost = BALANCE.actions.expand.cost;
   if (!affordable(snap.state, tribe, cost)) return;
   const w = snap.state.world;
-  const food = (t: number) => (w.cap.forage[t] as number) + (w.cap.wildlife[t] as number) + (w.terrain[t] === Terrain.Meadow ? (w.fertility[t] as number) / 25 : 0) + (isShore(w, t) ? 3 : 0);
+  const food = (t: number) => (w.cap.forage[t] as number) + (w.cap.wildlife[t] as number) + (w.terrain[t] === Terrain.Meadow ? ((w.fertility[t] as number) / 25) * SCALE : 0) + (isShore(w, t) ? 3 * SCALE : 0);
   const materials = (t: number) => (w.cap.timber[t] as number) + (w.cap.stone[t] as number);
   const foodSet = expansionSet(snap, tribe, geo, food);
   const matSet = expansionSet(snap, tribe, geo, materials);
@@ -555,10 +558,63 @@ function raidCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: Acti
         `raid_${target}`,
         "raid",
         raidCost,
-        `${costText(raidCost)}; raid ${name} ${geo.move.dist[tile]} travel units away${geo.reachFactor < 1 ? ` (weather shortens raiding reach to ${reach(geo, R.range)} this turn)` : ""}. Game-engine success chance ${chance}% (attack ${Math.round(atk)} vs defense ${Math.round(def)}); ${chanceD}% if ${tribeName(target)} chooses Defend. Success takes up to ${L.food} food, ${L.timber} timber, and ${L.stone} stone from its stores (it holds ${tt.food} food, ${tt.timber} timber, ${tt.stone} stone), captures up to ${BALANCE.territory.raidCaptureTiles} of its border tiles that touch our territory, and costs about 2% of our people; failure costs about 5%.`,
+        `${costText(raidCost)}; raid ${name} ${geo.move.dist[tile]} travel units away${geo.reachFactor < 1 ? ` (weather shortens raiding reach to ${reach(geo, R.range)} this turn)` : ""}. Game-engine success chance ${chance}% (attack ${Math.round(atk)} vs defense ${Math.round(def)}); ${chanceD}% if ${tribeName(target)} chooses Defend. Success takes up to ${L.food} food, ${L.timber} timber, and ${L.stone} stone from its stores (it holds ${tt.food} food, ${tt.timber} timber, ${tt.stone} stone), captures up to ${BALANCE.territory.raidCaptureTiles} of its border tiles that touch our territory, kills about ${Math.round(BALANCE.combat.successLoss.defender * 100)}% of its people, and costs about ${Math.round(BALANCE.combat.successLoss.attacker * 100)}% of ours; failure costs about ${Math.round(BALANCE.combat.failureLoss.attacker * 100)}% of ours.${conquestNote(s, tribe, target)}`,
         [`Success: loot up to ${Math.min(L.food, tt.food)} food and up to ${BALANCE.territory.raidCaptureTiles} border tiles`, "Relations with the target worsen"],
         [isCapital ? "If the target moves its capital this turn, the raid finds nothing (no loot, no casualties)" : "Outposts cannot relocate", "Several raids on one tribe share its loot"],
         { type: "settlement", tribeId: target, tile, label: name },
+      ),
+    );
+  }
+}
+
+function conquestNote(s: GameState, tribe: TribeId, target: TribeId): string {
+  const C = BALANCE.combat;
+  const U = BALANCE.union;
+  const pop = s.tribes[target].population;
+  if (s.tribes[tribe].population < pop * C.conquestRatio) return "";
+  const after = Math.floor(pop * (1 - C.successLoss.defender));
+  if (after >= U.minPopulation) return "";
+  return ` Because we are more than ${C.conquestRatio} times larger and ${tribeName(target)} would fall below ${U.minPopulation} people, a successful raid conquers it: its land, stores, and knowledge become ours and about ${Math.round(C.conquestJoinShare * 100)}% of its survivors join us.`;
+}
+
+/** Offer a union to much smaller, declining neighbours; accept an open offer from a larger tribe. */
+function unionCandidates(snap: Snapshot, tribe: TribeId, geo: TribeGeo, out: ActionCandidate[]) {
+  const s = snap.state;
+  const U = BALANCE.union;
+  const t = s.tribes[tribe];
+  for (const o of livingTribes(s)) {
+    if (!unionEligible(s, tribe, o)) continue;
+    const tile = nearestSettlementOf(snap, geo, o, U.range);
+    if (tile === null) continue;
+    const ot = s.tribes[o];
+    const joining = Math.floor(ot.population * U.joinShare);
+    const renew = hasOpenOffer(s, tribe, o, snap.turn) ? " (renews our earlier offer)" : "";
+    out.push(
+      candidate(
+        tribe,
+        `offer_union_${o}`,
+        "offer_union",
+        ZERO,
+        `No stock cost; offer to take in ${tribeName(o)}${renew}, which is declining (${ot.population} people, ${ot.food} food) while we have ${t.population}. If ${tribeName(o)} accepts on one of the next ${U.offerTurns} turns, about ${joining} of its people join us with all its land, settlements, buildings, stores, and technologies, and it ceases to be a separate tribe. We must feed them (we hold ${t.food} food).`,
+        [`If accepted: +about ${joining} people, ${tribeName(o)}'s land and knowledge`],
+        ["The other tribe may refuse; this turn's effort is spent either way"],
+        { type: "settlement", tribeId: o, tile, label: `${tribeName(o)} settlement` },
+      ),
+    );
+  }
+  for (const offer of acceptableOffers(s, tribe, snap.turn)) {
+    const big = s.tribes[offer.from];
+    const joining = Math.floor(t.population * U.joinShare);
+    out.push(
+      candidate(
+        tribe,
+        `accept_union_${offer.from}`,
+        "accept_union",
+        ZERO,
+        `No stock cost; accept ${tribeName(offer.from)}'s offer (made ${snap.turn - offer.turn} turn${snap.turn - offer.turn === 1 ? "" : "s"} ago) and join it. About ${joining} of our ${t.population} people move in with ${tribeName(offer.from)} (${big.population} people, ${big.food} food); our land, settlements, buildings, stores, and technologies become part of it and ${tribeName(tribe)} ends as a separate tribe. Our people then share its food and shelter.`,
+        [`Our people join ${tribeName(offer.from)}; ${tribeName(tribe)} ends as a separate tribe`],
+        ["Irreversible"],
+        { type: "settlement", tribeId: offer.from, tile: big.settlement, label: `${tribeName(offer.from)} settlement` },
       ),
     );
   }
@@ -663,6 +719,8 @@ const KIND_ORDER: ActionKind[] = [
   "recruit",
   "send_scouts",
   "found_settlement",
+  "offer_union",
+  "accept_union",
 ];
 
 /** Enforce the candidate cap: drop second location/target variants first, never a whole action type or a technology. */
@@ -705,7 +763,7 @@ export function generateCandidates(snap: Snapshot, tribe: TribeId): ActionCandid
         "build_defenses",
         "build_defenses",
         D.cost,
-        `${costText(D.cost)}; raise fortification at the settlement from level ${fort} to ${fort + 1} (+20% defense each level; cap ${fortCap(s, tribe)}${fortCap(s, tribe) < D.techCap ? " without Fortification" : ""}). Applies from next turn; stays at this location if the tribe moves.`,
+        `${costText(D.cost)}; raise fortification at the settlement from level ${fort} to ${fort + 1} (+${Math.round(BALANCE.combat.fortStep * 100)}% defense each level; cap ${fortCap(s, tribe)}${fortCap(s, tribe) < D.techCap ? " without Fortification" : ""}). Applies from next turn; stays at this location if the tribe moves.`,
         [`Fortification level ${fort + 1}`],
       ),
     );
@@ -721,6 +779,7 @@ export function generateCandidates(snap: Snapshot, tribe: TribeId): ActionCandid
   out.push(candidate(tribe, "defend", "defend", ZERO, `No stock cost; stand ready so settlement defense is ×${BALANCE.actions.defendMultiplier} against any raid this turn. No lasting military gain.`, [`Defense ×${BALANCE.actions.defendMultiplier} this turn`]));
   recruitCandidates(snap, tribe, geo, out);
   scoutingCandidates(snap, tribe, geo, out);
+  unionCandidates(snap, tribe, geo, out);
 
   const ordered = out
     .map((c, i) => ({ c, i }))

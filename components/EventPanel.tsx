@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TRIBES } from "@/content/tribes";
 import type { EventCardView } from "@/lib/client/types";
 
 interface Props {
@@ -26,31 +27,49 @@ export default function EventPanel({ event, mode, busy, deciding, locked, paused
       <div className="event-meta">
         <span className={`chip ${isNature ? "badge-nature" : "badge-player"}`}>{isNature ? "Nature chooses" : "Your choice"}</span>
         <span className="chip">Turn {event.turn}</span>
-        <span className="chip" title="Every environmental choice applies to the whole map">Applies to: the whole land</span>
+        <span className="chip" title={event.regional ? "This event strikes only the highlighted region" : "This event applies to the whole map"}>
+          {event.regional ? `Strikes ${event.footprintLabel}` : "Applies to: the whole land"}
+        </span>
         {event.fallback && <span className="chip">Fallback event</span>}
       </div>
       <h2 id="event-title">{event.title}</h2>
       <div className="question">{event.question}</div>
+      {event.regional && (
+        <p className="small area-note">
+          {event.tribesInArea.length
+            ? <>Settlements in the region: {event.tribesInArea.map((id) => TRIBES[id].name).join(", ")}.</>
+            : <>No settlements lie in the region; only the land there changes.</>}
+        </p>
+      )}
       <div className="options" role="radiogroup" aria-label={event.question}>
         {event.options.map((o) => {
           const checked = chosenId === o.id;
           return (
-            <button
-              key={o.id}
-              type="button"
-              role="radio"
-              aria-checked={checked}
-              className={`option ${isNature && checked ? "nature-picked" : ""}`}
-              disabled={isNature || locked}
-              onClick={() => setSelected(o.id)}
-            >
-              <div className="label">
-                <span>{o.label}</span>
-                <span className="muted small">{o.duration > 0 ? `${o.duration} turn${o.duration > 1 ? "s" : ""}` : "one-time / permanent"}</span>
-              </div>
-              <div className="desc">{o.description}</div>
-              <ul>{o.effects.map((e) => <li key={e}>{e}</li>)}</ul>
-            </button>
+            <div key={o.id} className="option-wrap">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                className={`option ${isNature && checked ? "nature-picked" : ""}`}
+                disabled={isNature || locked}
+                onClick={() => setSelected(o.id)}
+              >
+                <div className="label">
+                  <span>{o.label}</span>
+                  <span className="muted small">{o.duration > 0 ? `${o.duration} turn${o.duration > 1 ? "s" : ""}` : "one-time / permanent"}</span>
+                </div>
+                <div className="desc">{o.description}</div>
+                <div className="impact small">
+                  {o.impact.helps.length > 0 && <span className="impact-helps">Likely helps: {o.impact.helps.map((id) => TRIBES[id].name).join(", ")}</span>}
+                  {o.impact.hurts.length > 0 && <span className="impact-hurts">Likely hurts: {o.impact.hurts.map((id) => TRIBES[id].name).join(", ")}</span>}
+                  {o.impact.helps.length === 0 && o.impact.hurts.length === 0 && <span className="muted">Little direct effect on any tribe</span>}
+                </div>
+              </button>
+              <details className="effect-details">
+                <summary className="small muted">Details: exact effects of {o.label}</summary>
+                <ul className="small">{o.effects.map((e) => <li key={e}>{e}</li>)}</ul>
+              </details>
+            </div>
           );
         })}
       </div>

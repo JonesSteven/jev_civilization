@@ -124,6 +124,8 @@ export function initialTribe(id: TribeId, settlement: number): TribeState {
     milestones: [],
     lastFoodDeficit: false,
     lastExposureLoss: 0,
+    fate: null,
+    absorbedBy: null,
   };
 }
 
@@ -150,6 +152,7 @@ export function createInitialState(seed: string, contentVersion: string, content
     recentEventIds: [],
     currentEvent: null,
     effectCounter: 0,
+    unionOffers: [],
   };
 }
 

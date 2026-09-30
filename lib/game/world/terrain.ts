@@ -214,7 +214,7 @@ export function fillResources(world: WorldState, seed: string, attempt: number, 
       const n = neighbors4(i, nb);
       for (let k = 0; k < n; k++) {
         if (world.terrain[nb[k] as number] === Terrain.Water) {
-          cap.forage[i] = (cap.forage[i] as number) + 0.5;
+          cap.forage[i] = (cap.forage[i] as number) + R.forage.shoreBonus;
           break;
         }
       }

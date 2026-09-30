@@ -7,7 +7,7 @@ import { NARRATION } from "./narration";
 import { TECHNOLOGIES } from "./technologies";
 import { TRIBES } from "./tribes";
 
-export const CONTENT_VERSION = "content-2.0.0";
+export const CONTENT_VERSION = "content-3.0.0";
 export { RULES_VERSION };
 
 let cachedHash: string | null = null;

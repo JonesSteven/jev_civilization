@@ -12,7 +12,7 @@ export interface ShelterSummary {
   assets: Asset[];
 }
 
-const NATURAL = { cave: 8, sheltered: 4, max: 24 };
+const NATURAL = BALANCE.housing.natural;
 
 export function shelterSummary(state: GameState, tribe: TribeId, geo: TribeGeo | undefined): ShelterSummary {
   const t = state.tribes[tribe];

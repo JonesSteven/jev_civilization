@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TRIBES } from "@/content/tribes";
+import { DEFAULT_TOTAL_TURNS } from "@/lib/game/calendar";
 import { TRIBE_IDS, type TribeId } from "@/lib/game/types";
 import { api, ClientApiError } from "@/lib/client/api";
 import HelpDialog from "./HelpDialog";
@@ -18,7 +19,7 @@ export default function StartScreen() {
   const [tribe, setTribe] = useState<TribeId | null>(null);
   const [seed, setSeed] = useState("");
   const [mode, setMode] = useState<"live" | "mock">("live");
-  const [totalTurns, setTotalTurns] = useState(50);
+  const [totalTurns, setTotalTurns] = useState(DEFAULT_TOTAL_TURNS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [help, setHelp] = useState(false);

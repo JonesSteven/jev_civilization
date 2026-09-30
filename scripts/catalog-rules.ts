@@ -7,14 +7,15 @@ import { TECHNOLOGIES, TECH_BY_ID } from "@/content/technologies";
 import { TRIBES } from "@/content/tribes";
 import { SEASONS, TERRAIN_NAMES, TILE_RESOURCES, TRIBE_IDS, type EffectOp } from "@/lib/game/types";
 
-const OPS = new Set(["yieldMult", "dryFarm", "travelMod", "regen", "stockAdjust", "capacityAdjust", "shelterDamage", "recurringShelterDamage", "exposure", "spoilage", "fertility", "convertTile", "overlay", "settlementStock", "delayed"]);
+const OPS = new Set(["yieldMult", "dryFarm", "travelMod", "regen", "stockAdjust", "capacityAdjust", "shelterDamage", "recurringShelterDamage", "exposure", "spoilage", "fertility", "convertTile", "overlay", "settlementStock", "epidemic", "delayed"]);
 const CHANNELS = new Set(["farm", "hunt", "fish", "forage", "timber", "stone"]);
 
-function checkEffect(op: EffectOp, where: string, errors: string[], depth = 0) {
+function checkEffect(op: EffectOp, where: string, errors: string[], regional: boolean, depth = 0) {
   if (!OPS.has(op.op)) errors.push(`${where}: unknown op ${op.op}`);
   const anyOp = op as unknown as Record<string, unknown>;
-  // Dynamic ruleset: every environmental choice applies to the whole map.
-  if ("scope" in anyOp && anyOp.scope !== "world") errors.push(`${where}: scope must be "world"`);
+  // World-wide families apply everywhere; regional families apply only inside the announced area.
+  const wanted = regional ? "footprint" : "world";
+  if ("scope" in anyOp && anyOp.scope !== wanted) errors.push(`${where}: scope must be "${wanted}"`);
   if ("duration" in anyOp && anyOp.duration !== undefined) {
     const d = anyOp.duration as number;
     if (!Number.isInteger(d) || d < 1 || d > BALANCE.effects.maxDuration) errors.push(`${where}: duration ${d} outside 1–${BALANCE.effects.maxDuration}`);
@@ -27,22 +28,25 @@ function checkEffect(op: EffectOp, where: string, errors: string[], depth = 0) {
       break;
     case "dryFarm":
     case "regen":
-      if (!(op.factor >= 0.25 && op.factor <= 2)) errors.push(`${where}: factor out of bounds`);
+      if (!(op.factor >= BALANCE.production.modifierMin && op.factor <= BALANCE.production.modifierMax)) errors.push(`${where}: factor out of bounds`);
       if (op.op === "regen" && !TILE_RESOURCES.includes(op.resource)) errors.push(`${where}: bad resource`);
       break;
     case "stockAdjust":
     case "capacityAdjust":
       if (!TILE_RESOURCES.includes(op.resource)) errors.push(`${where}: bad resource`);
-      if (op.fraction < -BALANCE.effects.maxDestructionFraction) errors.push(`${where}: destruction above 20%`);
+      if (op.fraction < -BALANCE.effects.maxDestructionFraction) errors.push(`${where}: destruction above the cap`);
       break;
     case "convertTile":
-      if (op.fraction > BALANCE.effects.maxDestructionFraction) errors.push(`${where}: conversion above 20%`);
+      if (op.fraction > BALANCE.effects.maxDestructionFraction) errors.push(`${where}: conversion above the cap`);
       if ((op.to as string) === "water") errors.push(`${where}: water creation is out of scope`);
       break;
     case "delayed":
       if (depth > 0) errors.push(`${where}: nested delay`);
       if (op.afterTurns < 1 || op.afterTurns > 4) errors.push(`${where}: delay out of range`);
-      for (const [i, e] of op.effects.entries()) checkEffect(e, `${where}.delayed[${i}]`, errors, depth + 1);
+      for (const [i, e] of op.effects.entries()) checkEffect(e, `${where}.delayed[${i}]`, errors, regional, depth + 1);
+      break;
+    case "epidemic":
+      if (!(op.fraction > 0 && op.fraction <= 0.5)) errors.push(`${where}: epidemic fraction outside (0, 0.5]`);
       break;
     default:
       break;
@@ -51,7 +55,7 @@ function checkEffect(op: EffectOp, where: string, errors: string[], depth = 0) {
 
 function checkEvent(e: EventDef, errors: string[]) {
   if (e.options.length !== 3) errors.push(`${e.id}: must have exactly 3 options`);
-  if (e.footprint.kind !== "world") errors.push(`${e.id}: footprint must be the whole map`);
+  const regional = e.footprint.kind !== "world";
   if (e.seasons !== "any") for (const s of e.seasons) if (!SEASONS.includes(s)) errors.push(`${e.id}: bad season ${s}`);
   const sigs = new Set<string>();
   for (const o of e.options) {
@@ -62,7 +66,7 @@ function checkEvent(e: EventDef, errors: string[]) {
     const maxDur = Math.max(0, ...o.effects.map((x) => ("duration" in x && typeof x.duration === "number" ? x.duration : 0)));
     if (o.duration !== maxDur) errors.push(`${o.id}: displayed duration ${o.duration} ≠ longest effect ${maxDur}`);
     sigs.add(JSON.stringify(o.effects));
-    for (const [i, op] of o.effects.entries()) checkEffect(op, `${o.id}[${i}]`, errors);
+    for (const [i, op] of o.effects.entries()) checkEffect(op, `${o.id}[${i}]`, errors, regional);
   }
   if (sigs.size !== 3) errors.push(`${e.id}: options are not mechanically distinct`);
 }
@@ -84,7 +88,7 @@ export function validateCatalog(): string[] {
   if (TECHNOLOGIES.length !== 8) errors.push("expected 8 technologies");
   for (const t of TECHNOLOGIES) for (const p of t.prerequisites) if (!TECH_BY_ID[p]) errors.push(`${t.id}: unknown prerequisite ${p}`);
   for (const k of Object.keys(ACTIONS)) if (!ACTIONS[k as keyof typeof ACTIONS].name) errors.push(`action ${k} missing name`);
-  const neededTemplates = ["rest", "gather_food", "establish_site", "build_housing", "raid_success", "raid_failure", "raid_escaped", "recruit_success", "starvation", "exposure", "births", "eliminated", "environment"];
+  const neededTemplates = ["collapsed", "conquered", "union", "epidemic", "raid_losses", "rest", "gather_food", "establish_site", "build_housing", "raid_success", "raid_failure", "raid_escaped", "recruit_success", "starvation", "exposure", "births", "eliminated", "environment"];
   for (const k of neededTemplates) if (!(k in NARRATION)) errors.push(`narration template ${k} missing`);
   return errors;
 }

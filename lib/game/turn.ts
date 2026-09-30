@@ -16,7 +16,9 @@ import { ageMemories, relaxRelations } from "./memory";
 import { resolveActions } from "./resolve/actions";
 import { organicGrowth, pruneScoutedSites } from "./settlements";
 import { scoreTribe } from "./score";
-import { Overlay, TRIBE_IDS, type ActionCandidate, type GameOutcome, type GameState, type PreparedEvent, type ScoreBreakdown, type TribeId } from "./types";
+import { collapseIfTooSmall, expireOffers } from "./unions";
+import { summarizeTurn, type TurnSummary } from "./summary";
+import { TRIBE_IDS, type ActionCandidate, type GameOutcome, type GameState, type PreparedEvent, type ScoreBreakdown, type TribeId } from "./types";
 
 export function cloneState(state: GameState): GameState {
   return structuredClone(state);
@@ -58,35 +60,13 @@ export interface TurnResult {
   changedTiles: number[];
   scores: Record<TribeId, ScoreBreakdown>;
   eliminated: TribeId[];
+  summary: TurnSummary;
 }
 
-function eliminate(state: GameState, id: TribeId, turn: number, outcomes: GameOutcome[], changedTiles: Set<number>) {
-  const t = state.tribes[id];
-  if (!t.alive || t.population > 0) return false;
-  t.alive = false;
-  t.eliminatedTurn = turn;
-  t.population = 0;
-  t.project = null;
-  t.camp = null;
-  const idx = TRIBE_IDS.indexOf(id);
-  // Stocks and assets become ruins: they never produce again.
-  for (const a of state.world.assets) {
-    if (a.owner !== id) continue;
-    a.owner = null;
-    state.world.overlay[a.tile] = (state.world.overlay[a.tile] as number) | Overlay.Ruin;
-    changedTiles.add(a.tile);
-  }
-  for (const tile of [t.settlement, ...t.outposts]) state.world.overlay[tile] = (state.world.overlay[tile] as number) | Overlay.Ruin;
-  t.scoutedSites = [];
-  for (let i = 0; i < state.world.owner.length; i++) {
-    if (state.world.owner[i] === idx) {
-      state.world.owner[i] = -1;
-      changedTiles.add(i);
-    }
-  }
-  t.milestones.push({ turn, text: "Disappeared" });
-  outcomes.push({ kind: "eliminated", tribeId: id, text: narrate("eliminated", { tribe: tribeName(id) }), tiles: [t.settlement] });
-  return true;
+/** The match ends at its turn limit, or as soon as one tribe (or none) is left standing. */
+export function isMatchOver(state: GameState): boolean {
+  if (state.completedTurn >= state.totalTurns) return true;
+  return state.completedTurn > 0 && livingTribes(state).length <= 1;
 }
 
 /**
@@ -122,8 +102,9 @@ export function resolveTurn(
   const eliminated: TribeId[] = [];
 
   // 6. Actions
+  const before = new Set(livingTribes(next));
   resolveActions(next, snap, chosen, turn, outcomes, changed);
-  for (const id of TRIBE_IDS) if (eliminate(next, id, turn, outcomes, changed)) eliminated.push(id);
+  for (const id of TRIBE_IDS) if (collapseIfTooSmall(next, id, turn, outcomes, changed)) eliminated.push(id);
 
   // 7. Environment: activate the announced option and queued effects; recurring effects fire.
   activateEnvironment(next, prepared.eventId, optionId, prepared.footprint, turn, outcomes, changed);
@@ -133,7 +114,9 @@ export function resolveTurn(
   const mods = new ModifierIndex(next, next.activeEffects);
   const geo = computeGeo(next, mods.travelDelta(season));
   const reports = runEconomy(next, geo, mods, season, turn, outcomes);
-  for (const id of TRIBE_IDS) if (eliminate(next, id, turn, outcomes, changed)) eliminated.push(id);
+  for (const id of TRIBE_IDS) if (collapseIfTooSmall(next, id, turn, outcomes, changed)) eliminated.push(id);
+  // Conquered and united tribes leave the game too.
+  for (const id of TRIBE_IDS) if (before.has(id) && !next.tribes[id].alive && !eliminated.includes(id)) eliminated.push(id);
 
   // Organic border growth: living tribes spread onto unclaimed border land as they grow.
   const grown = organicGrowth(next, computeGeo(next, mods.travelDelta(season)));
@@ -146,6 +129,7 @@ export function resolveTurn(
 
   // 9. Finalize: durations, relations, scores, history, next event.
   expireEffects(next, changed);
+  expireOffers(next, turn);
   relaxRelations(next);
   ageMemories(next, turn);
   const finalMods = new ModifierIndex(next, next.activeEffects);
@@ -158,9 +142,10 @@ export function resolveTurn(
   }
   next.completedTurn = turn;
   next.currentEvent = null;
-  if (turn < next.totalTurns) prepareEvent(next, turn + 1);
+  if (!isMatchOver(next)) prepareEvent(next, turn + 1);
 
-  return { state: next, outcomes, reports, changedTiles: [...changed].sort((a, b) => a - b), scores, eliminated };
+  const summary = summarizeTurn(pre, next, outcomes, prepared.eventId, optionId, prepared.footprint);
+  return { state: next, outcomes, reports, changedTiles: [...changed].sort((a, b) => a - b), scores, eliminated, summary };
 }
 
 export function currentScores(state: GameState): Record<TribeId, ScoreBreakdown> {

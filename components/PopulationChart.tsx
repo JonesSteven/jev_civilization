@@ -1,15 +1,17 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { STARTING } from "@/content/balance";
 import { TRIBES } from "@/content/tribes";
 import type { TribePanel } from "@/lib/client/types";
 
 const WIDTH = 560;
 const HEIGHT = 240;
-const M = { top: 12, right: 86, bottom: 28, left: 40 };
+const M = { top: 12, right: 86, bottom: 28, left: 50 };
 
 function niceMax(v: number): number {
-  const step = v <= 50 ? 10 : v <= 200 ? 25 : v <= 600 ? 100 : 250;
+  const magnitude = 10 ** Math.floor(Math.log10(Math.max(1, v)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => v / s <= 8) ?? magnitude * 10;
   return Math.max(step, Math.ceil(v / step) * step);
 }
 
@@ -19,14 +21,14 @@ export default function PopulationChart({ tribes }: { tribes: TribePanel[] }) {
   const [showTable, setShowTable] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const maxTurn = Math.max(1, ...tribes.flatMap((t) => t.history.map((h) => h.turn)));
-  const maxPop = niceMax(Math.max(100, ...tribes.flatMap((t) => t.history.map((h) => h.population))));
+  const maxPop = niceMax(Math.max(STARTING.population, ...tribes.flatMap((t) => t.history.map((h) => h.population))));
   const x = (turn: number) => M.left + ((turn - 0) / maxTurn) * (WIDTH - M.left - M.right);
   const y = (p: number) => M.top + (1 - p / maxPop) * (HEIGHT - M.top - M.bottom);
   const series = useMemo(
     () =>
       tribes.map((t) => ({
         id: t.id,
-        points: [{ turn: 0, population: 100 }, ...t.history.map((h) => ({ turn: h.turn, population: h.population }))],
+        points: [{ turn: 0, population: STARTING.population }, ...t.history.map((h) => ({ turn: h.turn, population: h.population }))],
       })),
     [tribes],
   );
