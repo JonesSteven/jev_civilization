@@ -83,7 +83,7 @@ button, input, select { font: inherit; color: inherit; }
 .games-list th, .games-list td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 
 /* ---------- Game layout ---------- */
-.game { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+.game { display: grid; grid-template-rows: auto auto 1fr; min-height: 100vh; }
 .topbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #2c2418; color: #f6ecd8; flex-wrap: wrap; position: sticky; top: 0; z-index: 20; }
 .topbar .title { font-family: var(--serif); font-size: 18px; font-weight: 700; margin-right: 6px; }
 .topbar .spacer { flex: 1; }
@@ -91,7 +91,25 @@ button, input, select { font: inherit; color: inherit; }
 .topbar .btn:hover:not(:disabled) { background: #4d402c; }
 .turn-indicator { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .turn-indicator strong { font-size: 15px; }
-.game-main { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 12px; padding: 12px; align-items: start; }
+.game-main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; padding: 12px; align-items: start; }
+/* Map with the tribe summary directly beside it */
+.map-row { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 12px; align-items: start; }
+.map-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.map-side .scoreboard, .map-side .tribe-detail { padding: 10px 12px; }
+.map-side .scoreboard th, .map-side .scoreboard td { padding: 5px 3px; font-size: 13px; }
+.map-side .scoreboard .pop-delta { display: block; margin-left: 0; }
+.map-side .tribe-detail .stats { grid-template-columns: 1fr; }
+.side-hint { margin: 0 4px; }
+/* Supported tribe: screen-wide bar under the header */
+.supported-bar { display: flex; align-items: center; gap: 8px 22px; flex-wrap: wrap; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line); border-left: 6px solid; box-shadow: 0 2px 6px rgba(44, 36, 24, 0.08); }
+.supported-bar .sb-name { display: flex; align-items: center; gap: 8px; }
+.supported-bar .sb-name .emblem { width: 34px; height: 34px; }
+.supported-bar .sb-title { font-family: var(--serif); font-size: 18px; font-weight: 700; line-height: 1.1; }
+.supported-bar .sb-item { display: flex; flex-direction: column; min-width: 0; }
+.supported-bar .sb-item > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+.supported-bar .sb-item > strong { font-size: 14px; white-space: nowrap; }
+.supported-bar .sb-gone { font-weight: 600; }
+.supported-bar .sb-actions { margin-left: auto; display: flex; gap: 6px; }
 .left-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .right-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .map-panel { padding: 8px; }
@@ -200,6 +218,10 @@ details > summary { cursor: pointer; font-weight: 600; }
 .timeline table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .timeline td, .timeline th { border-bottom: 1px solid var(--line); padding: 4px; text-align: left; vertical-align: top; }
 
+@media (max-width: 1320px) {
+  .map-row { grid-template-columns: 1fr; }
+  .map-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
 @media (max-width: 1100px) {
   .game-main { grid-template-columns: 1fr; }
   .map-wrap { height: 60vh; }

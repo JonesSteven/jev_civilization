@@ -16,6 +16,7 @@ import MapCanvas, { type MapHandle, type OverlayMode } from "./MapCanvas";
 import Onboarding from "./Onboarding";
 import Results from "./Results";
 import Scoreboard from "./Scoreboard";
+import SupportedBar from "./SupportedBar";
 import TileInspector from "./TileInspector";
 import TribeDetail from "./TribeDetail";
 
@@ -59,8 +60,8 @@ export default function GameScreen({ gameId }: { gameId: string }) {
   const allGone = game.tribes.every((t) => !t.alive);
   const showElimination = !finished && supported && !supported.alive && !dismissedElimination;
   const cal = game.calendar;
-  const selectedTribeId = selectedTribe ?? game.supportedTribeId;
-  const selTribe = game.tribes.find((t) => t.id === selectedTribeId) ?? game.tribes[0];
+  const selTribe = selectedTribe ? game.tribes.find((t) => t.id === selectedTribe) : undefined;
+  const livingRanked = game.tribes.filter((t) => t.alive).sort((a, b) => b.score.total - a.score.total);
   const isMock = game.mode === "mock";
   const settlementAt = selectedTile !== null ? (game.tribes.find((t) => t.alive && (t.settlement === selectedTile || t.outposts.includes(selectedTile)))?.id ?? null) : null;
   const regionalFootprint = !finished && game.event?.regional ? game.event.footprint : undefined;
@@ -96,9 +97,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               <span className={`chip ${cal.source === "nature" ? "badge-nature" : "badge-player"}`}>{cal.source === "nature" ? "Nature's turn" : "Your turn"}</span>
             </>
           )}
-          <span className="chip" style={{ background: TRIBES[game.supportedTribeId].color, color: "#fff", borderColor: TRIBES[game.supportedTribeId].colorDark }}>
-            Supporting {TRIBES[game.supportedTribeId].name}
-          </span>
         </div>
         <span className="spacer" />
         <label className="small" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
@@ -117,54 +115,73 @@ export default function GameScreen({ gameId }: { gameId: string }) {
         <Link className="btn btn-sm" href="/">New game</Link>
       </header>
 
+      {supported && (
+        <SupportedBar
+          tribe={supported}
+          rank={livingRanked.findIndex((t) => t.id === supported.id) + 1}
+          living={livingRanked.length}
+          onDetails={() => setSelectedTribe(supported.id)}
+          onFocus={() => mapRef.current?.focusTile(supported.settlement)}
+        />
+      )}
       <div className="game-main">
         <div className="left-col">
-          <section className="panel map-panel" aria-label="World map">
-            <div className="map-toolbar">
-              <label className="small">
-                Overlay{" "}
-                <select value={overlay} onChange={(e) => setOverlay(e.target.value as OverlayMode)}>
-                  <option value="none">Terrain only</option>
-                  <option value="forage">Forage</option>
-                  <option value="wildlife">Wildlife</option>
-                  <option value="fish">Fish</option>
-                  <option value="timber">Timber</option>
-                  <option value="stone">Stone</option>
-                  <option value="fertility">Fertility</option>
-                </select>
-              </label>
-              <label className="small"><input type="checkbox" checked={showOwnership} onChange={(e) => setShowOwnership(e.target.checked)} /> Territory</label>
-              <span className="spacer" style={{ flex: 1 }} />
-              <span className="small muted">Focus:</span>
-              {game.tribes.filter((t) => t.alive).map((t) => (
-                <button key={t.id} type="button" className="btn btn-sm" onClick={() => { mapRef.current?.focusTile(t.settlement); setSelectedTribe(t.id); }}>
-                  <span className="swatch" style={{ background: TRIBES[t.id].color }} aria-hidden="true" />{TRIBES[t.id].name}
-                </button>
-              ))}
-            </div>
-            <MapCanvas
-              world={world}
-              settlements={g.settlements}
-              overlay={overlay}
-              showOwnership={showOwnership}
-              footprint={regionalFootprint ?? undefined}
-              selectedTile={selectedTile}
-              supportedTribe={game.supportedTribeId}
-              onSelectTile={setSelectedTile}
-              animations={g.animations}
-              reducedMotion={g.reducedMotion}
-              handleRef={mapRef}
-              initialFocus={game.tribes.filter((t) => t.alive).map((t) => t.settlement)}
-              label={`World map, 150 by 100 tiles. Circles are capitals, squares are outposts, dashed rings are scouted sites. Use arrow keys to pan, plus and minus to zoom, 0 to fit. Settlements: ${game.tribes.filter((t) => t.alive).map((t) => `${TRIBES[t.id].name} at ${t.settlement % 150}, ${Math.floor(t.settlement / 150)}`).join("; ")}.`}
-            />
-            <div className="legend-row" aria-hidden="true">
-              <span><span className="swatch" style={{ background: "#5f93c4" }} />Water</span>
-              <span><span className="swatch" style={{ background: "#a7c979" }} />Meadow</span>
-              <span><span className="swatch" style={{ background: "#5f8f4a" }} />Forest</span>
-              <span><span className="swatch" style={{ background: "#9d9587" }} />Mountain</span>
-              <span>▦ farm · ◎ hunting site · ◁ fishery · ⌂ housing · ‖ defenses · ✕ ruin</span>
-            </div>
-          </section>
+          <div className="map-row">
+            <section className="panel map-panel" aria-label="World map">
+              <div className="map-toolbar">
+                <label className="small">
+                  Overlay{" "}
+                  <select value={overlay} onChange={(e) => setOverlay(e.target.value as OverlayMode)}>
+                    <option value="none">Terrain only</option>
+                    <option value="forage">Forage</option>
+                    <option value="wildlife">Wildlife</option>
+                    <option value="fish">Fish</option>
+                    <option value="timber">Timber</option>
+                    <option value="stone">Stone</option>
+                    <option value="fertility">Fertility</option>
+                  </select>
+                </label>
+                <label className="small"><input type="checkbox" checked={showOwnership} onChange={(e) => setShowOwnership(e.target.checked)} /> Territory</label>
+                <span className="spacer" style={{ flex: 1 }} />
+                <span className="small muted">Focus:</span>
+                {game.tribes.filter((t) => t.alive).map((t) => (
+                  <button key={t.id} type="button" className="btn btn-sm" onClick={() => { mapRef.current?.focusTile(t.settlement); setSelectedTribe(t.id); }}>
+                    <span className="swatch" style={{ background: TRIBES[t.id].color }} aria-hidden="true" />{TRIBES[t.id].name}
+                  </button>
+                ))}
+              </div>
+              <MapCanvas
+                world={world}
+                settlements={g.settlements}
+                overlay={overlay}
+                showOwnership={showOwnership}
+                footprint={regionalFootprint ?? undefined}
+                selectedTile={selectedTile}
+                supportedTribe={game.supportedTribeId}
+                onSelectTile={setSelectedTile}
+                animations={g.animations}
+                reducedMotion={g.reducedMotion}
+                handleRef={mapRef}
+                initialFocus={game.tribes.filter((t) => t.alive).map((t) => t.settlement)}
+                label={`World map, 150 by 100 tiles. Circles are capitals, squares are outposts, dashed rings are scouted sites. Use arrow keys to pan, plus and minus to zoom, 0 to fit. Settlements: ${game.tribes.filter((t) => t.alive).map((t) => `${TRIBES[t.id].name} at ${t.settlement % 150}, ${Math.floor(t.settlement / 150)}`).join("; ")}.`}
+              />
+              <div className="legend-row" aria-hidden="true">
+                <span><span className="swatch" style={{ background: "#5f93c4" }} />Water</span>
+                <span><span className="swatch" style={{ background: "#a7c979" }} />Meadow</span>
+                <span><span className="swatch" style={{ background: "#5f8f4a" }} />Forest</span>
+                <span><span className="swatch" style={{ background: "#9d9587" }} />Mountain</span>
+                <span>▦ farm · ◎ hunting site · ◁ fishery · ⌂ housing · ‖ defenses · ✕ ruin</span>
+              </div>
+            </section>
+            <aside className="map-side" aria-label="Tribes">
+              <Scoreboard tribes={game.tribes} supported={game.supportedTribeId} selected={selectedTribe} onSelect={(id) => setSelectedTribe(selectedTribe === id ? null : id)} />
+              {selTribe ? (
+                <TribeDetail tribe={selTribe} supported={selTribe.id === game.supportedTribeId} onFocus={() => mapRef.current?.focusTile(selTribe.settlement)} currentTurn={cal.turn} />
+              ) : (
+                <p className="small muted side-hint">Select a tribe above for its details.</p>
+              )}
+            </aside>
+          </div>
           {selectedTile !== null && (
             <TileInspector world={world} tile={selectedTile} inFootprint={inFootprint} settlementOf={settlementAt} onClose={() => setSelectedTile(null)} />
           )}
@@ -246,8 +263,6 @@ export default function GameScreen({ gameId }: { gameId: string }) {
               )}
             </section>
           )}
-          <Scoreboard tribes={game.tribes} supported={game.supportedTribeId} selected={selectedTribeId} onSelect={setSelectedTribe} />
-          {selTribe && <TribeDetail tribe={selTribe} supported={selTribe.id === game.supportedTribeId} onFocus={() => mapRef.current?.focusTile(selTribe.settlement)} currentTurn={cal.turn} />}
           <p className="small muted">
             Seed <span className="mono">{game.seed}</span> · {game.rulesVersion} · {game.contentVersion}
             {game.usedFallbackMap ? " · fallback map" : ""} · generation attempt {game.generationAttempt}
